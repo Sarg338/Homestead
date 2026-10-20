@@ -57,10 +57,10 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         AdbBridge.init(this);
 
         // First run shows the wizard; later, if the accessibility service is off (e.g.
-        // unbound by an app update), show the Setup page instead.
+        // unbound by an app update) and the user did not turn it off, show Setup instead.
         if (!Prefs.onboarded(this)) {
             home.showPanel(OnboardingPanel.build(this, home));
-        } else if (!SetupPanel.serviceEnabled(this)) {
+        } else if (!SetupPanel.serviceEnabled(this) && !Prefs.homeOffByUser(this)) {
             home.showPanel(SetupPanel.build(this, home));
         } else {
             maybeCheckForUpdate();

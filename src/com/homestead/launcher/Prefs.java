@@ -40,6 +40,7 @@ public final class Prefs {
     private static final String K_REAPPLY = "adb_reapply_on_boot";
     private static final String K_DISABLED = "disabled_by_us";
     private static final String K_REFUSED = "refused_by_fire_os";
+    private static final String K_HOME_OFF = "home_off_by_user";
     private static final String K_SETUP_SEEN = "setup_seen";
     private static final String K_ONBOARDED = "onboarded";
     private static final String K_UPD_LASTCHECK = "update_last_check";
@@ -129,6 +130,12 @@ public final class Prefs {
     }
 
     /** Re-apply package choices after reboot; some are reverted by the system. */
+    /** The user switched the Home button off from the app; cleared when it comes back on. */
+    public static boolean homeOffByUser(Context c) { return sp(c).getBoolean(K_HOME_OFF, false); }
+    public static void setHomeOffByUser(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_HOME_OFF, v).apply();
+    }
+
     public static boolean reapplyOnBoot(Context c) { return sp(c).getBoolean(K_REAPPLY, true); }
     public static void setReapplyOnBoot(Context c, boolean v) {
         sp(c).edit().putBoolean(K_REAPPLY, v).apply();

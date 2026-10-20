@@ -28,6 +28,8 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(final Context context, Intent intent) {
         // The receiver is exported, so ignore explicit intents from other apps.
         if (intent == null || !Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) return;
+        // The user turned the Home button off: leave them on Amazon's home screen.
+        if (Prefs.homeOffByUser(context)) return;
 
         // Wait for the home stack, or Amazon's launcher starts after us and wins.
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {

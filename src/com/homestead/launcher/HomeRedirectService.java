@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -95,6 +96,25 @@ public class HomeRedirectService extends AccessibilityService {
     private WindowManager.LayoutParams lp;
 
     // ---------------------------------------------------------------- static API
+
+    /** True if this Android version lets the service switch itself off. */
+    public static boolean canTurnOff() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
+    }
+
+    /**
+     * Switch the Home redirect off from inside the app. No permission is needed, but
+     * switching it back on needs ADB again. @return false if it could not be done.
+     */
+    public static boolean turnOff(Context c) {
+        HomeRedirectService s = instance;
+        if (s == null || !canTurnOff()) return false;
+        Prefs.setHomeOffByUser(c, true);
+        s.cancelHide();
+        s.detach();
+        s.disableSelf();
+        return true;
+    }
 
     public static void suspend(long ms) {
         suspendUntil = SystemClock.elapsedRealtime() + ms;
@@ -207,6 +227,7 @@ public class HomeRedirectService extends AccessibilityService {
         super.onServiceConnected();
         if (home != null) return;               // guard against a second connect
         instance = this;
+        Prefs.setHomeOffByUser(this, false);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         try {
             home = buildGrid();

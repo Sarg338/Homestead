@@ -114,10 +114,18 @@ public final class SettingsPanel {
         p.addHeader("System");
 
         boolean ready = SetupPanel.serviceEnabled(c);
-        Panel.Row setup = p.addRow("Setup", ready ? "done" : "not finished", null);
+        final Panel.Row setup = p.addRow("Setup", ready ? "done"
+                : Prefs.homeOffByUser(c) ? "Home button off" : "not finished", null);
         setup.setValueColor(ready ? 0xFFA7D28F : 0xFFE8C468);
         setup.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { host.showPanel(SetupPanel.build(c, host)); }
+        });
+
+        SetupPanel.addTurnOffRow(c, p, new Runnable() {
+            public void run() {
+                setup.setValue("Home button off");
+                setup.setValueColor(0xFFE8C468);
+            }
         });
 
         p.addRow("TV Health", "check", new Runnable() {

@@ -122,8 +122,14 @@ exactly the commands still needed on your TV.
 3. Uninstall Homestead under Settings → Applications → Manage Installed Applications.
 
 Uninstalling also removes the accessibility service, so the Home button goes back to
-Amazon's home screen straight away. To visit Amazon's home screen without turning anything
-off, use the **Amazon Home** tile.
+Amazon's home screen straight away.
+
+**To keep Homestead but give the Home button back to Amazon,** select **Turn off the Home
+button** in Settings or Setup (press it twice to confirm). Homestead stays installed as an
+ordinary app. **Re-apply after reboot** stops while the Home button is off. To turn it back
+on, select **Finish setup automatically** in Setup, which needs ADB debugging still on. This
+switch needs Fire OS 6 or later. To visit Amazon's home screen for a moment without turning
+anything off, use the **Amazon Home** tile.
 
 ## How the Home button works
 
@@ -162,6 +168,8 @@ expose.
 
 ## Building
 
+Only needed if you want to build the app from source; to use Homestead, install the signed
+`homestead.apk` from the [releases](https://github.com/Sarg338/Homestead/releases/latest).
 No Gradle, no dependencies, about two seconds:
 
 ```sh

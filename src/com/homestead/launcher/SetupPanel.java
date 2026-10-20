@@ -57,6 +57,16 @@ public final class SetupPanel {
                 + "If the Home button ever goes back to Amazon's home screen, for example "
                 + "after an update, run \"Finish setup automatically\" again.");
 
+        // Set once refresh exists, further down.
+        final Runnable[] refreshRef = new Runnable[1];
+        final Runnable offPaint = addTurnOffRow(c, p, new Runnable() {
+            public void run() { if (refreshRef[0] != null) refreshRef[0].run(); }
+        });
+        p.addNote("Turning it off sends Home back to Amazon's home screen straight away, and "
+                + "\"Re-apply after reboot\" stops while it is off. To turn it back on, run "
+                + "\"Finish setup automatically\" (ADB debugging must still be on), or use "
+                + "\"Commands for a computer\".");
+
         // ------------------------------------------------------------------ step two
         p.addHeader("2. Let this app configure the TV");
 
@@ -126,7 +136,10 @@ public final class SetupPanel {
                 connectRow.setValueColor(ready ? OK : WARN);
 
                 String fp = AdbBridge.fingerprint();
-                fpRow.setValue(fp == null ? "not generated yet" : shortFingerprint(fp));
+                // The fingerprint is read when connecting; a saved key may not be loaded yet.
+                fpRow.setValue(fp != null ? shortFingerprint(fp)
+                        : AdbCrypto.hasKey(c) ? "saved" : "not generated yet");
+                offPaint.run();
 
                 // Also actionable when the tunnel is enabled but down: it re-opens on demand.
                 boolean usable = (st == AdbBridge.CONNECTED) || Prefs.tunnelEnabled(c);
@@ -279,6 +292,7 @@ public final class SetupPanel {
         });
 
         Prefs.setSetupSeen(c, true);
+        refreshRef[0] = refresh;
         refresh.run();
         return p.root;
     }
@@ -322,6 +336,55 @@ public final class SetupPanel {
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             return s != null && s.contains(c.getPackageName());
         } catch (Throwable t) { return false; }
+    }
+
+    /**
+     * "Turn off the Home button". Takes two presses within five seconds, since switching it
+     * back on needs ADB. after runs once it is off. @return a Runnable that repaints the row.
+     */
+    static Runnable addTurnOffRow(final Context c, Panel p, final Runnable after) {
+        final Panel.Row row = p.addRow("Turn off the Home button", "", null);
+        final boolean[] armed = { false };
+        final Runnable paint = new Runnable() {
+            public void run() {
+                row.setValueColor(WARN);
+                if (!serviceEnabled(c)) {
+                    row.setValue("off");
+                    row.cell.setEnabled(false);
+                } else if (!HomeRedirectService.canTurnOff()) {
+                    row.setValue("needs a computer");
+                    row.cell.setEnabled(false);
+                } else {
+                    row.setValue(armed[0] ? "press again to turn it off" : "");
+                    row.cell.setEnabled(true);
+                }
+            }
+        };
+        final Runnable disarm = new Runnable() {
+            public void run() { armed[0] = false; paint.run(); }
+        };
+        paint.run();
+        row.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (!armed[0]) {
+                    armed[0] = true;
+                    paint.run();
+                    row.cell.postDelayed(disarm, 5000L);
+                    return;
+                }
+                row.cell.removeCallbacks(disarm);
+                armed[0] = false;
+                if (!HomeRedirectService.turnOff(c)) {
+                    row.setValue("could not - try again");
+                    return;
+                }
+                // The setting is written asynchronously, so show the result directly.
+                row.setValue("off");
+                row.cell.setEnabled(false);
+                if (after != null) after.run();
+            }
+        });
+        return paint;
     }
 
     /** "My Fire TV" (Developer options, ADB debugging). */

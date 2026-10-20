@@ -70,8 +70,6 @@ public class HomeRedirectService extends AccessibilityService {
      * the app's first frame, so lifting at once shows Amazon's home in between.
      */
     private static final long REVEAL_MS = 400L;
-    /** How long the invisible warm-up copy of the overlay stays up. */
-    private static final long WARM_UP_MS = 4000L;
 
     private static HomeRedirectService instance;
 
@@ -104,7 +102,6 @@ public class HomeRedirectService extends AccessibilityService {
     private Runnable pendingHide;
     private Runnable pendingOpen;
     private Runnable pendingReveal;
-    private Runnable pendingWarmEnd;
     private WindowManager.LayoutParams lp;
 
     // ---------------------------------------------------------------- static API
@@ -324,9 +321,6 @@ public class HomeRedirectService extends AccessibilityService {
         } catch (Throwable t) { }
         AdbBridge.init(this);
         bindWatcher();
-        handler.postDelayed(new Runnable() {
-            public void run() { warmUp(); }
-        }, 3000L);
         scheduleBootMaintenance();
         Log.i(TAG, "HomeRedirectService connected");
     }
@@ -360,11 +354,6 @@ public class HomeRedirectService extends AccessibilityService {
     public void onDestroy() {
         cancelHide();
         detach();
-        if (pendingWarmEnd != null) {
-            handler.removeCallbacks(pendingWarmEnd);
-            pendingWarmEnd = null;
-            try { wm.removeViewImmediate(home.root); } catch (Throwable t) { }
-        }
         try { unregisterReceiver(pkgs); } catch (Throwable t) { }
         if (watcherBound) {
             try { unbindService(watcherConn); } catch (Throwable t) { }
@@ -392,39 +381,6 @@ public class HomeRedirectService extends AccessibilityService {
 
     // ---------------------------------------------------------------- overlay
 
-    /**
-     * Draw the overlay once, invisibly. A process's first frame takes over a second to
-     * render, long enough for Amazon's home to show on the first Home press; later frames
-     * are quick. Not focusable or touchable, so input still goes to the screen below.
-     */
-    private void warmUp() {
-        if (home == null || attached != null || home.root.getParent() != null) return;
-        try {
-            WindowManager.LayoutParams w = new WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                    PixelFormat.OPAQUE);
-            w.alpha = 0f;
-            wm.addView(home.root, w);
-        } catch (Throwable t) {
-            Log.w(TAG, "overlay warm-up failed: " + t);
-            try { wm.removeViewImmediate(home.root); } catch (Throwable ignored) { }
-            return;
-        }
-        pendingWarmEnd = new Runnable() {
-            public void run() {
-                pendingWarmEnd = null;
-                if (attached != null || home == null || home.root.getParent() == null) return;
-                try { wm.removeView(home.root); } catch (Throwable t) { }
-                Log.i(TAG, "overlay warmed up");
-            }
-        };
-        handler.postDelayed(pendingWarmEnd, WARM_UP_MS);
-    }
-
     private void attach() {
         if (attached != null && pickedEpoch == epoch) {
             // A pick is in flight; Amazon's launcher behind the cover is expected until
@@ -441,10 +397,6 @@ public class HomeRedirectService extends AccessibilityService {
                 MainActivity.open(this);
             }
             return;
-        }
-        if (pendingWarmEnd != null) {
-            handler.removeCallbacks(pendingWarmEnd);
-            pendingWarmEnd = null;
         }
         try {
             if (home == null) home = buildGrid();

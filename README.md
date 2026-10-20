@@ -152,16 +152,15 @@ Home press earlier, as the system starts Amazon's launcher, so a small separate 
 watches the log for that one line and the overlay goes up first. It is also the only way to
 notice a Home press made while Amazon's home screen is already in front, since that changes
 no window. That needs `READ_LOGS`, which setup grants over ADB; [SECURITY.md](SECURITY.md)
-says exactly what is read. Shortly after the service starts, the overlay is also drawn once
-invisibly, because the first frame of a freshly started app takes over a second to draw.
+says exactly what is read.
 
 ## Known limitations
 
 - **Without `READ_LOGS`, Amazon's home screen shows for a moment** on each Home press, and
   Home does nothing while Amazon's home screen is already showing (open any app, then press
   Home). Setup grants it.
-- **With it, the screen can still go black for a moment** (up to about 200 ms) between the
-  app you leave and Homestead. Pressing Home while Homestead itself is in front can still
+- **With it, the screen can still go black for a moment** between the app you leave and
+  Homestead: usually under a quarter of a second, longer on the first press after an update. Pressing Home while Homestead itself is in front can still
   show Amazon's home briefly, because Amazon's screen comes back quickly from there.
 - **The Amazon Home tile pauses Homestead for 30 seconds.** After that, Homestead may take
   over again while you are still browsing Amazon's home screen. Pressing Home brings

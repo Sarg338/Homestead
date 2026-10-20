@@ -236,7 +236,9 @@ public final class OnboardingPanel {
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
-        content.addView(note("In each prompt, press Down to reach OK. No Developer options? "
+        content.addView(note("Android's VPN notice says the app could monitor network traffic; "
+                + "Homestead's only carries the TV's own debugging connection, and nothing "
+                + "leaves the TV. In each prompt, press Down to reach OK. No Developer options? "
                 + "Open My Fire TV, then About, and press Select on the device name seven "
                 + "times. To do this later, press Continue; you can still open Homestead "
                 + "from Amazon's app row."));
@@ -296,7 +298,9 @@ public final class OnboardingPanel {
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
-        content.addView(note("It only runs while cleaning up, then switches itself off."));
+        content.addView(note("Android's VPN notice says the app could monitor network traffic; "
+                + "Homestead's only carries the TV's own debugging connection. It only runs "
+                + "while cleaning up, then switches itself off."));
         updateChip();
 
         View setup = button("Set it up", true, new Runnable() {

@@ -60,8 +60,8 @@ installed).
 
 Download `homestead.apk` from the [latest release](https://github.com/Sarg338/Homestead/releases/latest)
 and sideload it: `adb install homestead.apk` from a computer, or the Downloader app on the
-TV. The app checks that release page once a day and offers new
-versions under Settings → **Update**; it never installs one without you pressing Install.
+TV. The app checks that release page once a day and offers new versions under Settings →
+**Check for updates**; it never installs one until you press **Install now**.
 
 ## Setup
 
@@ -261,6 +261,10 @@ testing, check whether a pause is active before suspecting the service.
 - Everything the app changes must be reversible from the app.
 - Keep the accessibility service as narrow as it is (`canRetrieveWindowContent="false"`,
   no key filtering, no package filter). [SECURITY.md](SECURITY.md) promises this.
+- **Release notes** appear as raw text in the app's Update available page, so write them
+  as plain text: no Markdown links, code spans or headings. Bump `versionCode` and
+  `versionName` in `AndroidManifest.xml`; the app compares the release tag (`v1.2`) with
+  `versionName`.
 - Describe only what you have tested. "Should work on X" belongs in a pull request
   description, not in the README.
 

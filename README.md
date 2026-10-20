@@ -110,7 +110,8 @@ adb shell pm grant com.homestead.launcher android.permission.READ_LOGS
 
 The first two commands switch the Home button on; the first replaces any other
 accessibility service you have switched on. The first grant lets TV Health change settings
-from the remote. The second lets Home work while Amazon's home screen is already showing.
+from the remote. The second lets Homestead catch the Home press early, so Amazon's home
+screen does not flash first, and makes Home work while Amazon's home screen is showing.
 To switch packages off, open **Commands for a computer** in the app: it lists exactly the
 commands still needed on your TV.
 
@@ -145,17 +146,23 @@ once Fire OS allows it, keeping the selected tile and scroll position.
 
 The overlay is an accessibility overlay, which needs no extra permission.
 
-A Home press made while Amazon's home screen is already in front changes no window, so the
-accessibility service never hears about it. The system log still records it, so a small
-separate process watches the log for that one line. That needs `READ_LOGS`, which setup
-grants over ADB; [SECURITY.md](SECURITY.md) says exactly what is read.
+The accessibility service only hears about Amazon's launcher once its screen is being
+drawn, which is a few hundred milliseconds too late to hide it. The system log records the
+Home press earlier, as the system starts Amazon's launcher, so a small separate process
+watches the log for that one line and the overlay goes up first. It is also the only way to
+notice a Home press made while Amazon's home screen is already in front, since that changes
+no window. That needs `READ_LOGS`, which setup grants over ADB; [SECURITY.md](SECURITY.md)
+says exactly what is read. Shortly after the service starts, the overlay is also drawn once
+invisibly, because the first frame of a freshly started app takes over a second to draw.
 
 ## Known limitations
 
-- **Amazon's home screen shows for a moment** on each Home press, before Homestead covers
-  it. Fire OS reports the press only once Amazon's screen has started to appear.
-- **Home does nothing while Amazon's home screen is already showing** unless setup has
-  granted `READ_LOGS`. Without it, open any app, then press Home.
+- **Without `READ_LOGS`, Amazon's home screen shows for a moment** on each Home press, and
+  Home does nothing while Amazon's home screen is already showing (open any app, then press
+  Home). Setup grants it.
+- **With it, the screen can still go black for a moment** (up to about 200 ms) between the
+  app you leave and Homestead. Pressing Home while Homestead itself is in front can still
+  show Amazon's home briefly, because Amazon's screen comes back quickly from there.
 - **The Amazon Home tile pauses Homestead for 30 seconds.** After that, Homestead may take
   over again while you are still browsing Amazon's home screen. Pressing Home brings
   Homestead back at any time.
@@ -192,7 +199,7 @@ comment explaining why it exists. Read it before changing the class.
 | Area | Classes |
 |---|---|
 | Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
-| Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate), `HomeKeyWatcher` (Home presses on Amazon's home screen, from the system log) |
+| Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate), `HomeKeyWatcher` (Home presses, from the system log) |
 | Pages | `Panel` (the list page), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
 | ADB | `AdbBridge` (one worker thread, link state, command batches), `AdbConnection` (the client), `AdbCrypto` (the key), `TunnelVpnService` and `VpnSetupActivity` (the on-device tunnel) |
 | Debloat list | `Debloat` (the package catalogue, the never-touch lists, live locks) |
@@ -237,20 +244,24 @@ adb exec-out screencap -p > screen.png
 ```
 
 Log lines worth knowing: `HomeRedirectService connected` (the service started),
-`dispatchLag=…` then `overlay shown in … ms` (one Home press), `Home pressed on Amazon's
-home screen` (the same, caught by `HomeKeyWatcher`), `handing off to activity`,
+`Home pressed` then `overlay shown in … ms` (one Home press, caught by `HomeKeyWatcher`),
+`dispatchLag=…` (Amazon's launcher reached the front), `handing off to activity`,
 `foreground is now …, removing overlay`, `tunnel up`, `adb connected`, `adb idle, closing`.
 
 Things that look like bugs but are Fire OS:
 
 - Fire OS's Accessibility menu does not list third-party services. The service has to be
   switched on over ADB.
-- Pressing Home while Amazon's home screen is already showing produces no accessibility
-  event, and the system's Home broadcast is restricted to Amazon-signed apps. The only
-  trace an app can read is ActivityManager's `START ... cat=[android.intent.category.HOME]
-  ... from uid 1000` line in the system log, which is what `HomeKeyWatcher` looks for.
-  `READ_LOGS` takes effect only in a process started after the grant, which is why the
-  watcher runs in its own process (`:homekey`).
+- The system's Home broadcast is restricted to Amazon-signed apps, and the accessibility
+  event for Amazon's launcher arrives as its screen is drawn (and not at all if it is
+  already in front). The earliest trace an app can read is ActivityManager's
+  `START ... cat=[android.intent.category.HOME] ... from uid 1000` line in the system log,
+  which is what `HomeKeyWatcher` looks for. `READ_LOGS` takes effect only in a process
+  started after the grant, which is why the watcher runs in its own process (`:homekey`).
+- Some Amazon apps, such as Luna, handle Home themselves (`CustomHomeButtonHandler:
+  Bypassing HOME key` in the log) and then start the home screen under their own uid, so a
+  HOME start from the app in front counts as a press too. That hook needs an Amazon-only
+  permission, so Homestead cannot use it for its own screens.
 - Fire OS refuses an ADB connection that starts on the TV itself; that is why the tunnel
   exists. The connection over Wi-Fi from a computer also drops often, so reconnect before
   each command when scripting.

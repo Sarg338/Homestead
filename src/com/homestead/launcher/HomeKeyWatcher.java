@@ -29,9 +29,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 /**
- * Reports Home presses made while Amazon's home screen is already in front. That press
- * changes no window, so the accessibility service gets no event, but the system log still
- * records the HOME intent; this reads it.
+ * Reports Home presses from the system log. The HOME intent is logged as the system acts
+ * on the press, a few hundred ms before Amazon's home draws, and it is the only trace of a
+ * press made while Amazon's home is already in front (that changes no window).
  *
  * Needs READ_LOGS, a development permission granted over ADB. The log group it maps to is
  * applied only when a process starts, so this runs in its own process: binding after the
@@ -41,11 +41,11 @@ import java.io.InputStreamReader;
 public class HomeKeyWatcher extends Service {
 
     static final int MSG_REGISTER = 1;
+    /** arg1 is the uid that started the HOME intent. */
     static final int MSG_HOME = 2;
 
     private static final String TAG = "Homestead";
     private static final String PERM = "android.permission.READ_LOGS";
-    private static final String SYSTEM_UID = "1000";
 
     private volatile Messenger client;
     private volatile boolean running;
@@ -99,10 +99,11 @@ public class HomeKeyWatcher extends Service {
                         "ActivityManager:I", "*:S").redirectErrorStream(true).start();
                 BufferedReader r = new BufferedReader(
                         new InputStreamReader(proc.getInputStream()));
-                Log.i(TAG, "watching for Home presses on Amazon's home screen");
+                Log.i(TAG, "watching for Home presses");
                 String line;
                 while (running && (line = r.readLine()) != null) {
-                    if (isHomePress(line, started)) send();
+                    int uid = homeStartUid(line, started);
+                    if (uid >= 0) send(uid);
                 }
             } catch (Throwable t) {
                 if (running) Log.w(TAG, "Home watch failed: " + t);
@@ -120,32 +121,33 @@ public class HomeKeyWatcher extends Service {
     }
 
     /**
-     * A HOME intent started by the system itself, i.e. the Home button. Our "Amazon Home"
-     * tile and `am start` from a shell run under other uids and are not counted.
+     * The uid that started a HOME intent, or -1 if the line is not one. Which uids count as
+     * a Home press is up to HomeRedirectService. Our "Amazon Home" tile has no HOME
+     * category, so it never matches.
      */
-    static boolean isHomePress(String line, long notBefore) {
-        if (line.indexOf("START u0 {") < 0) return false;
-        if (line.indexOf("cat=[android.intent.category.HOME]") < 0) return false;
+    static int homeStartUid(String line, long notBefore) {
+        if (line.indexOf("START u0 {") < 0) return -1;
+        if (line.indexOf("cat=[android.intent.category.HOME]") < 0) return -1;
         int u = line.indexOf(" from uid ");
-        if (u < 0) return false;
+        if (u < 0) return -1;
         int s = u + 10, e = s;
         while (e < line.length() && Character.isDigit(line.charAt(e))) e++;
-        if (!SYSTEM_UID.equals(line.substring(s, e))) return false;
+        if (e == s) return -1;
         // -T 1 replays the newest line, which may be an old press.
         try {
             String t = line.trim();
             int sp = t.indexOf(' ');
             long at = (long) (Double.parseDouble(t.substring(0, sp)) * 1000.0);
-            if (at < notBefore) return false;
+            if (at < notBefore) return -1;
         } catch (Throwable ignored) { }
-        return true;
+        try { return Integer.parseInt(line.substring(s, e)); } catch (Throwable t) { return -1; }
     }
 
-    private void send() {
+    private void send(int uid) {
         Messenger c = client;
         if (c == null) return;
         try {
-            c.send(Message.obtain(null, MSG_HOME));
+            c.send(Message.obtain(null, MSG_HOME, uid, 0));
         } catch (RemoteException e) {
             client = null;
         }

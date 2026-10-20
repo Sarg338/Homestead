@@ -11,7 +11,7 @@ are.
 | Accessibility service | The only way to learn the Home button was pressed | `canRetrieveWindowContent="false"`, no key filtering, no package filter. It receives *which app came to the foreground* and nothing else. |
 | `INTERNET` | The on-device ADB client and the update check | Two uses, both listed under *What goes over the network* below. Nothing is uploaded and there are no analytics. |
 | `WRITE_SECURE_SETTINGS` | Optional. TV Health applies animation-scale and ad-tracking settings | Declared but not held unless you grant it with `pm grant` (or the on-device tunnel grants it). Without it those pages are read-only and show the command instead. |
-| `READ_LOGS` | Optional. Lets Home work while Amazon's home screen is already showing | Declared but not held unless you grant it with `pm grant` (setup does this over the tunnel). See *The system log* below. |
+| `READ_LOGS` | Optional. Lets Homestead cover Amazon's home screen before it appears, and makes Home work while Amazon's home screen is showing | Declared but not held unless you grant it with `pm grant` (setup does this over the tunnel). See *The system log* below. |
 | `SYSTEM_ALERT_WINDOW` | Fallback only | The overlay normally uses `TYPE_ACCESSIBILITY_OVERLAY`, which needs no permission. Declared for devices that refuse that window type. |
 | `PACKAGE_USAGE_STATS` | Optional, unused in practice | Ordering is tracked internally; this is only read if the appop happens to be granted, to pick up launches predating install. |
 | `RECEIVE_BOOT_COMPLETED` | Open the launcher at boot | |
@@ -46,20 +46,22 @@ app.
 
 ## The system log
 
-A Home press made while Amazon's home screen is already in front leaves no trace an app can
-see except one line in the system log, so with `READ_LOGS` granted a small background
-process (`:homekey`) reads the log to catch it.
+The earliest sign of a Home press an app can see is one line in the system log, written as
+the system starts Amazon's home screen and before that screen draws. A press made while
+Amazon's home screen is already in front leaves no other trace at all. So with `READ_LOGS`
+granted, a small background process (`:homekey`) reads the log to catch it.
 
 Be clear about what that permission is: `READ_LOGS` lets an app read the TV's whole system
 log, which can include details from other apps. Homestead asks `logcat` for only the
 `ActivityManager` lines in the `system` buffer, acts only on a HOME intent started by the
-system itself, and does not keep, store or send any of it. Nothing is read when the
+system itself or by the app in front (some Amazon apps, such as Luna, pass Home on that
+way), and does not keep, store or send any of it. Nothing is read when the
 permission is not granted. To take it away:
 
     adb shell pm revoke com.homestead.launcher android.permission.READ_LOGS
 
-After the TV next restarts, Home does nothing on Amazon's home screen again; everything else
-keeps working.
+After the TV next restarts, Amazon's home screen shows for a moment on each Home press
+again and Home does nothing on Amazon's home screen; everything else keeps working.
 
 ## The ADB key
 

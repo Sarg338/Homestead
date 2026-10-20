@@ -74,11 +74,12 @@ public final class CommandsPanel {
                     + " android.permission.WRITE_SECURE_SETTINGS");
         }
 
-        Panel.Row h = p.addRow("Home on Amazon's home screen", logs ? "done" : "needed", null);
+        Panel.Row h = p.addRow("Catch Home presses early", logs ? "done" : "needed", null);
         h.setValueColor(logs ? OK : WARN);
         if (!logs) {
-            p.addNote("Without this, Home does nothing while Amazon's home screen is already "
-                    + "showing. Homestead uses it only to spot the Home press in the system log:\n\n"
+            p.addNote("Without this, Amazon's home screen shows for a moment on each Home press, "
+                    + "and Home does nothing while Amazon's home screen is already showing. "
+                    + "Homestead uses it only to spot the Home press in the system log:\n\n"
                     + "adb shell pm grant " + pkg + " android.permission.READ_LOGS");
         }
 

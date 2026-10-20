@@ -70,12 +70,8 @@ public class HomeRedirectService extends AccessibilityService {
      * the app's first frame, so lifting at once shows Amazon's home in between.
      */
     private static final long REVEAL_MS = 400L;
-    /**
-     * A Home press reported by HomeKeyWatcher counts as made on Amazon's home screen only
-     * if that screen was already in front this long; otherwise the press is what brought it
-     * up, and the window event has handled it.
-     */
-    private static final long SETTLED_MS = 800L;
+    /** How long the invisible warm-up copy of the overlay stays up. */
+    private static final long WARM_UP_MS = 4000L;
 
     private static HomeRedirectService instance;
 
@@ -91,9 +87,8 @@ public class HomeRedirectService extends AccessibilityService {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long lastShow = 0L;
-    /** The package of the last window event, and when it came (elapsedRealtime). */
+    /** The package of the last window event. */
     private String lastForeground;
-    private long lastForegroundAt = 0L;
     private boolean watcherBound;
 
     /** Re-sort the hidden overlay after an app is opened, so it is in order before Home. */
@@ -109,6 +104,7 @@ public class HomeRedirectService extends AccessibilityService {
     private Runnable pendingHide;
     private Runnable pendingOpen;
     private Runnable pendingReveal;
+    private Runnable pendingWarmEnd;
     private WindowManager.LayoutParams lp;
 
     // ---------------------------------------------------------------- static API
@@ -230,7 +226,7 @@ public class HomeRedirectService extends AccessibilityService {
 
     private final Messenger fromWatcher = new Messenger(new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message m) {
-            if (m.what == HomeKeyWatcher.MSG_HOME) onHomeKey();
+            if (m.what == HomeKeyWatcher.MSG_HOME) onHomeKey(m.arg1);
         }
     });
 
@@ -257,18 +253,34 @@ public class HomeRedirectService extends AccessibilityService {
     }
 
     /**
-     * Only acts while Amazon's home screen is settled in front with nothing of ours over
-     * it. Every other Home press changes the window, and onAccessibilityEvent handles it.
+     * Any Home press. The log line comes as the system starts Amazon's home, a few hundred
+     * ms before its window draws, so the overlay is up first and Amazon's home is never
+     * seen. It is also the only sign of a press made while Amazon's home is already in
+     * front. Without READ_LOGS this never runs and the window event does the job instead.
+     *
+     * The system starts HOME for a Home press. Apps that Fire OS lets handle Home
+     * themselves (Amazon Luna) start it under their own uid, so the app in front counts
+     * too; other uids, such as Settings during boot, do not.
      */
-    private void onHomeKey() {
-        if (attached != null || !AMAZON.equals(lastForeground)) return;
+    private void onHomeKey(int uid) {
+        if (uid != android.os.Process.SYSTEM_UID && !isForegroundApp(uid)) return;
         long now = SystemClock.elapsedRealtime();
-        if (now - lastForegroundAt < SETTLED_MS) return;
         // A deliberate Home press ends any pause, such as the Amazon Home tile's.
         suspendUntil = 0L;
         lastShow = now;
-        Log.i(TAG, "Home pressed on Amazon's home screen");
+        Log.i(TAG, "Home pressed");
         attach();
+    }
+
+    private boolean isForegroundApp(int uid) {
+        String fg = lastForeground;
+        if (fg == null || fg.equals(AMAZON) || fg.equals(getPackageName())) return false;
+        try {
+            String[] pkgs = getPackageManager().getPackagesForUid(uid);
+            if (pkgs == null) return false;
+            for (String p : pkgs) if (fg.equals(p)) return true;
+        } catch (Throwable t) { }
+        return false;
     }
 
     // ---------------------------------------------------------------- lifecycle
@@ -312,6 +324,9 @@ public class HomeRedirectService extends AccessibilityService {
         } catch (Throwable t) { }
         AdbBridge.init(this);
         bindWatcher();
+        handler.postDelayed(new Runnable() {
+            public void run() { warmUp(); }
+        }, 3000L);
         scheduleBootMaintenance();
         Log.i(TAG, "HomeRedirectService connected");
     }
@@ -345,6 +360,11 @@ public class HomeRedirectService extends AccessibilityService {
     public void onDestroy() {
         cancelHide();
         detach();
+        if (pendingWarmEnd != null) {
+            handler.removeCallbacks(pendingWarmEnd);
+            pendingWarmEnd = null;
+            try { wm.removeViewImmediate(home.root); } catch (Throwable t) { }
+        }
         try { unregisterReceiver(pkgs); } catch (Throwable t) { }
         if (watcherBound) {
             try { unbindService(watcherConn); } catch (Throwable t) { }
@@ -372,6 +392,39 @@ public class HomeRedirectService extends AccessibilityService {
 
     // ---------------------------------------------------------------- overlay
 
+    /**
+     * Draw the overlay once, invisibly. A process's first frame takes over a second to
+     * render, long enough for Amazon's home to show on the first Home press; later frames
+     * are quick. Not focusable or touchable, so input still goes to the screen below.
+     */
+    private void warmUp() {
+        if (home == null || attached != null || home.root.getParent() != null) return;
+        try {
+            WindowManager.LayoutParams w = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                    PixelFormat.OPAQUE);
+            w.alpha = 0f;
+            wm.addView(home.root, w);
+        } catch (Throwable t) {
+            Log.w(TAG, "overlay warm-up failed: " + t);
+            try { wm.removeViewImmediate(home.root); } catch (Throwable ignored) { }
+            return;
+        }
+        pendingWarmEnd = new Runnable() {
+            public void run() {
+                pendingWarmEnd = null;
+                if (attached != null || home == null || home.root.getParent() == null) return;
+                try { wm.removeView(home.root); } catch (Throwable t) { }
+                Log.i(TAG, "overlay warmed up");
+            }
+        };
+        handler.postDelayed(pendingWarmEnd, WARM_UP_MS);
+    }
+
     private void attach() {
         if (attached != null && pickedEpoch == epoch) {
             // A pick is in flight; Amazon's launcher behind the cover is expected until
@@ -388,6 +441,10 @@ public class HomeRedirectService extends AccessibilityService {
                 MainActivity.open(this);
             }
             return;
+        }
+        if (pendingWarmEnd != null) {
+            handler.removeCallbacks(pendingWarmEnd);
+            pendingWarmEnd = null;
         }
         try {
             if (home == null) home = buildGrid();
@@ -585,10 +642,7 @@ public class HomeRedirectService extends AccessibilityService {
         if (e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         CharSequence p = e.getPackageName();
         if (p == null) return;
-        if (!p.toString().equals(lastForeground)) {
-            lastForeground = p.toString();
-            lastForegroundAt = SystemClock.elapsedRealtime();
-        }
+        lastForeground = p.toString();
 
         // Another app took the screen: remove the overlay so it does not cover it.
         if (!AMAZON.contentEquals(p)) {

@@ -197,8 +197,12 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     public void showPanel(final View v) {
-        // Stop the grid behind from stealing D-pad focus while a panel is up.
+        // Stop the grid, and any panel underneath, from stealing D-pad focus.
         scroll.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        View under = panels.isEmpty() ? null : panels.get(panels.size() - 1);
+        if (under instanceof ViewGroup) {
+            ((ViewGroup) under).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        }
         root.addView(v, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         panels.add(v);
@@ -214,6 +218,9 @@ public class HomeGrid implements SettingsPanel.Host {
             takeFocus();
         } else {
             final View below = panels.get(panels.size() - 1);
+            if (below instanceof ViewGroup) {
+                ((ViewGroup) below).setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+            }
             below.post(new Runnable() { public void run() { below.requestFocus(); } });
         }
     }

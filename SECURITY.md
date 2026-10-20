@@ -27,7 +27,7 @@ The app has exactly two network behaviours, and no others:
   APK itself is downloaded only when you choose *Install*, and it is refused unless it is
   signed by the same certificate as the installed app.
 - **The ADB client.** Connects only to this television's own `adbd`, directly or through
-  the local tunnel described below. It never leaves the device.
+  a local tunnel on the TV. It never leaves the device.
 
 There is no telemetry, no crash reporting and no analytics of any kind.
 
@@ -60,29 +60,6 @@ Understand the trade: an authorised ADB key is `shell`-level access to your TV. 
 were compromised, so is that. It also requires ADB debugging to stay switched on, which
 means anything on your local network can attempt to connect to the TV. Leave it off unless
 you want it.
-
-## The on-device tunnel
-
-Fire OS refuses an ADB connection that starts on the TV itself. The optional **on-device
-tunnel** is a `VpnService` that carries the app's connection to the TV's own `adbd`. It is
-built to be hard to misuse:
-
-- **Not startable by any other app.** `VpnSetupActivity` is `android:exported="false"`, so
-  only this app can bring the tunnel up.
-- **Off by default.** Once you turn it on in Setup, it starts only when the app has ADB work
-  to do: when you use Setup, TV Health or Debloat, and about a minute after a restart if a
-  package you switched off has turned itself back on. That last case is **Re-apply after
-  reboot**, which you can switch off in Setup.
-- **Short-lived.** It runs only while the app is running ADB commands and shuts down about
-  25 seconds after they finish.
-- **Routes only its own private subnet** (`10.113.77.0/24`), never a default route, so it
-  never sees your Wi-Fi or streaming traffic. It refuses to start if that subnet is already
-  in use on your network, and it makes no internet connection.
-- **The remaining risk:** while the tunnel is up, other apps on the TV can reach `adbd` too,
-  because a `VpnService` routes by destination and cannot filter by app. They cannot use
-  this app's key, which is in app-private storage; each would have to get *you* to approve
-  *its own* key on the television's dialog. Approve only prompts you were expecting, and
-  turn ADB debugging back off under My Fire TV when you are done.
 
 ## Package changes
 

@@ -91,7 +91,7 @@ app came to the front: it cannot read what is on screen and does not receive key
 6. Press Home.
 
 The tunnel runs only while the app is making changes and shuts itself off afterwards.
-[SECURITY.md](SECURITY.md) explains what it does and does not expose.
+[SECURITY.md](SECURITY.md) explains what the app can access and what goes over the network.
 Some Amazon packages switch themselves back on after a restart; with **Re-apply after
 reboot** on (the default), Homestead switches them off again about a minute after the TV
 starts, which needs ADB debugging left on.

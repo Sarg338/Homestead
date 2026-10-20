@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.homestead.launcher"
-    android:versionCode="48" android:versionName="1.0.1">
+    android:versionCode="49" android:versionName="1.0.2">
 
   <!-- Optional: last-used times for app sorting, when granted. -->
   <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
-  <!-- Opens this launcher at boot (BootReceiver). -->
+  <!-- Opens this launcher at boot, and after an in-app update (BootReceiver). -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <!-- Fallback only: the overlay is normally TYPE_ACCESSIBILITY_OVERLAY, which needs no
        permission; this is used if the window manager refuses that type. -->
@@ -88,6 +88,7 @@
     <receiver android:name=".BootReceiver" android:exported="true">
       <intent-filter android:priority="999">
         <action android:name="android.intent.action.BOOT_COMPLETED"/>
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
       </intent-filter>
     </receiver>
   </application>

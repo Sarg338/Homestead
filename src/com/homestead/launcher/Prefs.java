@@ -41,6 +41,7 @@ public final class Prefs {
     private static final String K_DISABLED = "disabled_by_us";
     private static final String K_REFUSED = "refused_by_fire_os";
     private static final String K_HOME_OFF = "home_off_by_user";
+    private static final String K_UPDATE_STARTED = "update_started_at";
     private static final String K_SETUP_SEEN = "setup_seen";
     private static final String K_ONBOARDED = "onboarded";
     private static final String K_UPD_LASTCHECK = "update_last_check";
@@ -134,6 +135,12 @@ public final class Prefs {
     public static boolean homeOffByUser(Context c) { return sp(c).getBoolean(K_HOME_OFF, false); }
     public static void setHomeOffByUser(Context c, boolean v) {
         sp(c).edit().putBoolean(K_HOME_OFF, v).apply();
+    }
+
+    /** When the in-app updater last started an install (wall clock), 0 if none pending. */
+    public static long updateStarted(Context c) { return sp(c).getLong(K_UPDATE_STARTED, 0L); }
+    public static void setUpdateStarted(Context c, long at) {
+        sp(c).edit().putLong(K_UPDATE_STARTED, at).commit();   // must survive the replace
     }
 
     public static boolean reapplyOnBoot(Context c) { return sp(c).getBoolean(K_REAPPLY, true); }

@@ -170,6 +170,8 @@ public final class UpdateInstaller {
     // ---------------------------------------------------------------- install
 
     private static void install(final Context c, final File apk, final Progress p) {
+        // Replacing the app ends this process; BootReceiver reopens it if this was us.
+        Prefs.setUpdateStarted(c, System.currentTimeMillis());
         if (AdbBridge.canRun(c)) {
             status(p, "Installing through the tunnel");
             AdbBridge.installApk(apk, new AdbBridge.Callback() {

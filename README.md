@@ -6,9 +6,7 @@ sponsored placements. Your inputs and your apps, and nothing else.
 It also replaces the Home **button**, which is the hard part — Fire OS pins Amazon's
 launcher as the system home activity and will not let anything else take it.
 
-| Before: Amazon's home screen | After: Homestead |
-|---|---|
-| <img src="screenshots/before.jpg" width="420" alt="Amazon's home screen: a sponsored banner, then rows of promoted shows and apps"> | <img src="screenshots/home.png" width="420" alt="Homestead: rows for Inputs &amp; System, Non-TV Applications and TV Applications"> |
+<img src="screenshots/before_after.png" alt="Before: Amazon's home screen with a sponsored banner, rows of promoted shows and the apps in one strip. After: Homestead with HDMI inputs up front, all apps in one grid, and an Amazon Home tile.">
 
 Both pictures are from the same TV, a few minutes apart.
 

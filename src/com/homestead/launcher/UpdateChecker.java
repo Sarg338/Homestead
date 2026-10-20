@@ -34,8 +34,8 @@ import java.util.Locale;
  *
  * One unauthenticated GET to the Releases API (no token is shipped in the app), so the
  * releases repo must be public; a 404 is reported as "no public release channel".
- * The release tag ("v2.2" or "2.2") is compared with the installed versionName as dotted
- * numbers ("2.10" > "2.9"). Installing is UpdateInstaller's job.
+ * The release tag ("v1.2" or "1.2") is compared with the installed versionName as dotted
+ * numbers ("1.10" > "1.9"). Installing is UpdateInstaller's job.
  */
 public final class UpdateChecker {
 
@@ -57,7 +57,7 @@ public final class UpdateChecker {
 
     /** A release that is newer than what is installed. */
     public static final class Update {
-        /** Cleaned versionName, e.g. "2.2" (no leading v). */
+        /** Cleaned versionName, e.g. "1.2" (no leading v). */
         public final String versionName;
         /** Release notes (the release body markdown), may be empty. */
         public final String notes;
@@ -159,7 +159,7 @@ public final class UpdateChecker {
 
     // ---------------------------------------------------------------- version compare
 
-    /** True if candidate (e.g. "v2.2") is a higher dotted-number version than installed. */
+    /** True if candidate (e.g. "v1.2") is a higher dotted-number version than installed. */
     static boolean isNewer(String candidate, String installed) {
         int[] a = parts(candidate);
         int[] b = parts(installed);

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.homestead.launcher"
+    android:versionCode="46" android:versionName="2.5">
+
+  <!-- Optional: last-used times for app sorting, when granted. -->
+  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
+  <!-- Opens this launcher at boot (BootReceiver). -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+  <!-- Fallback only: the overlay is normally TYPE_ACCESSIBILITY_OVERLAY, which needs no
+       permission; this is used if the window manager refuses that type. -->
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+  <!-- The in-app ADB client (this TV's own adbd) and the daily GitHub Releases update
+       check/download. No telemetry. See SECURITY.md. -->
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <!-- Development permission, granted via `pm grant`; lets TV Health apply settings
+       fixes. Without it that page is read-only and shows the command instead. -->
+  <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+  <!-- Self-update fallback: hands the APK to the system installer when `pm install`
+       through the local tunnel is not available. -->
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
+  <uses-feature android:name="android.software.leanback" android:required="false"/>
+  <uses-feature android:name="android.software.live_tv" android:required="false"/>
+  <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+
+  <application android:label="Homestead"
+               android:icon="@drawable/ic_launcher"
+               android:banner="@drawable/banner"
+               android:allowBackup="false"
+               android:hardwareAccelerated="true">
+
+    <!-- The launcher itself -->
+    <activity android:name=".MainActivity"
+              android:exported="true"
+              android:launchMode="singleTask"
+              android:stateNotNeeded="true"
+              android:screenOrientation="landscape"
+              android:theme="@style/InstantHome">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.HOME"/>
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+      </intent-filter>
+    </activity>
+
+    <!-- Full-screen HDMI / passthrough viewer -->
+    <activity android:name=".HdmiActivity"
+              android:exported="false"
+              android:launchMode="singleTop"
+              android:screenOrientation="landscape"
+              android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"/>
+
+    <!-- Home button redirect -->
+    <service android:name=".HomeRedirectService"
+             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+             android:exported="true">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService"/>
+      </intent-filter>
+      <meta-data android:name="android.accessibilityservice"
+                 android:resource="@xml/accessibility_service_config"/>
+    </service>
+
+    <!-- Local tunnel to the TV's own adbd where Fire OS blocks self-connections. Opt-in,
+         off by default; startable only by this app. See SECURITY.md. -->
+    <service android:name=".TunnelVpnService"
+             android:permission="android.permission.BIND_VPN_SERVICE"
+             android:exported="false">
+      <intent-filter>
+        <action android:name="android.net.VpnService"/>
+      </intent-filter>
+    </service>
+
+    <!-- exported=false so that no other app can start the tunnel. -->
+    <activity android:name=".VpnSetupActivity"
+              android:exported="false"
+              android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+
+    <!-- Serves the downloaded update APK, read-only, to the system installer only. -->
+    <provider android:name=".UpdateFileProvider"
+              android:authorities="com.homestead.launcher.updates"
+              android:exported="false"
+              android:grantUriPermissions="true"/>
+
+    <!-- Open our launcher at boot instead of Amazon's -->
+    <receiver android:name=".BootReceiver" android:exported="true">
+      <intent-filter android:priority="999">
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

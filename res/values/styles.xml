@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    No window animation, plus a starting window (windowDisablePreview=false) painted in the
+    grid's mid-tone, so switching to the launcher shows our colours at once, not black.
+  -->
+  <style name="InstantHome" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+    <item name="android:windowAnimationStyle">@null</item>
+    <item name="android:windowBackground">#FF86A7DA</item>
+    <item name="android:windowDisablePreview">false</item>
+    <item name="android:windowContentTransitions">false</item>
+    <item name="android:windowActivityTransitions">false</item>
+  </style>
+</resources>

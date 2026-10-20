@@ -15,13 +15,19 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/AppData/Local/Android/Sdk}}"
+# Default SDK locations for Windows, Linux and macOS, in that order.
+for d in "$HOME/AppData/Local/Android/Sdk" "$HOME/Android/Sdk" "$HOME/Library/Android/sdk"; do
+  [ -d "$d" ] && DEFAULT_SDK="$d" && break
+done
+SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-${DEFAULT_SDK:-$HOME/Android/Sdk}}}"
 BT="${ANDROID_BUILD_TOOLS:-$SDK/build-tools/36.1.0}"
 ANDROID_JAR="${ANDROID_JAR:-$SDK/platforms/android-34/android.jar}"
 KEYDIR="${HOMESTEAD_KEYDIR:-$HOME/.homestead-keys}"
 KEYSTORE="${HOMESTEAD_KEYSTORE:-$KEYDIR/homestead-release.keystore}"
 KEYALIAS="${HOMESTEAD_KEYALIAS:-homestead}"
-ADB="${ADB:-$SDK/platform-tools/adb.exe}"
+# The SDK ships .bat/.exe wrappers on Windows and plain scripts elsewhere.
+tool() { if [ -e "$1.bat" ]; then echo "$1.bat"; elif [ -e "$1.exe" ]; then echo "$1.exe"; else echo "$1"; fi; }
+ADB="${ADB:-$(tool "$SDK/platform-tools/adb")}"
 ADB_TARGET="${ADB_TARGET:-}"      # ip:port of your TV, for ./build.sh install
 
 MIN_SDK=22          # Fire OS 5 (Android 5.1). TYPE_ACCESSIBILITY_OVERLAY exists from 22.
@@ -66,7 +72,7 @@ rm -f sources.txt
 
 echo "==> d8"
 find classes -name '*.class' > classes.txt
-"$BT/d8.bat" --lib "$(win "$ANDROID_JAR")" --min-api "$MIN_SDK" --release \
+"$(tool "$BT/d8")" --lib "$(win "$ANDROID_JAR")" --min-api "$MIN_SDK" --release \
   --output "$(win "$PWD/dex")" @classes.txt
 rm -f classes.txt
 
@@ -78,16 +84,16 @@ echo "==> zipalign"
 "$BT/zipalign" -f -p 4 app-with-dex.apk app-aligned.apk
 
 echo "==> sign"
-"$BT/apksigner.bat" sign \
+"$(tool "$BT/apksigner")" sign \
   --ks "$(win "$KEYSTORE")" --ks-key-alias "$KEYALIAS" \
   --ks-pass "pass:$HOMESTEAD_KEYPASS" --key-pass "pass:$HOMESTEAD_KEYPASS" \
   --min-sdk-version "$MIN_SDK" \
   --out homestead.apk app-aligned.apk
-"$BT/apksigner.bat" verify --min-sdk-version "$MIN_SDK" homestead.apk
+"$(tool "$BT/apksigner")" verify --min-sdk-version "$MIN_SDK" homestead.apk
 
 VC=$(grep -o 'versionCode="[0-9]*"' AndroidManifest.xml | grep -o '[0-9]*')
 VN=$(grep -o 'versionName="[^"]*"' AndroidManifest.xml | cut -d'"' -f2)
-echo "==> homestead.apk  v$VN ($VC)  $(stat -c%s homestead.apk) bytes, $(unzip -l homestead.apk 2>/dev/null | grep -c '\.dex\|\.png\|\.arsc' || echo '?') packaged entries"
+echo "==> homestead.apk  v$VN ($VC)  $(wc -c < homestead.apk | tr -d ' ') bytes, $(unzip -l homestead.apk 2>/dev/null | grep -c '\.dex\|\.png\|\.arsc' || echo '?') packaged entries"
 
 if [ "${1:-}" = "install" ]; then
   if [ -z "$ADB_TARGET" ]; then

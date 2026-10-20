@@ -171,11 +171,117 @@ No Gradle, no dependencies, about two seconds:
 
 Needs the Android SDK (`build-tools/36.1.0`, `platforms/android-34`) and a JDK. The signing
 key is **not** in this repository; `build.sh` looks for `~/.homestead-keys/` or the
-`HOMESTEAD_KEYSTORE` / `HOMESTEAD_KEYPASS` environment variables. Set `ADB_TARGET` to your
-TV's `ip:port` for `./build.sh install`.
+`HOMESTEAD_KEYSTORE` / `HOMESTEAD_KEYPASS` environment variables (to make your own key,
+see [Building and signing your own copy](#building-and-signing-your-own-copy)). Set
+`ADB_TARGET` to your TV's `ip:port` for `./build.sh install`.
 
 The ADB client is written from the AOSP sources (`system/core/adb`,
 `libcrypto_utils/android_pubkey.c`); no code is copied.
+
+## AI assistants
+
+Notes for coding agents, and for anyone else picking this repository up cold.
+
+### Where things are
+
+There is no Gradle; everything is in `src/com/homestead/launcher/`. Each class starts with a
+comment explaining why it exists. Read it before changing the class.
+
+| Area | Classes |
+|---|---|
+| Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
+| Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate) |
+| Pages | `Panel` (the list page), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
+| ADB | `AdbBridge` (one worker thread, link state, command batches), `AdbConnection` (the client), `AdbCrypto` (the key), `TunnelVpnService` and `VpnSetupActivity` (the on-device tunnel) |
+| Debloat list | `Debloat` (the package catalogue, the never-touch lists, live locks) |
+| Updates | `UpdateChecker` (the GitHub repo is `UpdateChecker.REPO`), `UpdateInstaller`, `UpdateFileProvider` |
+| Preferences | `Prefs` |
+
+### Building and signing your own copy
+
+`./build.sh` needs a JDK (11 or newer), Android build-tools 36.1.0 and platform android-34.
+It has been run on Windows (Git Bash) only; it picks the right tool names for Linux and
+macOS, but those are untested. `minSdk` is 22 and `targetSdk` is 28. Do not raise
+`targetSdk`: newer levels tighten the background-start rules the Home button relies on.
+
+The release signing key is not in the repository. To build your own, make a key once:
+
+```sh
+mkdir -p ~/.homestead-keys
+keytool -genkeypair -keystore ~/.homestead-keys/homestead-release.keystore \
+  -alias homestead -keyalg RSA -keysize 2048 -validity 10000
+export HOMESTEAD_KEYPASS='<the password you chose>'
+./build.sh
+```
+
+A build signed with your own key cannot install over an official one (or the other way
+round), so uninstall first. Uninstalling loses Homestead's record of what it switched off,
+so run **Undo everything this app switched off** in Debloat before you do.
+
+### Debugging on a TV
+
+Test on real Fire TV hardware. The behaviour this app works around (Amazon's pinned home
+screen, the delay on app starts after Home, protected packages, the missing Accessibility
+entry) does not exist on an emulator or stock Android.
+
+```sh
+adb connect <tv-ip>:5555
+adb logcat -s Homestead                                        # every log line uses this tag
+adb shell settings get secure enabled_accessibility_services   # is the Home button switched on?
+adb shell dumpsys accessibility                                # ...and running? look for label=Homestead
+adb shell dumpsys activity activities | grep mResumedActivity  # what is on screen
+adb shell pm list packages -d                                  # what is switched off
+adb exec-out screencap -p > screen.png
+```
+
+Log lines worth knowing: `HomeRedirectService connected` (the service started),
+`dispatchLag=…` then `overlay shown in … ms` (one Home press), `handing off to activity`,
+`foreground is now …, removing overlay`, `tunnel up`, `adb connected`, `adb idle, closing`.
+
+Things that look like bugs but are Fire OS:
+
+- Fire OS's Accessibility menu does not list third-party services. The service has to be
+  switched on over ADB.
+- Pressing Home while Amazon's home screen is already showing produces no event Homestead
+  can see. The system's Home broadcast is restricted to Amazon-signed apps.
+- Fire OS refuses an ADB connection that starts on the TV itself; that is why the tunnel
+  exists. The connection over Wi-Fi from a computer also drops often, so reconnect before
+  each command when scripting.
+- `pm disable-user` on some Amazon packages fails with "Cannot disable a protected
+  package". Batches carry on past it, and TV Health counts those as protected.
+- In the system VPN and USB-debugging prompts, no button has focus at first. Press Down to
+  reach OK.
+- `uiautomator dump` cannot read Homestead's windows. Use screenshots.
+
+Homestead pauses the Home redirect while the user is on a setup screen (settings, VPN
+prompt, key prompt), and lifts the pause when they come back. If Home "does nothing" during
+testing, check whether a pause is active before suspecting the service.
+
+### Rules for changes
+
+- **Debloat list:** add a package only after switching it off, restarting the TV and
+  switching it back on, on a real device, with nothing broken. Say which device in the
+  pull request. `SAFE` entries are included in the one-press switch-off; anything with a
+  visible side effect is `CAUTION`. Never add anything on the never-touch lists.
+- Everything the app changes must be reversible from the app.
+- Keep the accessibility service as narrow as it is (`canRetrieveWindowContent="false"`,
+  no key filtering, no package filter). SECURITY.md promises this.
+- Describe only what you have tested. "Should work on X" belongs in a pull request
+  description, not in the README.
+
+### Verified Homestead on a device not in the table?
+
+Open a pull request that adds a row to **Verified on** above:
+
+- the device's name;
+- the model, from `adb shell getprop ro.product.model`;
+- the Fire OS version, from `adb shell getprop ro.build.version.name`;
+- what you checked: the launcher, the Home button, setup from the TV, TV Health, Debloat.
+
+Only list what you actually tried. If Debloat shows rows as "not present", or the TV has
+Amazon packages the list does not know about, attach the output of
+`adb shell pm list packages -s` (system packages only, so it does not list the apps you
+installed).
 
 ## Licence
 

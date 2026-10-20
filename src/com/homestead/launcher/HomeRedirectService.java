@@ -14,13 +14,19 @@ package com.homestead.launcher;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
@@ -64,6 +70,12 @@ public class HomeRedirectService extends AccessibilityService {
      * the app's first frame, so lifting at once shows Amazon's home in between.
      */
     private static final long REVEAL_MS = 400L;
+    /**
+     * A Home press reported by HomeKeyWatcher counts as made on Amazon's home screen only
+     * if that screen was already in front this long; otherwise the press is what brought it
+     * up, and the window event has handled it.
+     */
+    private static final long SETTLED_MS = 800L;
 
     private static HomeRedirectService instance;
 
@@ -79,6 +91,10 @@ public class HomeRedirectService extends AccessibilityService {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long lastShow = 0L;
+    /** The package of the last window event, and when it came (elapsedRealtime). */
+    private String lastForeground;
+    private long lastForegroundAt = 0L;
+    private boolean watcherBound;
 
     /** Re-sort the hidden overlay after an app is opened, so it is in order before Home. */
     private final Runnable quietResort = new Runnable() {
@@ -114,6 +130,12 @@ public class HomeRedirectService extends AccessibilityService {
         s.detach();
         s.disableSelf();
         return true;
+    }
+
+    /** Start HomeKeyWatcher once READ_LOGS is granted; safe to call more than once. */
+    public static void startHomeKeyWatch() {
+        HomeRedirectService s = instance;
+        if (s != null) s.bindWatcher();
     }
 
     public static void suspend(long ms) {
@@ -204,6 +226,51 @@ public class HomeRedirectService extends AccessibilityService {
         return s != null && s.attached != null;
     }
 
+    // ---------------------------------------------------------------- Home key watch
+
+    private final Messenger fromWatcher = new Messenger(new Handler(Looper.getMainLooper()) {
+        public void handleMessage(Message m) {
+            if (m.what == HomeKeyWatcher.MSG_HOME) onHomeKey();
+        }
+    });
+
+    private final ServiceConnection watcherConn = new ServiceConnection() {
+        public void onServiceConnected(ComponentName n, IBinder b) {
+            try {
+                Message m = Message.obtain(null, HomeKeyWatcher.MSG_REGISTER);
+                m.replyTo = fromWatcher;
+                new Messenger(b).send(m);
+            } catch (RemoteException e) { }
+        }
+        // If its process dies the system restarts it and calls onServiceConnected again.
+        public void onServiceDisconnected(ComponentName n) { }
+    };
+
+    private void bindWatcher() {
+        if (watcherBound || !HomeKeyWatcher.permitted(this)) return;
+        try {
+            watcherBound = bindService(new Intent(this, HomeKeyWatcher.class),
+                    watcherConn, BIND_AUTO_CREATE);
+        } catch (Throwable t) {
+            Log.w(TAG, "Home watch bind failed: " + t);
+        }
+    }
+
+    /**
+     * Only acts while Amazon's home screen is settled in front with nothing of ours over
+     * it. Every other Home press changes the window, and onAccessibilityEvent handles it.
+     */
+    private void onHomeKey() {
+        if (attached != null || !AMAZON.equals(lastForeground)) return;
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastForegroundAt < SETTLED_MS) return;
+        // A deliberate Home press ends any pause, such as the Amazon Home tile's.
+        suspendUntil = 0L;
+        lastShow = now;
+        Log.i(TAG, "Home pressed on Amazon's home screen");
+        attach();
+    }
+
     // ---------------------------------------------------------------- lifecycle
 
     private final BroadcastReceiver pkgs = new BroadcastReceiver() {
@@ -244,6 +311,7 @@ public class HomeRedirectService extends AccessibilityService {
             registerReceiver(pkgs, f);
         } catch (Throwable t) { }
         AdbBridge.init(this);
+        bindWatcher();
         scheduleBootMaintenance();
         Log.i(TAG, "HomeRedirectService connected");
     }
@@ -278,6 +346,10 @@ public class HomeRedirectService extends AccessibilityService {
         cancelHide();
         detach();
         try { unregisterReceiver(pkgs); } catch (Throwable t) { }
+        if (watcherBound) {
+            try { unbindService(watcherConn); } catch (Throwable t) { }
+            watcherBound = false;
+        }
         if (instance == this) instance = null;
         super.onDestroy();
     }
@@ -513,6 +585,10 @@ public class HomeRedirectService extends AccessibilityService {
         if (e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         CharSequence p = e.getPackageName();
         if (p == null) return;
+        if (!p.toString().equals(lastForeground)) {
+            lastForeground = p.toString();
+            lastForegroundAt = SystemClock.elapsedRealtime();
+        }
 
         // Another app took the screen: remove the overlay so it does not cover it.
         if (!AMAZON.contentEquals(p)) {

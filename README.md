@@ -84,8 +84,8 @@ app came to the front: it cannot read what is on screen and does not receive key
    one Homestead shows, tick **Always allow from this computer**, then select OK. Without
    the tick, the TV asks again every time the app connects.
 5. The first-run setup then switches the Home button on by itself. In Setup, select
-   **Finish setup automatically**, which also grants the permissions TV Health and Debloat
-   need.
+   **Finish setup automatically**, which also grants the permissions TV Health, Debloat
+   and the Home button need.
 6. Press Home.
 
 The tunnel runs only while the app is making changes and shuts itself off afterwards.
@@ -95,7 +95,8 @@ reboot** on (the default), Homestead switches them off again about a minute afte
 starts, which needs ADB debugging left on.
 
 If the Home button ever goes back to Amazon's home screen, for example after an update,
-select **Finish setup automatically** again.
+select **Finish setup automatically** again. If you set Homestead up before version 1.2, run
+it once more so Home also works while Amazon's home screen is showing.
 
 ### From a computer
 
@@ -104,12 +105,14 @@ adb connect <your TV's address>          # shown on the Commands page in the app
 adb shell settings put secure enabled_accessibility_services com.homestead.launcher/com.homestead.launcher.HomeRedirectService
 adb shell settings put secure accessibility_enabled 1
 adb shell pm grant com.homestead.launcher android.permission.WRITE_SECURE_SETTINGS
+adb shell pm grant com.homestead.launcher android.permission.READ_LOGS
 ```
 
 The first two commands switch the Home button on; the first replaces any other
-accessibility service you have switched on. The grant lets TV Health change settings from
-the remote. To switch packages off, open **Commands for a computer** in the app: it lists
-exactly the commands still needed on your TV.
+accessibility service you have switched on. The first grant lets TV Health change settings
+from the remote. The second lets Home work while Amazon's home screen is already showing.
+To switch packages off, open **Commands for a computer** in the app: it lists exactly the
+commands still needed on your TV.
 
 ## Removing Homestead
 
@@ -142,14 +145,20 @@ once Fire OS allows it, keeping the selected tile and scroll position.
 
 The overlay is an accessibility overlay, which needs no extra permission.
 
+A Home press made while Amazon's home screen is already in front changes no window, so the
+accessibility service never hears about it. The system log still records it, so a small
+separate process watches the log for that one line. That needs `READ_LOGS`, which setup
+grants over ADB; [SECURITY.md](SECURITY.md) says exactly what is read.
+
 ## Known limitations
 
 - **Amazon's home screen shows for a moment** on each Home press, before Homestead covers
   it. Fire OS reports the press only once Amazon's screen has started to appear.
-- **Home does nothing while Amazon's home screen is already showing**, because Fire OS
-  reports nothing in that case. Open any app, then press Home.
+- **Home does nothing while Amazon's home screen is already showing** unless setup has
+  granted `READ_LOGS`. Without it, open any app, then press Home.
 - **The Amazon Home tile pauses Homestead for 30 seconds.** After that, Homestead may take
-  over again while you are still browsing Amazon's home screen.
+  over again while you are still browsing Amazon's home screen. Pressing Home brings
+  Homestead back at any time.
 
 ## Building
 
@@ -183,7 +192,7 @@ comment explaining why it exists. Read it before changing the class.
 | Area | Classes |
 |---|---|
 | Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
-| Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate) |
+| Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate), `HomeKeyWatcher` (Home presses on Amazon's home screen, from the system log) |
 | Pages | `Panel` (the list page), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
 | ADB | `AdbBridge` (one worker thread, link state, command batches), `AdbConnection` (the client), `AdbCrypto` (the key), `TunnelVpnService` and `VpnSetupActivity` (the on-device tunnel) |
 | Debloat list | `Debloat` (the package catalogue, the never-touch lists, live locks) |
@@ -228,15 +237,20 @@ adb exec-out screencap -p > screen.png
 ```
 
 Log lines worth knowing: `HomeRedirectService connected` (the service started),
-`dispatchLag=…` then `overlay shown in … ms` (one Home press), `handing off to activity`,
+`dispatchLag=…` then `overlay shown in … ms` (one Home press), `Home pressed on Amazon's
+home screen` (the same, caught by `HomeKeyWatcher`), `handing off to activity`,
 `foreground is now …, removing overlay`, `tunnel up`, `adb connected`, `adb idle, closing`.
 
 Things that look like bugs but are Fire OS:
 
 - Fire OS's Accessibility menu does not list third-party services. The service has to be
   switched on over ADB.
-- Pressing Home while Amazon's home screen is already showing produces no event Homestead
-  can see. The system's Home broadcast is restricted to Amazon-signed apps.
+- Pressing Home while Amazon's home screen is already showing produces no accessibility
+  event, and the system's Home broadcast is restricted to Amazon-signed apps. The only
+  trace an app can read is ActivityManager's `START ... cat=[android.intent.category.HOME]
+  ... from uid 1000` line in the system log, which is what `HomeKeyWatcher` looks for.
+  `READ_LOGS` takes effect only in a process started after the grant, which is why the
+  watcher runs in its own process (`:homekey`).
 - Fire OS refuses an ADB connection that starts on the TV itself; that is why the tunnel
   exists. The connection over Wi-Fi from a computer also drops often, so reconnect before
   each command when scripting.

@@ -283,7 +283,10 @@ public final class OnboardingPanel {
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         } catch (Throwable ignored) { }
         AdbBridge.run(AdbBridge.selfSetupCommands(c, current), new AdbBridge.Callback() {
-            public void onDone(boolean ok, String out) { updateChip(); }
+            public void onDone(boolean ok, String out) {
+                HomeRedirectService.startHomeKeyWatch();
+                updateChip();
+            }
         });
     }
 

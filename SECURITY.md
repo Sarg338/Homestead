@@ -11,6 +11,7 @@ are.
 | Accessibility service | The only way to learn the Home button was pressed | `canRetrieveWindowContent="false"`, no key filtering, no package filter. It receives *which app came to the foreground* and nothing else. |
 | `INTERNET` | The on-device ADB client and the update check | Two uses, both listed under *What goes over the network* below. Nothing is uploaded and there are no analytics. |
 | `WRITE_SECURE_SETTINGS` | Optional. TV Health applies animation-scale and ad-tracking settings | Declared but not held unless you grant it with `pm grant` (or the on-device tunnel grants it). Without it those pages are read-only and show the command instead. |
+| `READ_LOGS` | Optional. Lets Home work while Amazon's home screen is already showing | Declared but not held unless you grant it with `pm grant` (setup does this over the tunnel). See *The system log* below. |
 | `SYSTEM_ALERT_WINDOW` | Fallback only | The overlay normally uses `TYPE_ACCESSIBILITY_OVERLAY`, which needs no permission. Declared for devices that refuse that window type. |
 | `PACKAGE_USAGE_STATS` | Optional, unused in practice | Ordering is tracked internally; this is only read if the appop happens to be granted, to pick up launches predating install. |
 | `RECEIVE_BOOT_COMPLETED` | Open the launcher at boot | |
@@ -42,6 +43,23 @@ to `typeWindowStateChanged` and declares `canRetrieveWindowContent="false"`. It 
 the contents of any window, cannot see what you type, and does not request
 `canRequestFilterKeyEvents`, which would route every key press on the device through this
 app.
+
+## The system log
+
+A Home press made while Amazon's home screen is already in front leaves no trace an app can
+see except one line in the system log, so with `READ_LOGS` granted a small background
+process (`:homekey`) reads the log to catch it.
+
+Be clear about what that permission is: `READ_LOGS` lets an app read the TV's whole system
+log, which can include details from other apps. Homestead asks `logcat` for only the
+`ActivityManager` lines in the `system` buffer, acts only on a HOME intent started by the
+system itself, and does not keep, store or send any of it. Nothing is read when the
+permission is not granted. To take it away:
+
+    adb shell pm revoke com.homestead.launcher android.permission.READ_LOGS
+
+After the TV next restarts, Home does nothing on Amazon's home screen again; everything else
+keeps working.
 
 ## The ADB key
 

@@ -16,6 +16,9 @@
   <!-- Development permission, granted via `pm grant`; lets TV Health apply settings
        fixes. Without it that page is read-only and shows the command instead. -->
   <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+  <!-- Development permission, granted via `pm grant`; lets Home work while Amazon's home
+       screen is already showing (HomeKeyWatcher). Without it that press does nothing. -->
+  <uses-permission android:name="android.permission.READ_LOGS"/>
   <!-- Self-update fallback: hands the APK to the system installer when `pm install`
        through the local tunnel is not available. -->
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
@@ -62,6 +65,12 @@
       <meta-data android:name="android.accessibilityservice"
                  android:resource="@xml/accessibility_service_config"/>
     </service>
+
+    <!-- Reads the system log for Home presses; its own process so a new READ_LOGS
+         grant applies without restarting the app. -->
+    <service android:name=".HomeKeyWatcher"
+             android:process=":homekey"
+             android:exported="false"/>
 
     <!-- Local tunnel to the TV's own adbd where Fire OS blocks self-connections. Opt-in,
          off by default; startable only by this app. See SECURITY.md. -->

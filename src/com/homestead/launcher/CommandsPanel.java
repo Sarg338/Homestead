@@ -50,6 +50,7 @@ public final class CommandsPanel {
         // ------------------------------------------------------------------ what is missing
         boolean svc = SetupPanel.serviceEnabled(c);
         boolean wss = HealthPanel.canWriteSettings(c);
+        boolean logs = HomeKeyWatcher.permitted(c);
 
         p.addHeader("Still missing");
 
@@ -71,6 +72,14 @@ public final class CommandsPanel {
                     + "the remote, permanently:\n\n"
                     + "adb shell pm grant " + pkg
                     + " android.permission.WRITE_SECURE_SETTINGS");
+        }
+
+        Panel.Row h = p.addRow("Home on Amazon's home screen", logs ? "done" : "needed", null);
+        h.setValueColor(logs ? OK : WARN);
+        if (!logs) {
+            p.addNote("Without this, Home does nothing while Amazon's home screen is already "
+                    + "showing. Homestead uses it only to spot the Home press in the system log:\n\n"
+                    + "adb shell pm grant " + pkg + " android.permission.READ_LOGS");
         }
 
         // ------------------------------------------------------------------ packages

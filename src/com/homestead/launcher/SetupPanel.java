@@ -206,6 +206,7 @@ public final class SetupPanel {
                 } catch (Throwable ignored) { }
                 AdbBridge.run(AdbBridge.selfSetupCommands(c, current), new AdbBridge.Callback() {
                     public void onDone(boolean ok, String out) {
+                        HomeRedirectService.startHomeKeyWatch();
                         logRow.setValue(ok ? "done" : "partly failed");
                         logRow.setValueColor(ok ? OK : WARN);
                         refresh.run();

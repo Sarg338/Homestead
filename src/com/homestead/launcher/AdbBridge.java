@@ -287,6 +287,8 @@ public final class AdbBridge {
                 "appops set " + pkg + " SYSTEM_ALERT_WINDOW allow",
                 "appops set " + pkg + " GET_USAGE_STATS allow",
                 "pm grant " + pkg + " android.permission.WRITE_SECURE_SETTINGS",
+                // Lets Home work while Amazon's home screen is showing (HomeKeyWatcher).
+                "pm grant " + pkg + " android.permission.READ_LOGS",
         };
     }
 

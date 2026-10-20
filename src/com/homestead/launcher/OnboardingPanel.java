@@ -18,6 +18,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -58,6 +59,9 @@ public final class OnboardingPanel {
     private final Handler poll = new Handler(Looper.getMainLooper());
     private TextView chip;               // live-status pill on the HOME / ADB steps, else null
     private View focusTarget;            // control to focus after a render
+    private boolean wantSelfSetup;       // switch the Home button on once the link is up
+    private View homeContinue;           // focused once the Home button is on
+    private boolean homeWasOn;
 
     public static View build(Context c, SettingsPanel.Host host) {
         return new OnboardingPanel(c, host).root;
@@ -202,10 +206,10 @@ public final class OnboardingPanel {
     private void buildChoose() {
         content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
         content.addView(margin(title("What should we set up?"), dp(6), dp(6)));
-        content.addView(body("Turn on what you want now - you can change either one later in Settings."));
+        content.addView(body("Turn on what you want now - you can change either one later from the Settings tile."));
 
         content.addView(featureCard("⌂", "Replace the home screen",
-                "The Home button opens this launcher instantly, instead of Amazon's.", null,
+                "The Home button opens this launcher instead of Amazon's.", null,
                 true));
         content.addView(featureCard("✦", "Clean up my TV",
                 "Switch off Amazon's ads and telemetry, and turn off the animations.", "Advanced",
@@ -221,27 +225,64 @@ public final class OnboardingPanel {
     private void buildHome() {
         content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
         content.addView(margin(title("Turn on the home screen"), dp(6), dp(6)));
-        content.addView(body("This one's on you - Fire OS only lets you flip this switch, not us. "
-                + "Two clicks on the remote:"));
+        content.addView(body("Fire OS doesn't list Homestead in its Accessibility menu, so the "
+                + "app switches it on itself, through the TV's own debugging service. No "
+                + "computer needed."));
 
-        content.addView(miniStep("1", "Open Settings, then Accessibility"));
-        content.addView(miniStep("2", "Choose Homestead, and switch it On"));
+        content.addView(miniStep("1", "Turn on ADB debugging: Settings, My Fire TV, "
+                + "Developer options"));
+        content.addView(miniStep("2", "Press Set it up and approve two prompts: a VPN "
+                + "notice, then the TV's key prompt. Tick \"Always allow\" on the second"));
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
-        content.addView(note("When the switch is on this turns green - then press Continue whenever "
-                + "you're ready. Prefer to do it later? Skip it; nothing else is blocked."));
+        content.addView(note("In each prompt, press Down to reach OK. No Developer options? "
+                + "Open My Fire TV, then About, and press Select on the device name seven "
+                + "times. To do this later, press Continue; you can still open Homestead "
+                + "from Amazon's app row."));
         updateChip();
 
-        View open = button("Open Fire TV Settings", true, new Runnable() {
-            public void run() { SetupPanel.openSettings(c); }
+        View open = button("Open My Fire TV", !adbDebuggingOn(), new Runnable() {
+            public void run() { SetupPanel.openDeviceSettings(c); }
+        });
+        View setup = button("Set it up", adbDebuggingOn(), new Runnable() {
+            public void run() { setUpHome(); }
         });
         actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
         actions.addView(gap());
         actions.addView(open);
         actions.addView(space(dp(10)));
-        actions.addView(button("Continue", true, new Runnable() { public void run() { next(); } }));
-        focusTarget = open;
+        actions.addView(setup);
+        actions.addView(space(dp(10)));
+        homeContinue = button("Continue", false, new Runnable() { public void run() { next(); } });
+        actions.addView(homeContinue);
+        focusTarget = SetupPanel.serviceEnabled(c) ? homeContinue
+                : adbDebuggingOn() ? setup : open;
+    }
+
+    private boolean adbDebuggingOn() {
+        try {
+            return Settings.Global.getInt(c.getContentResolver(), Settings.Global.ADB_ENABLED, 0) == 1;
+        } catch (Throwable t) { return false; }
+    }
+
+    private void setUpHome() {
+        wantSelfSetup = true;
+        if (AdbBridge.isConnected()) runSelfSetup();
+        else SetupPanel.startTunnel(c);
+    }
+
+    /** The same commands as Setup's "Finish setup automatically". */
+    private void runSelfSetup() {
+        wantSelfSetup = false;
+        String current = null;
+        try {
+            current = Settings.Secure.getString(c.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        } catch (Throwable ignored) { }
+        AdbBridge.run(AdbBridge.selfSetupCommands(c, current), new AdbBridge.Callback() {
+            public void onDone(boolean ok, String out) { updateChip(); }
+        });
     }
 
     private void buildAdb() {
@@ -250,8 +291,8 @@ public final class OnboardingPanel {
         content.addView(body("To switch Amazon's packages off, the app needs the access a computer "
                 + "has over ADB - so it makes a private connection to the TV's own service. No "
                 + "computer, no account, and nothing ever leaves the TV."));
-        content.addView(miniStep("!", "You approve two quick prompts - a VPN notice, then a key "
-                + "whose fingerprint the app shows you to check"));
+        content.addView(miniStep("!", "You approve two quick prompts: a VPN notice, then the TV's "
+                + "key prompt. Tick \"Always allow\" on the second"));
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
@@ -265,8 +306,10 @@ public final class OnboardingPanel {
         actions.addView(gap());
         actions.addView(setup);
         actions.addView(space(dp(10)));
-        actions.addView(button("Continue", true, new Runnable() { public void run() { next(); } }));
-        focusTarget = setup;
+        View cont = button("Continue", true, new Runnable() { public void run() { next(); } });
+        actions.addView(cont);
+        // Already connected on the Home step: nothing more to do here.
+        focusTarget = (Prefs.tunnelEnabled(c) && AdbCrypto.hasKey(c)) ? cont : setup;
     }
 
     private void buildDone() {
@@ -276,7 +319,7 @@ public final class OnboardingPanel {
         boolean svc = SetupPanel.serviceEnabled(c);
         boolean tun = Prefs.tunnelEnabled(c) || AdbBridge.isConnected();
         if (wantHome) content.addView(checkItem(svc, svc ? "Home screen - on" : "Home screen - skipped for now"));
-        if (wantClean) content.addView(checkItem(tun, tun ? "TV cleanup - ready to go" : "TV cleanup - skipped for now"));
+        if (wantClean) content.addView(checkItem(tun, tun ? "TV cleanup - ready; choose what to switch off in Debloat" : "TV cleanup - skipped for now"));
 
         content.addView(margin(body("Find all of it again from the Settings tile on your home "
                 + "screen - hidden apps, sorting, TV Health and Debloat."), dp(14), dp(4)));
@@ -291,6 +334,7 @@ public final class OnboardingPanel {
     private final Runnable tick = new Runnable() {
         public void run() {
             if (root.getParent() == null) return;   // panel closed; stop polling
+            if (wantSelfSetup && AdbBridge.isConnected()) runSelfSetup();
             updateChip();
             poll.postDelayed(this, 1000L);
         }
@@ -299,14 +343,21 @@ public final class OnboardingPanel {
     private void updateChip() {
         if (chip == null) return;
         int id = current();
-        if (id == HOME) {
-            boolean on = SetupPanel.serviceEnabled(c);
-            setChip(on ? OK : WARN, on ? "On - nicely done" : "Waiting for the switch…");
-        } else if (id == ADB) {
+        if (id == HOME && SetupPanel.serviceEnabled(c)) {
+            setChip(OK, "On - press Home to try it");
+            if (!homeWasOn && homeContinue != null) homeContinue.requestFocus();
+            homeWasOn = true;
+        } else if (id == HOME || id == ADB) {
             int st = AdbBridge.state();
-            if (st == AdbBridge.CONNECTED) setChip(OK, "Connected - ready to clean up");
-            else if (st == AdbBridge.AWAITING_APPROVAL) setChip(WARN, "Approve the key on screen");
-            else if (st == AdbBridge.CONNECTING) setChip(WARN, "Connecting…");
+            String fp = AdbBridge.fingerprint();
+            if (st == AdbBridge.CONNECTED) {
+                setChip(OK, id == HOME ? "Connected - switching it on…" : "Connected - ready to clean up");
+            } else if (id == ADB && Prefs.tunnelEnabled(c) && AdbCrypto.hasKey(c)) {
+                setChip(OK, "Set up - ready to clean up");
+            } else if (st == AdbBridge.AWAITING_APPROVAL) {
+                setChip(WARN, fp == null ? "Approve the key on screen"
+                        : "Approve the key on screen - it starts " + SetupPanel.shortFingerprint(fp));
+            } else if (st == AdbBridge.CONNECTING) setChip(WARN, "Connecting…");
             else if (st == AdbBridge.SELF_REFUSED) setChip(BAD, "This TV blocked it - see Commands for a computer");
             else if (st == AdbBridge.NO_DAEMON) setChip(BAD, "Turn on ADB debugging first");
             else setChip(MUTE, "Not set up yet");

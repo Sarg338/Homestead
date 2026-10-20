@@ -294,6 +294,11 @@ final class Debloat {
         return null;
     }
 
+    /** Fire OS's message when disable-user hits a package it protects. */
+    static boolean refusedIn(String output, String pkg) {
+        return output != null && output.contains("protected package: " + pkg);
+    }
+
     static boolean isProtected(Context c, String pkg) {
         return protectionReason(c, pkg) != null;
     }

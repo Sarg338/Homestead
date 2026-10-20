@@ -24,8 +24,7 @@ import java.util.Enumeration;
 /**
  * Fallback page: the adb commands to run from a computer for whatever is still missing on
  * this TV. Needed because Fire OS 7 refuses adb connections that originate on the device
- * itself (see AdbConnection.FAIL_SELF_REFUSED). The launcher's core features need none of
- * this - only the accessibility toggle.
+ * itself (see AdbConnection.FAIL_SELF_REFUSED).
  */
 public final class CommandsPanel {
 
@@ -46,8 +45,7 @@ public final class CommandsPanel {
         p.addNote("Switch on Settings, My Fire TV, Developer options, ADB debugging. Then "
                 + "from a computer with Android platform-tools installed:\n\n"
                 + "adb connect " + (ip == null ? "<this TV>" : ip) + "\n\n"
-                + "The TV will ask you to allow the connection. None of this is needed for "
-                + "the launcher itself - only for the tuning below.");
+                + "The TV will ask you to allow the connection.");
 
         // ------------------------------------------------------------------ what is missing
         boolean svc = SetupPanel.serviceEnabled(c);
@@ -58,8 +56,9 @@ public final class CommandsPanel {
         Panel.Row a = p.addRow("Home-button redirect", svc ? "done" : "needed", null);
         a.setValueColor(svc ? OK : WARN);
         if (!svc) {
-            p.addNote("Best done from the remote instead: Settings, Accessibility, "
-                    + "Homestead. If you would rather use the computer:\n\n"
+            p.addNote("Fire OS has no menu for this, so it is switched on over ADB. "
+                    + "\"Finish setup automatically\" in Setup does it from the TV, or "
+                    + "run:\n\n"
                     + "adb shell settings put secure enabled_accessibility_services "
                     + pkg + "/" + pkg + ".HomeRedirectService\n"
                     + "adb shell settings put secure accessibility_enabled 1");

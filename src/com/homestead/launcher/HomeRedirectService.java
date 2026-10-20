@@ -58,6 +58,11 @@ public class HomeRedirectService extends AccessibilityService {
     private static final long WATCHDOG_MS = 12000L;
     /** Cover stays at most this long if the picked app never appears. */
     private static final long PICK_TIMEOUT_MS = 10000L;
+    /**
+     * How long the cover stays after the picked app's window event. The event comes before
+     * the app's first frame, so lifting at once shows Amazon's home in between.
+     */
+    private static final long REVEAL_MS = 400L;
 
     private static HomeRedirectService instance;
 
@@ -74,17 +79,30 @@ public class HomeRedirectService extends AccessibilityService {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long lastShow = 0L;
 
+    /** Re-sort the hidden overlay after an app is opened, so it is in order before Home. */
+    private final Runnable quietResort = new Runnable() {
+        public void run() {
+            if (attached == null && home != null) home.resort();
+        }
+    };
+
     private WindowManager wm;
     private HomeGrid home;
     private View attached;
     private Runnable pendingHide;
     private Runnable pendingOpen;
+    private Runnable pendingReveal;
     private WindowManager.LayoutParams lp;
 
     // ---------------------------------------------------------------- static API
 
     public static void suspend(long ms) {
         suspendUntil = SystemClock.elapsedRealtime() + ms;
+    }
+
+    /** End a suspend early, e.g. once the user is back in the app after a setup step. */
+    public static void endSuspend() {
+        suspendUntil = 0L;
     }
 
     /** MainActivity announces itself so the overlay can hand it the live selection. */
@@ -440,8 +458,24 @@ public class HomeRedirectService extends AccessibilityService {
         } catch (Throwable t) { }
     }
 
+    private void revealSoon() {
+        if (pendingReveal != null) return;
+        final long myEpoch = epoch;
+        pendingReveal = new Runnable() {
+            public void run() {
+                pendingReveal = null;
+                if (myEpoch == epoch) detach();
+            }
+        };
+        handler.postDelayed(pendingReveal, REVEAL_MS);
+    }
+
     private void detach() {
         cancelPendingOpen();
+        if (pendingReveal != null) {
+            handler.removeCallbacks(pendingReveal);
+            pendingReveal = null;
+        }
         if (attached == null) return;
         try { wm.removeView(attached); } catch (Throwable t) {
             // If it is still parented, the next attach() clears it.
@@ -465,6 +499,8 @@ public class HomeRedirectService extends AccessibilityService {
             // Usage tracking comes from these events, so PACKAGE_USAGE_STATS is not needed.
             if (!ours && AppModel.hasApp(p.toString())) {
                 UsageTracker.record(this, p.toString());
+                handler.removeCallbacks(quietResort);
+                handler.postDelayed(quietResort, 1500L);
             }
             CharSequence cls = e.getClassName();
             // Our own HDMI viewer counts as "the user got what they picked" too.
@@ -472,7 +508,7 @@ public class HomeRedirectService extends AccessibilityService {
             if ((!ours || ourHdmi) && attached != null) {
                 Log.i(TAG, "foreground is now " + p + ", removing overlay");
                 cancelHide();
-                detach();
+                revealSoon();
             }
             return;
         }

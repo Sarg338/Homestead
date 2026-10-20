@@ -110,6 +110,8 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         }
 
         HomeRedirectService.setLiveActivity(this);
+        // Back from a settings, VPN or approval screen: Home should work again straight away.
+        HomeRedirectService.endSuspend();
 
         String selKey = HomeRedirectService.overlaySelectedKey();
         int selScroll = HomeRedirectService.overlayScrollY();
@@ -118,9 +120,10 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
 
         if (home != null) {
             // During a handoff the overlay has already sorted the shared model; re-sorting
-            // here would make the two differ at the swap. Focus is restored by key, since
-            // a re-sort changes indices.
+            // here would make the two differ at the swap. Either way, catch up with any
+            // re-sort the overlay made. Focus is restored by key, since order changes indices.
             if (!handoff) home.resort();
+            home.syncOrder();
             boolean ok = (selKey != null) && home.selectKey(selKey);
             if (!ok) home.takeFocus();
             home.applyScroll(selScroll, selRows);

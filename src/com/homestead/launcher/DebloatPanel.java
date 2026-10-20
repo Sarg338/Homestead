@@ -54,6 +54,20 @@ public final class DebloatPanel {
                 + "and its data on the TV and is undone with \"pm enable\". Disabling does "
                 + "not free storage; what you get back is memory and processor time.");
 
+        // The list was checked on one model; say how much of it applies to this TV.
+        int absent = 0;
+        for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
+            if (Debloat.stateOf(c, Debloat.CATALOGUE[i].pkg) == Debloat.ABSENT) absent++;
+        }
+        p.addRow("On this TV", (Debloat.CATALOGUE.length - absent) + " of "
+                + Debloat.CATALOGUE.length + " listed packages", null);
+        if (absent > 0) {
+            p.addNote(absent + " listed packages are not on this TV. Models and Fire OS "
+                    + "versions differ, and this list was checked on one model, so some of "
+                    + "this TV's own packages may not be on it. Those are only in \"Browse "
+                    + "every system app\" below, which cannot tell you which are safe.");
+        }
+
         final List<Row> rows = new ArrayList<Row>();
         int group = -1;
         for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
@@ -86,8 +100,8 @@ public final class DebloatPanel {
                 for (int i = 0; i < rows.size(); i++) rows.get(i).refresh(c);
                 boolean live = AdbBridge.canRun(c);
                 link.setLabel(live ? "ADB link" : "ADB link - open Setup to connect");
-                link.setValue(Prefs.adbEnabled(c) ? AdbBridge.describe(AdbBridge.state()) : "off");
-                link.setValueColor(live ? OK : WARN);
+                link.setValue(AdbBridge.statusLabel(c));
+                link.setValueColor(AdbBridge.isReady(c) ? OK : WARN);
                 bulkOff.cell.setEnabled(live);
                 int mine = Prefs.disabledByUs(c).size();
                 undo.setValue(mine == 0 ? "nothing to undo" : mine + " to restore");
@@ -116,10 +130,17 @@ public final class DebloatPanel {
                 result.setValue("working on " + cmds.size() + "...");
                 AdbBridge.run(cmds.toArray(new String[cmds.size()]), new AdbBridge.Callback() {
                     public void onDone(boolean ok, String out) {
+                        if (!AdbBridge.ran(out)) {
+                            result.setValue("could not connect - try again");
+                            result.setValueColor(BAD);
+                            refreshAll.run();
+                            return;
+                        }
                         int done = 0;
                         for (int i = 0; i < pkgs.size(); i++) {
                             boolean off = Debloat.stateOf(c, pkgs.get(i)) == Debloat.DISABLED;
                             Prefs.noteDisabled(c, pkgs.get(i), off);
+                            Prefs.noteRefused(c, pkgs.get(i), !off && Debloat.refusedIn(out, pkgs.get(i)));
                             if (off) done++;
                         }
                         // Fire OS refuses some of these outright, so report a count.
@@ -169,9 +190,8 @@ public final class DebloatPanel {
         p.addRow("Commands for a computer", "", new Runnable() {
             public void run() { host.showPanel(CommandsPanel.build(c, host)); }
         });
-        p.addNote("Fire OS 7 does not let this app change package states on its own - see "
-                + "Setup for why. That page lists the exact commands, already filtered down "
-                + "to what is still running on this TV.");
+        p.addNote("To do this from a computer instead: the exact commands, filtered down to "
+                + "what is still switched on on this TV.");
 
         p.addRow("Back", "", new Runnable() {
             public void run() { host.closePanel(); }
@@ -220,7 +240,14 @@ public final class DebloatPanel {
                         public void onDone(boolean ok, String out) {
                             int now = Debloat.stateOf(c, entry.pkg);
                             Prefs.noteDisabled(c, entry.pkg, now == Debloat.DISABLED);
-                            if (now == was) {
+                            boolean ran = AdbBridge.ran(out);
+                            if (ran && turningOff) {
+                                Prefs.noteRefused(c, entry.pkg, Debloat.refusedIn(out, entry.pkg));
+                            }
+                            if (!ran) {
+                                result.setValue("could not connect - try again");
+                                result.setValueColor(BAD);
+                            } else if (now == was) {
                                 // Fire OS refuses disable-user on some Amazon packages.
                                 result.setValue("Fire OS protects " + entry.title);
                                 result.setValueColor(BAD);

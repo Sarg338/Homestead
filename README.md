@@ -26,10 +26,10 @@ launcher as the system home activity and will not let anything else take it.
   description of what it does. Nothing is uninstalled and no data is deleted, and any
   package can be switched back on from the same page. A few packages are protected by
   Fire OS and cannot be switched off by any app.
-- **No computer needed.** The optional on-device tunnel lets the app grant itself the
-  permissions it needs and run Debloat from the remote. It is off by default and shuts
-  down when the work is done. A one-time command from a computer does the same job if you
-  would rather not use it.
+- **No computer needed.** The on-device tunnel lets the app switch on the Home button,
+  grant itself the permissions it needs and run Debloat, all from the remote. It is off
+  until you turn it on and shuts down when the work is done. A few commands from a
+  computer do the same job if you would rather not use it.
 - **Updates itself.** It checks this repository's releases once a day and installs a new
   version only when you press Install, and only if it is signed with the same key.
 
@@ -45,59 +45,70 @@ Real hardware, not emulators:
 Both run Android 9. Other Fire OS 7 devices are *expected* to work but are unverified.
 **Fire OS 8 is untested.**
 
+Debloat's list of packages was checked by hand on the Insignia TV above. Other models
+and Fire OS versions may use different package names. Anything on the list that your TV
+does not have is shown as "not present" and skipped, and packages the list does not know
+about are only reachable through **Browse every system app**, which locks anything the
+system is using but cannot tell you what is safe to switch off. If
+your TV's packages differ, please open an issue with your model and the output of
+`adb shell pm list packages -s` (system packages only, so it does not list the apps you
+installed).
+
 ## Install
 
 Download `homestead.apk` from the [latest release](https://github.com/Sarg338/Homestead/releases/latest)
 and sideload it: `adb install homestead.apk` from a computer, or the Downloader app on the
-TV. Nothing else is needed. The app checks that release page once a day and offers new
+TV. The app checks that release page once a day and offers new
 versions under Settings → **Update**; it never installs one without you pressing Install.
 
 ## Setup
 
-1. Open **Homestead** from Amazon's app row.
-2. On the remote, press Home and open **Settings → Accessibility → Homestead**, then switch
-   it on.
-
-That is all the launcher and the Home button need. No computer, no ADB.
+Fire OS does not list Homestead under Settings → Accessibility, so the Home button has to
+be switched on over ADB, the TV's debugging connection. You can do that from the TV itself
+or from a computer. Without it Homestead still works as an app you open from Amazon's app
+row; only the Home button needs it.
 
 The accessibility service is how the app learns that Home was pressed. It sees only which
 app came to the front: it cannot read what is on screen and does not receive key presses.
 
-> Installing an **update** switches the service off again. Android does that to every
-> accessibility service when its app is updated. Turn it back on in the same place.
-
-### Optional: TV Health and Debloat
-
-Changing system settings and switching packages off needs the same access a computer gets
-over ADB. You can give it from the TV itself or from a computer.
-
-**From the TV, no computer:**
+### From the TV, no computer
 
 1. Turn on **ADB debugging** under Settings → My Fire TV → Developer options. If Developer
    options is not there, open My Fire TV → About and press Select on the device name seven
    times.
-2. In Homestead, open the **Settings** tile, then **Setup**, and select **On-device tunnel
-   (advanced)**. Accept Android's VPN prompt.
-3. The TV asks whether to allow the app's ADB key. Check that the fingerprint matches the
-   **Key fingerprint** row in Setup, then allow it.
-4. Select **Finish setup automatically**. The app grants itself the permissions it needs.
-5. Use **TV Health** and **Debloat** from the remote.
+2. Open **Homestead** from Amazon's app row. The first-run setup walks you through the
+   rest. Later, the same steps are under the **Settings** tile → **Setup**.
+3. Select **Set it up** (or **On-device tunnel (advanced)** in Setup) and accept Android's
+   VPN prompt. In both prompts, press Down to reach OK.
+4. The TV asks whether to allow the app's ADB key. Check that the fingerprint matches the
+   one Homestead shows, tick **Always allow from this computer**, then select OK. Without
+   the tick, the TV asks again every time the app connects.
+5. The first-run setup then switches the Home button on by itself. In Setup, select
+   **Finish setup automatically**, which also grants the permissions TV Health and Debloat
+   need.
+6. Press Home.
 
 The tunnel runs only while the app is making changes and shuts itself off afterwards.
 Some Amazon packages switch themselves back on after a restart; with **Re-apply after
 reboot** on (the default), Homestead switches them off again about a minute after the TV
 starts, which needs ADB debugging left on.
 
-**From a computer:**
+If the Home button ever goes back to Amazon's home screen, for example after an update,
+select **Finish setup automatically** again.
+
+### From a computer
 
 ```sh
 adb connect <your TV's address>          # shown on the Commands page in the app
+adb shell settings put secure enabled_accessibility_services com.homestead.launcher/com.homestead.launcher.HomeRedirectService
+adb shell settings put secure accessibility_enabled 1
 adb shell pm grant com.homestead.launcher android.permission.WRITE_SECURE_SETTINGS
 ```
 
-After that grant, TV Health can change settings from the remote. To switch packages off,
-open **Commands for a computer** in the app: it lists exactly the commands still needed on
-your TV.
+The first two commands switch the Home button on; the first replaces any other
+accessibility service you have switched on. The grant lets TV Health change settings from
+the remote. To switch packages off, open **Commands for a computer** in the app: it lists
+exactly the commands still needed on your TV.
 
 ## Removing Homestead
 
@@ -109,9 +120,8 @@ your TV.
 3. Uninstall Homestead under Settings → Applications → Manage Installed Applications.
 
 Uninstalling also removes the accessibility service, so the Home button goes back to
-Amazon's home screen straight away. To pause Homestead without uninstalling, switch it off
-under Settings → Accessibility instead. To visit Amazon's home screen without turning
-anything off, use the **Amazon Home** tile.
+Amazon's home screen straight away. To visit Amazon's home screen without turning anything
+off, use the **Amazon Home** tile.
 
 ## How the Home button works
 
@@ -123,8 +133,16 @@ Fire OS holds back app launches for several seconds after a Home press, so Homes
 its home screen as an overlay window, which is not held back. Its normal screen takes over
 once Fire OS allows it, keeping the selected tile and scroll position.
 
-The overlay is an accessibility overlay, which needs no extra permission. That is why the
-basic setup needs no computer.
+The overlay is an accessibility overlay, which needs no extra permission.
+
+## Known limitations
+
+- **Amazon's home screen shows for a moment** on each Home press, before Homestead covers
+  it. Fire OS reports the press only once Amazon's screen has started to appear.
+- **Home does nothing while Amazon's home screen is already showing**, because Fire OS
+  reports nothing in that case. Open any app, then press Home.
+- **The Amazon Home tile pauses Homestead for 30 seconds.** After that, Homestead may take
+  over again while you are still browsing Amazon's home screen.
 
 ## How the on-device tunnel works
 

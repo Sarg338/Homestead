@@ -82,6 +82,8 @@ public class HomeGrid implements SettingsPanel.Host {
     private final List<HorizontalScrollView> rows = new ArrayList<HorizontalScrollView>();
     private View focusedCell;
     private String focusedKey;
+    /** AppModel.order() as of the last build, to spot a re-sort done by the other grid. */
+    private String builtOrder;
     /** Settings / TV Health render inside this window; Back pops one level. */
     private final List<View> panels = new ArrayList<View>();
 
@@ -277,6 +279,16 @@ public class HomeGrid implements SettingsPanel.Host {
         return true;
     }
 
+    /**
+     * The overlay and the activity each have a grid over one shared model, so a re-sort by
+     * one leaves the other stale. Rebuild if that happened. @return true if rebuilt.
+     */
+    public boolean syncOrder() {
+        if (AppModel.order().equals(builtOrder)) return false;
+        rebuild();
+        return true;
+    }
+
     /** Rebuild the views over the current model; nothing is re-decoded. */
     public void rebuild() {
         String keep = focusedKey;
@@ -297,6 +309,7 @@ public class HomeGrid implements SettingsPanel.Host {
      * blank home screen. On any failure, draw a minimal row with Settings and TV Health.
      */
     private void build() {
+        builtOrder = AppModel.order();
         try {
             buildSections();
         } catch (Throwable t) {

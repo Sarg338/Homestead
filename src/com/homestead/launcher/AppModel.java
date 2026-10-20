@@ -328,7 +328,7 @@ public final class AppModel {
         return !before.equals(order());
     }
 
-    private static String order() {
+    static String order() {
         StringBuilder sb = new StringBuilder(ITEMS.size() * 12);
         for (int i = 0; i < ITEMS.size(); i++) sb.append(ITEMS.get(i).key()).append('|');
         return sb.toString();

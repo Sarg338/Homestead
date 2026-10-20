@@ -20,11 +20,10 @@ import android.view.View;
 /**
  * Setup: what the app needs and why.
  *
- * The one required step is enabling the accessibility service, which an app cannot do for
- * itself. On Fire OS, ACTION_ACCESSIBILITY_SETTINGS resolves to a CTS stub and the real
- * screen needs a privileged permission, so the instructions are written out by hand.
- * Alternatively the ADB link (see AdbConnection) runs the setup commands on this TV once
- * the user approves the connection on screen. WRITE_SECURE_SETTINGS is optional (TV Health).
+ * The Home button needs the accessibility service, which an app cannot enable for itself,
+ * and Fire OS's Accessibility menu does not list third-party services. So it is enabled
+ * over ADB: the app's own link (see AdbConnection) once the user approves it on screen, or
+ * a computer. WRITE_SECURE_SETTINGS is optional (TV Health).
  */
 public final class SetupPanel {
 
@@ -50,32 +49,26 @@ public final class SetupPanel {
         // ------------------------------------------------------------------ step one
         p.addHeader("1. Turn on the Home button redirect");
 
-        p.addNote("On your remote: press Home, open Settings, then Accessibility, then "
-                + "Homestead, and switch it on. That is the whole setup - the launcher, "
-                + "the instant home screen and last-used ordering all work from there with "
-                + "nothing else granted.\n\n"
-                + "Fire OS does not let apps open that screen for you, so this step is done "
-                + "by hand.\n\n"
-                + "Note that installing an update to this app switches the service off "
-                + "again - Android does that to every accessibility service on reinstall - "
-                + "so come back here after updating.");
-
-        p.addRow("Open Fire TV Settings", "", new Runnable() {
-            public void run() { openSettings(c); }
-        });
+        p.addNote("Fire OS does not list Homestead under Settings, Accessibility, so the "
+                + "redirect is switched on over the TV's debugging connection: from this TV "
+                + "with step 2 below, or from a computer with \"Commands for a computer\".\n\n"
+                + "Without it, Homestead still works as an app you open yourself; only the "
+                + "Home button needs it.\n\n"
+                + "If the Home button ever goes back to Amazon's home screen, for example "
+                + "after an update, run \"Finish setup automatically\" again.");
 
         // ------------------------------------------------------------------ step two
-        p.addHeader("2. Optional: let this app configure the TV");
+        p.addHeader("2. Let this app configure the TV");
 
-        p.addNote("Everything above works without this. What follows is only for the "
-                + "optional tuning: switching off Amazon's advertising and telemetry "
-                + "packages, and turning off the animations.\n\n"
+        p.addNote("This switches on the Home button redirect. It also lets the app switch "
+                + "off Amazon's advertising and telemetry packages and turn off the "
+                + "animations, if you choose to.\n\n"
                 + "Fire OS runs its debugging service on the television itself, so with "
                 + "your permission this app can connect to it and gain the same access a "
-                + "computer would have. Nothing leaves the TV, and this app makes no other "
-                + "network requests of any kind. The TELEVISION, not this app, asks you to "
-                + "approve a key - check that the fingerprint it shows matches the one "
-                + "below.\n\n"
+                + "computer would have. The connection never leaves the TV. The TELEVISION, "
+                + "not this app, asks you to approve a key - check that the fingerprint it "
+                + "shows matches the one below, and tick \"Always allow\" so it is not asked "
+                + "again.\n\n"
                 + "A direct connection will be refused, and not because anything is wrong: "
                 + "recent Fire OS builds drop any ADB connection that starts on the TV "
                 + "itself.\n\n"
@@ -122,14 +115,15 @@ public final class SetupPanel {
 
                 int st = AdbBridge.state();
                 boolean on = Prefs.adbEnabled(c);
-                String label = on ? AdbBridge.describe(st) : "off";
+                boolean ready = AdbBridge.isReady(c);
+                String label = AdbBridge.statusLabel(c);
                 adbRow.setValue(label);
-                adbRow.setValueColor(st == AdbBridge.CONNECTED ? OK
+                adbRow.setValueColor(ready ? OK
                         : (st == AdbBridge.BLOCKED || st == AdbBridge.DENIED) ? BAD : WARN);
 
                 connectRow.setLabel(connectLabel(st, on));
                 connectRow.setValue(label);
-                connectRow.setValueColor(st == AdbBridge.CONNECTED ? OK : WARN);
+                connectRow.setValueColor(ready ? OK : WARN);
 
                 String fp = AdbBridge.fingerprint();
                 fpRow.setValue(fp == null ? "not generated yet" : shortFingerprint(fp));
@@ -316,7 +310,7 @@ public final class SetupPanel {
     }
 
     /** The dialog shows all 16 groups; the first four are enough to compare at a glance. */
-    private static String shortFingerprint(String fp) {
+    static String shortFingerprint(String fp) {
         String[] parts = fp.split(":");
         if (parts.length <= 4) return fp;
         return parts[0] + ":" + parts[1] + ":" + parts[2] + ":" + parts[3] + ":...";
@@ -330,17 +324,8 @@ public final class SetupPanel {
         } catch (Throwable t) { return false; }
     }
 
-    /** The Fire TV settings root. Accessibility is a few rows down from here. */
-    static void openSettings(Context c) {
-        if (start(c, new Intent(Settings.ACTION_SETTINGS))) return;
-        openDeviceSettings(c);
-    }
-
-    /**
-     * "My Fire TV" (Developer options, ADB debugging). Unlike the accessibility screen it
-     * needs no permission, so this deep link works.
-     */
-    private static void openDeviceSettings(Context c) {
+    /** "My Fire TV" (Developer options, ADB debugging). */
+    static void openDeviceSettings(Context c) {
         if (start(c, new Intent("android.settings.APPLICATION_DEVELOPMENT_SETTINGS"))) return;
         Intent explicit = new Intent();
         explicit.setClassName("com.amazon.tv.settings.v2",

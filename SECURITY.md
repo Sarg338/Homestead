@@ -46,7 +46,7 @@ app.
 ## The ADB key
 
 The app can generate an RSA-2048 key and offer it to the television's own `adbd`, so that
-the tuning steps do not need a computer. If you enable that:
+setup and the tuning steps do not need a computer. If you enable that:
 
 - The key is generated **on the device** and never leaves it.
 - It is stored in app-private storage, and `allowBackup` is off.

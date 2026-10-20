@@ -78,9 +78,8 @@ public final class HealthPanel {
                 UsageTracker.size(c) + " apps tracked", null);
         r3.setValueColor(OK);
 
-        Panel.Row r4 = p.addRow("Configure this TV",
-                Prefs.adbEnabled(c) ? AdbBridge.describe(AdbBridge.state()) : "off", null);
-        r4.setValueColor(AdbBridge.isConnected() ? OK : WARN);
+        Panel.Row r4 = p.addRow("Configure this TV", AdbBridge.statusLabel(c), null);
+        r4.setValueColor(AdbBridge.isReady(c) ? OK : WARN);
 
         p.addRow("Open Setup", "", new Runnable() {
             public void run() { host.showPanel(SetupPanel.build(c, host)); }
@@ -167,17 +166,26 @@ public final class HealthPanel {
         // ---------------------------------------------------------- packages
         p.addHeader("Ad & telemetry packages");
 
-        int stillOn = 0, off = 0, absent = 0;
+        // Every package still on falls into one reason, so the user can tell "done" from
+        // "not done yet". Only the last one is work left.
+        java.util.Set<String> refused = Prefs.refusedByFireOs(c);
+        int off = 0, fireOs = 0, locked = 0, choice = 0, stillOn = 0;
         for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
-            int st = Debloat.stateOf(c, Debloat.CATALOGUE[i].pkg);
-            if (st == Debloat.ENABLED) stillOn++;
-            else if (st == Debloat.DISABLED) off++;
-            else absent++;
+            Debloat.Entry e = Debloat.CATALOGUE[i];
+            int st = Debloat.stateOf(c, e.pkg);
+            if (st == Debloat.DISABLED) off++;
+            else if (st != Debloat.ENABLED) continue;
+            else if (refused.contains(e.pkg)) fireOs++;
+            else if (Debloat.isProtected(c, e.pkg)) locked++;
+            else if (e.caution) choice++;
+            else stillOn++;
         }
-        Panel.Row pk = p.addRow("Still running", stillOn + " of "
-                + (Debloat.CATALOGUE.length - absent), null);
-        pk.setValueColor(stillOn == 0 ? OK : WARN);
-        p.addRow("Already switched off", String.valueOf(off), null);
+        p.addRow("Switched off", String.valueOf(off), null).setValueColor(OK);
+        Panel.Row left = p.addRow("Still to switch off", String.valueOf(stillOn), null);
+        left.setValueColor(stillOn == 0 ? OK : WARN);
+        p.addRow("Protected by Fire OS", String.valueOf(fireOs), null);
+        p.addRow("Kept on for safety", String.valueOf(locked), null);
+        p.addRow("Left on by choice (Alexa, Extras)", String.valueOf(choice), null);
 
         p.addRow("Open Debloat", "", new Runnable() {
             public void run() { host.showPanel(DebloatPanel.build(c, host)); }
@@ -191,10 +199,11 @@ public final class HealthPanel {
         });
 
         p.addNote(stillOn == 0
-                ? "None of the tracked advertising or telemetry packages are running."
-                : stillOn + " of the tracked packages are still running. Debloat can switch "
-                        + "them off one at a time or all at once, and put them back the "
-                        + "same way.");
+                ? "Everything on the list that Fire OS lets an app switch off is off."
+                : stillOn + " of the listed packages can still be switched off. Debloat can "
+                        + "switch them off one at a time or all at once, and put them back "
+                        + "the same way. Packages Fire OS refuses are counted as protected "
+                        + "once Debloat has tried them.");
 
         // ---------------------------------------------------------- resources
         p.addHeader("Resources");
@@ -205,9 +214,11 @@ public final class HealthPanel {
 
         int disabledTotal = -1;
         try {
-            disabledTotal = c.getPackageManager()
-                    .getInstalledApplications(PackageManager.MATCH_DISABLED_COMPONENTS).size()
-                    - c.getPackageManager().getInstalledApplications(0).size();
+            // Disabled apps are listed either way; count the ones flagged as disabled.
+            List<android.content.pm.ApplicationInfo> apps = c.getPackageManager()
+                    .getInstalledApplications(PackageManager.MATCH_DISABLED_COMPONENTS);
+            disabledTotal = 0;
+            for (int i = 0; i < apps.size(); i++) if (!apps.get(i).enabled) disabledTotal++;
         } catch (Throwable t) { disabledTotal = -1; }
         p.addRow("Packages disabled on this TV",
                 disabledTotal >= 0 ? String.valueOf(disabledTotal) : "?", null);
@@ -324,6 +335,16 @@ public final class HealthPanel {
 
         String abbreviate(String v) {
             if (v == null) return "unset";
+            if (key.endsWith("_scale")) {
+                try {
+                    float f = Float.parseFloat(v);
+                    if (f == 0f) return "off";
+                    return (f == (int) f ? String.valueOf((int) f) : String.valueOf(f)) + "x";
+                } catch (Throwable ignored) { }
+            }
+            // Every other numeric row here is a switch.
+            if ("0".equals(v)) return "off";
+            if ("1".equals(v)) return "on";
             int slash = v.indexOf('/');
             if (slash > 0) {
                 String pkg = v.substring(0, slash);

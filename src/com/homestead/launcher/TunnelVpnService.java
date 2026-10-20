@@ -120,21 +120,22 @@ public class TunnelVpnService extends VpnService {
             return;
         }
         running = true;
-        active = true;
         instance = this;
-        Log.i(TAG, "tunnel up");
-
+        // A caller waiting on isActive() connects at once, so the client must already point
+        // at the tunnel and the relay must be running before "active" is set.
+        AdbConnection.setOverrideHost(virtualHost());
         relay = new Thread(new Runnable() {
             public void run() { relayLoop(real); }
         }, "homestead-tun");
         relay.start();
+        active = true;
+        Log.i(TAG, "tunnel up");
 
         connectThroughTunnel();
     }
 
-    /** Point the ADB client at the tunnel and connect. Instant once the key is authorised. */
+    /** Connect through the tunnel. Instant once the key is authorised. */
     private void connectThroughTunnel() {
-        AdbConnection.setOverrideHost(virtualHost());
         AdbBridge.init(getApplicationContext());
         AdbBridge.connect();
     }

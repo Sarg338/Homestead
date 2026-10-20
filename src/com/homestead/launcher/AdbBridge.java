@@ -118,6 +118,19 @@ public final class AdbBridge {
         LISTENERS.remove(l);
     }
 
+    /** An idle link that the tunnel re-opens on demand reads "ready", not "off". */
+    public static boolean isReady(Context c) {
+        return state == CONNECTED || (state == IDLE && Prefs.adbEnabled(c)
+                && Prefs.tunnelEnabled(c) && AdbCrypto.hasKey(c));
+    }
+
+    /** The link's state for a status row. */
+    public static String statusLabel(Context c) {
+        if (!Prefs.adbEnabled(c)) return "off";
+        if (state == IDLE && isReady(c)) return "ready";
+        return describe(state);
+    }
+
     public static String describe(int s) {
         switch (s) {
             case CONNECTING: return "connecting";
@@ -187,7 +200,9 @@ public final class AdbBridge {
                 }
                 StringBuilder log = new StringBuilder();
                 boolean ok = true;
-                for (int i = 0; i < commands.length && ok; i++) {
+                // A refused command (e.g. a package Fire OS protects) must not skip the rest
+                // of the batch; only a broken connection stops it.
+                for (int i = 0; i < commands.length; i++) {
                     try {
                         AdbConnection.Result r = conn.shell(commands[i]);
                         log.append("$ ").append(commands[i]).append('\n');
@@ -201,12 +216,18 @@ public final class AdbBridge {
                         log.append("! ").append(t).append('\n');
                         dropConnection();
                         publish(ERROR, String.valueOf(t.getMessage()));
+                        break;
                     }
                 }
                 finish(cb, ok, log.toString());
                 armIdleDisconnect();
             }
         });
+    }
+
+    /** False when a batch never started because there was no connection. */
+    public static boolean ran(String output) {
+        return output != null && output.startsWith("$ ");
     }
 
     public static void run(String command, Callback cb) {
@@ -294,9 +315,11 @@ public final class AdbBridge {
                 fingerprint = crypto.fingerprint();
             }
             ensureTunnelIfEnabled();
+            final boolean[] prompted = { false };
             conn = AdbConnection.open(app, crypto, new AdbConnection.ApprovalListener() {
                 public void onAwaitingApproval(String fp) {
                     fingerprint = fp;
+                    prompted[0] = true;
                     // Get the overlay out of the way of the TV's approval dialog.
                     MAIN.post(new Runnable() {
                         public void run() {
@@ -307,6 +330,12 @@ public final class AdbBridge {
                     publish(AWAITING_APPROVAL, fp);
                 }
             });
+            // Approved: lift the pause set for the dialog.
+            if (prompted[0]) {
+                MAIN.post(new Runnable() {
+                    public void run() { HomeRedirectService.endSuspend(); }
+                });
+            }
             publish(CONNECTED, conn.banner());
             return true;
         } catch (AdbConnection.AdbException e) {

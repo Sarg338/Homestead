@@ -39,6 +39,7 @@ public final class Prefs {
     private static final String K_TUNNEL = "adb_tunnel_enabled";
     private static final String K_REAPPLY = "adb_reapply_on_boot";
     private static final String K_DISABLED = "disabled_by_us";
+    private static final String K_REFUSED = "refused_by_fire_os";
     private static final String K_SETUP_SEEN = "setup_seen";
     private static final String K_ONBOARDED = "onboarded";
     private static final String K_UPD_LASTCHECK = "update_last_check";
@@ -182,6 +183,19 @@ public final class Prefs {
         Set<String> s = disabledByUs(c);
         if (disabled) s.add(pkg); else s.remove(pkg);
         sp(c).edit().putStringSet(K_DISABLED, s).apply();
+    }
+
+    /** Packages Fire OS refused to switch off when we tried, for TV Health's breakdown. */
+    public static Set<String> refusedByFireOs(Context c) {
+        return new HashSet<String>(
+                sp(c).getStringSet(K_REFUSED, Collections.<String>emptySet()));
+    }
+
+    public static void noteRefused(Context c, String pkg, boolean refused) {
+        if (pkg == null) return;
+        Set<String> s = refusedByFireOs(c);
+        if (refused) s.add(pkg); else s.remove(pkg);
+        sp(c).edit().putStringSet(K_REFUSED, s).apply();
     }
 
     public static void clearDisabledRecord(Context c) {

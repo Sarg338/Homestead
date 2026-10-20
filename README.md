@@ -24,7 +24,7 @@ Both pictures are from the same TV, a few minutes apart.
 - **TV Health** shows the state of the TV (animation speed, ad-tracking settings, the
   screensaver, which Amazon telemetry packages are running, free memory and storage). Each
   setting it flags can be fixed with one press.
-- **Debloat** switches off up to 40 vetted Amazon packages, each with a plain-English
+- **Debloat** switches off dozens of vetted Amazon packages, each with a plain-English
   description of what it does. Nothing is uninstalled and no data is deleted, and any
   package can be switched back on from the same page. A few packages are protected by
   Fire OS and cannot be switched off by any app.

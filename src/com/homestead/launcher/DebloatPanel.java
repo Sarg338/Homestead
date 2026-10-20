@@ -89,8 +89,12 @@ public final class DebloatPanel {
         p.addHeader("All at once");
 
         final Panel.Row bulkOff = p.addRow("Switch off everything marked safe", "", null);
-        p.addNote("Skips the Alexa and Extras groups, which have consequences worth "
-                + "choosing one at a time.");
+        p.addNote("Ads and telemetry only. The Alexa and Extras groups are left out here, "
+                + "since each changes how the TV behaves.");
+
+        final Panel.Row bulkCaution = p.addRow("Switch off everything marked caution", "", null);
+        p.addNote("The Alexa and Extras groups: voice search, casting, smart-home and the "
+                + "like. Each removes a feature, so read the rows above before using this.");
 
         final Panel.Row undo = p.addRow("Undo everything this app switched off", "", null);
         final Panel.Row result = p.addRow("Last result", "", null);
@@ -103,6 +107,7 @@ public final class DebloatPanel {
                 link.setValue(AdbBridge.statusLabel(c));
                 link.setValueColor(AdbBridge.isReady(c) ? OK : WARN);
                 bulkOff.cell.setEnabled(live);
+                bulkCaution.cell.setEnabled(live);
                 int mine = Prefs.disabledByUs(c).size();
                 undo.setValue(mine == 0 ? "nothing to undo" : mine + " to restore");
                 undo.cell.setEnabled(live && mine > 0);
@@ -110,46 +115,10 @@ public final class DebloatPanel {
         };
 
         bulkOff.cell.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                if (!AdbBridge.canRun(c)) return;
-                List<String> cmds = new ArrayList<String>();
-                final List<String> pkgs = new ArrayList<String>();
-                for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
-                    Debloat.Entry e = Debloat.CATALOGUE[i];
-                    if (e.caution) continue;
-                    if (Debloat.isProtected(c, e.pkg)) continue;
-                    if (Debloat.stateOf(c, e.pkg) != Debloat.ENABLED) continue;
-                    cmds.add(AdbBridge.disableCommand(e.pkg));
-                    pkgs.add(e.pkg);
-                }
-                if (cmds.isEmpty()) {
-                    result.setValue("already done");
-                    result.setValueColor(OK);
-                    return;
-                }
-                result.setValue("working on " + cmds.size() + "...");
-                AdbBridge.run(cmds.toArray(new String[cmds.size()]), new AdbBridge.Callback() {
-                    public void onDone(boolean ok, String out) {
-                        if (!AdbBridge.ran(out)) {
-                            result.setValue("could not connect - try again");
-                            result.setValueColor(BAD);
-                            refreshAll.run();
-                            return;
-                        }
-                        int done = 0;
-                        for (int i = 0; i < pkgs.size(); i++) {
-                            boolean off = Debloat.stateOf(c, pkgs.get(i)) == Debloat.DISABLED;
-                            Prefs.noteDisabled(c, pkgs.get(i), off);
-                            Prefs.noteRefused(c, pkgs.get(i), !off && Debloat.refusedIn(out, pkgs.get(i)));
-                            if (off) done++;
-                        }
-                        // Fire OS refuses some of these outright, so report a count.
-                        result.setValue(done + " of " + pkgs.size() + " switched off");
-                        result.setValueColor(done == pkgs.size() ? OK : WARN);
-                        refreshAll.run();
-                    }
-                });
-            }
+            public void onClick(View v) { runBulk(c, false, result, refreshAll); }
+        });
+        bulkCaution.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { runBulk(c, true, result, refreshAll); }
         });
 
         undo.cell.setOnClickListener(new View.OnClickListener() {
@@ -284,6 +253,53 @@ public final class DebloatPanel {
     }
 
     // ---------------------------------------------------------------- browse everything
+
+    /**
+     * Disable every catalogue entry in one group (caution or not) that is present, enabled
+     * and not Fire-OS-protected, in a single ADB batch. Refused packages are recorded as
+     * protected and do not stop the rest.
+     */
+    private static void runBulk(final Context c, final boolean cautionGroup,
+            final Panel.Row result, final Runnable refreshAll) {
+        if (!AdbBridge.canRun(c)) return;
+        List<String> cmds = new ArrayList<String>();
+        final List<String> pkgs = new ArrayList<String>();
+        for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
+            Debloat.Entry e = Debloat.CATALOGUE[i];
+            if (e.caution != cautionGroup) continue;
+            if (Debloat.isProtected(c, e.pkg)) continue;
+            if (Debloat.stateOf(c, e.pkg) != Debloat.ENABLED) continue;
+            cmds.add(AdbBridge.disableCommand(e.pkg));
+            pkgs.add(e.pkg);
+        }
+        if (cmds.isEmpty()) {
+            result.setValue("already done");
+            result.setValueColor(OK);
+            return;
+        }
+        result.setValue("working on " + cmds.size() + "...");
+        AdbBridge.run(cmds.toArray(new String[cmds.size()]), new AdbBridge.Callback() {
+            public void onDone(boolean ok, String out) {
+                if (!AdbBridge.ran(out)) {
+                    result.setValue("could not connect - try again");
+                    result.setValueColor(BAD);
+                    refreshAll.run();
+                    return;
+                }
+                int done = 0;
+                for (int i = 0; i < pkgs.size(); i++) {
+                    boolean off = Debloat.stateOf(c, pkgs.get(i)) == Debloat.DISABLED;
+                    Prefs.noteDisabled(c, pkgs.get(i), off);
+                    Prefs.noteRefused(c, pkgs.get(i), !off && Debloat.refusedIn(out, pkgs.get(i)));
+                    if (off) done++;
+                }
+                // Fire OS refuses some of these outright, so report a count.
+                result.setValue(done + " of " + pkgs.size() + " switched off");
+                result.setValueColor(done == pkgs.size() ? OK : WARN);
+                refreshAll.run();
+            }
+        });
+    }
 
     private static View buildBrowser(final Context c, final SettingsPanel.Host host) {
         final List<Debloat.Installed> all = Debloat.installed(c, true);

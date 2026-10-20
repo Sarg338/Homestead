@@ -91,6 +91,7 @@ app came to the front: it cannot read what is on screen and does not receive key
 6. Press Home.
 
 The tunnel runs only while the app is making changes and shuts itself off afterwards.
+[SECURITY.md](SECURITY.md) explains what it does and does not expose.
 Some Amazon packages switch themselves back on after a restart; with **Re-apply after
 reboot** on (the default), Homestead switches them off again about a minute after the TV
 starts, which needs ADB debugging left on.
@@ -151,20 +152,6 @@ The overlay is an accessibility overlay, which needs no extra permission.
   reports nothing in that case. Open any app, then press Home.
 - **The Amazon Home tile pauses Homestead for 30 seconds.** After that, Homestead may take
   over again while you are still browsing Amazon's home screen.
-
-## How the on-device tunnel works
-
-Changing system settings and switching packages off needs the same `shell` access a
-computer gets over ADB. Homestead includes its own ADB client, so it can do this on the TV
-itself. Fire OS refuses an ADB connection that starts on the TV, so the app makes the
-connection through a small on-device VPN tunnel that carries only traffic for the TV's own
-ADB service.
-
-The tunnel is opt-in (Setup → **On-device tunnel (advanced)**) and off by default. Once on,
-it starts only when the app has changes to make, including after a restart when **Re-apply
-after reboot** is on, and shuts down shortly afterwards. The TV itself asks you to approve
-the app's ADB key. See [SECURITY.md](SECURITY.md) for what this does and does not
-expose.
 
 ## Building
 
@@ -273,7 +260,7 @@ testing, check whether a pause is active before suspecting the service.
   visible side effect is `CAUTION`. Never add anything on the never-touch lists.
 - Everything the app changes must be reversible from the app.
 - Keep the accessibility service as narrow as it is (`canRetrieveWindowContent="false"`,
-  no key filtering, no package filter). SECURITY.md promises this.
+  no key filtering, no package filter). [SECURITY.md](SECURITY.md) promises this.
 - Describe only what you have tested. "Should work on X" belongs in a pull request
   description, not in the README.
 

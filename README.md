@@ -61,6 +61,11 @@ and sideload it: `adb install homestead.apk` from a computer, or the Downloader 
 TV. The app checks that release page once a day and offers new versions under Settings →
 **Check for updates**; it never installs one until you press **Install now**.
 
+Without the on-device tunnel, an update goes through Fire OS's installer, which first needs
+Homestead allowed to install apps: in the TV's Settings, **Device & Software** (**My Fire TV**
+on some models) → **Developer options** → **Install unknown apps** → **Homestead**. The
+update page tells you when this is needed.
+
 ## Setup
 
 Fire OS does not list Homestead under Settings → Accessibility, so the Home button has to
@@ -160,8 +165,9 @@ says exactly what is read.
   Home does nothing while Amazon's home screen is already showing (open any app, then press
   Home). Setup grants it.
 - **With it, the screen can still go black for a moment** between the app you leave and
-  Homestead: usually under a quarter of a second, longer on the first press after an update. Pressing Home while Homestead itself is in front can still
-  show Amazon's home briefly, because Amazon's screen comes back quickly from there.
+  Homestead: usually under a quarter of a second, longer on the first press after an
+  update. Pressing Home while Homestead itself is in front can still show Amazon's home
+  briefly, because Amazon's screen comes back quickly from there.
 - **The Amazon Home tile pauses Homestead for 30 seconds.** After that, Homestead may take
   over again while you are still browsing Amazon's home screen. Pressing Home brings
   Homestead back at any time.

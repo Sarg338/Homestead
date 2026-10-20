@@ -97,14 +97,15 @@ public class Panel {
         column.addView(h, lp(dp(20), dp(8)));
     }
 
-    /** Non-focusable explanatory text. */
-    public void addNote(String text) {
+    /** Non-focusable explanatory text. Returned so the caller can change it later. */
+    public TextView addNote(String text) {
         TextView n = new TextView(ctx);
         n.setText(text);
         n.setTextColor(0xFF8FA3B8);
         n.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         n.setLineSpacing(dp(2), 1f);
         column.addView(n, lp(dp(2), dp(10)));
+        return n;
     }
 
     /** A selectable row. Returns a handle so the caller can update the value in place. */

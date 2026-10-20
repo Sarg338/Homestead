@@ -14,6 +14,8 @@ package com.homestead.launcher;
 
 import android.content.Context;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.widget.TextView;
 
 /**
  * The "an update is available" panel. Shows the new version and its notes, and offers to
@@ -45,13 +47,34 @@ public final class UpdatePanel {
         final Panel.Row status = p.addRow("Status", "ready", null);
         status.cell.setFocusable(false);
         status.setValueColor(MUTE);
+        final TextView message = p.addNote("");
+        message.setVisibility(View.GONE);
 
         final boolean[] running = { false };
+        // While the system installer is open. A successful install replaces the app and ends
+        // this process, so getting the window back afterwards means nothing was installed.
+        final boolean[] inInstaller = { false };
+        final boolean[] leftWindow = { false };
+        p.root.getViewTreeObserver().addOnWindowFocusChangeListener(
+                new ViewTreeObserver.OnWindowFocusChangeListener() {
+            public void onWindowFocusChanged(boolean hasFocus) {
+                if (!inInstaller[0]) return;
+                if (!hasFocus) { leftWindow[0] = true; return; }
+                if (!leftWindow[0]) return;
+                inInstaller[0] = false;
+                running[0] = false;
+                status.setValue("not installed");
+                status.setValueColor(AMBER);
+                show(message, "The installer closed without installing the update. Select "
+                        + "Install now to try again.");
+            }
+        });
 
         final Panel.Row install = p.addRow("Install now", "", new Runnable() {
             public void run() {
                 if (running[0]) return;
                 running[0] = true;
+                message.setVisibility(View.GONE);
                 status.setValue("starting…");
                 status.setValueColor(AMBER);
                 UpdateInstaller.downloadAndInstall(c, u, new UpdateInstaller.Progress() {
@@ -63,11 +86,29 @@ public final class UpdatePanel {
                         status.setValue(s + "…");
                         status.setValueColor(AMBER);
                     }
-                    public void onDone(boolean ok, String message) {
+                    public void onInstallerOpened() {
+                        inInstaller[0] = true;
+                        leftWindow[0] = false;
+                        status.setValue("in the installer");
+                        status.setValueColor(AMBER);
+                    }
+                    public void onNotAllowed() {
                         running[0] = false;
+                        status.setValue("needs permission");
+                        status.setValueColor(AMBER);
+                        show(message, "Fire OS has to allow Homestead to install apps first. "
+                                + "In the TV's own Settings, open Device & Software (My Fire TV "
+                                + "on some models), then Developer options, then Install "
+                                + "unknown apps, and switch Homestead on. Come back here and "
+                                + "select Install now again. With the on-device tunnel set up, "
+                                + "updates install without this.");
+                    }
+                    public void onDone(boolean ok, String text) {
+                        running[0] = false;
+                        inInstaller[0] = false;
                         status.setValue(ok ? "done" : "failed");
                         status.setValueColor(ok ? OK : BAD);
-                        p.addNote(message);
+                        show(message, text);
                     }
                 });
             }
@@ -91,6 +132,11 @@ public final class UpdatePanel {
         final View first = install.cell;
         p.root.post(new Runnable() { public void run() { first.requestFocus(); } });
         return p.root;
+    }
+
+    private static void show(TextView note, String text) {
+        note.setText(text);
+        note.setVisibility(View.VISIBLE);
     }
 
     /**

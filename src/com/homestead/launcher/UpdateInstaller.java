@@ -18,6 +18,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -52,6 +53,13 @@ public final class UpdateInstaller {
         void onProgress(int pct);
         /** A short status line (e.g. "Installing through the tunnel"). */
         void onStatus(String status);
+        /**
+         * The system installer is open. Its result is not reported: a successful install
+         * replaces the app and ends this process.
+         */
+        void onInstallerOpened();
+        /** Fire OS does not allow Homestead to install apps yet, so nothing was opened. */
+        void onNotAllowed();
         void onDone(boolean ok, String message);
     }
 
@@ -192,13 +200,23 @@ public final class UpdateInstaller {
     }
 
     private static void installViaIntent(Context c, File apk, Progress p, String prevErr) {
+        // Without "Install unknown apps" for Homestead, Fire OS shows a refusal that does not
+        // say where the switch is, so check first and let the panel explain.
+        if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
+            notAllowed(p);
+            return;
+        }
         try {
             Uri uri = UpdateFileProvider.uriFor(c, apk);
             Intent i = new Intent(Intent.ACTION_VIEW);
             i.setDataAndType(uri, "application/vnd.android.package-archive");
-            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            // CLEAR_TASK: after an earlier update the installer's "App installed" screen can
+            // still be in its task, and without this Android brings that back instead.
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            // Reported first, so the panel is watching before its window loses focus.
+            opened(p);
             c.startActivity(i);
-            done(p, true, "Opening the system installer to finish.");
         } catch (Throwable t) {
             String base = prevErr != null && prevErr.trim().length() > 0
                     ? "Install failed: " + firstLine(prevErr)
@@ -229,6 +247,16 @@ public final class UpdateInstaller {
     private static void status(final Progress p, final String s) {
         if (p == null) return;
         MAIN.post(new Runnable() { public void run() { try { p.onStatus(s); } catch (Throwable ignored) { } } });
+    }
+
+    private static void opened(final Progress p) {
+        if (p == null) return;
+        MAIN.post(new Runnable() { public void run() { try { p.onInstallerOpened(); } catch (Throwable ignored) { } } });
+    }
+
+    private static void notAllowed(final Progress p) {
+        if (p == null) return;
+        MAIN.post(new Runnable() { public void run() { try { p.onNotAllowed(); } catch (Throwable ignored) { } } });
     }
 
     private static void done(final Progress p, final boolean ok, final String msg) {

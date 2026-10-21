@@ -73,6 +73,18 @@ public final class SettingsPanel {
             }
         });
 
+        final Panel.Row bg = p.addRow("Background", Backgrounds.current(c).name, null);
+        bg.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.background(c) + 1) % Backgrounds.PRESETS.length;
+                Prefs.setBackground(c, n);
+                bg.setValue(Backgrounds.current(c).name);
+                host.rebuildGrid();
+            }
+        });
+        p.addNote("Black is for OLED screens and night viewing. Close this page to see it; "
+                + "the Home button uses it from the next press.");
+
         p.addHeader("Sections");
 
         final Panel.Row secIn = p.addRow("Show \"Inputs & System\"", onOff(Prefs.showInputs(c)), null);

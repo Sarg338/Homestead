@@ -35,6 +35,7 @@ public final class Prefs {
     private static final String K_SEC_INPUTS = "sec_inputs";
     private static final String K_SEC_NONTV = "sec_nontv";
     private static final String K_CLOCK = "clock";
+    private static final String K_BACKGROUND = "background";
     private static final String K_ADB = "adb_enabled";
     private static final String K_TUNNEL = "adb_tunnel_enabled";
     private static final String K_REAPPLY = "adb_reapply_on_boot";
@@ -108,6 +109,10 @@ public final class Prefs {
 
     public static boolean showNonTv(Context c) { return sp(c).getBoolean(K_SEC_NONTV, true); }
     public static void setShowNonTv(Context c, boolean v) { sp(c).edit().putBoolean(K_SEC_NONTV, v).apply(); }
+
+    /** Index into Backgrounds.PRESETS. */
+    public static int background(Context c) { return sp(c).getInt(K_BACKGROUND, 0); }
+    public static void setBackground(Context c, int v) { sp(c).edit().putInt(K_BACKGROUND, v).apply(); }
 
     public static int clockMode(Context c) { return sp(c).getInt(K_CLOCK, CLOCK_24H); }
     public static void setClockMode(Context c, int v) { sp(c).edit().putInt(K_CLOCK, v).apply(); }

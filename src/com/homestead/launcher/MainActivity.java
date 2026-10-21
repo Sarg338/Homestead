@@ -84,6 +84,13 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         });
     }
 
+    /** A Home press reaches the running activity here: show the grid, not an old page. */
+    @Override
+    protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        if (home != null) home.closePanels();
+    }
+
     /** Called by the service after it reloads the shared model. */
     void rebuildGrid() {
         if (home != null) home.rebuild();

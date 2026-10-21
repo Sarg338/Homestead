@@ -19,6 +19,8 @@ Both pictures are from the same TV, a few minutes apart.
 - **HDMI and Composite inputs as tiles**, so switching source is one press from home.
 - **Apps in the order you use them**, counted on the TV itself.
 - **Hide anything** you do not want to see: press MENU on a tile, or hold Select.
+- **Pick a background** in Settings: the blue gradient, a few darker ones, or plain black
+  for OLED screens and night viewing.
 - **TV Health** shows the state of the TV (animation speed, ad-tracking settings, the
   screensaver, which Amazon telemetry packages are running, free memory and storage). Each
   setting it flags can be fixed with one press.

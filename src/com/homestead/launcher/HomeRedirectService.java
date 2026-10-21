@@ -457,6 +457,8 @@ public class HomeRedirectService extends AccessibilityService {
             }
             attached = home.root;
             epoch++;
+            home.closePanels();
+            home.applyBackground();
             home.updateClock();
             home.takeFocus();
             Log.i(TAG, "overlay shown in " + (SystemClock.uptimeMillis() - t0)

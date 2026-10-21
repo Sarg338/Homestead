@@ -124,9 +124,6 @@ public class HomeGrid implements SettingsPanel.Host {
                 return super.dispatchKeyEvent(e);
             }
         };
-        root.setBackground(new GradientDrawable(
-                GradientDrawable.Orientation.BL_TR,
-                new int[]{0xFF6991C7, 0xFFA3BDED}));
         root.setClipChildren(false);
 
         scroll = new ScrollView(c);
@@ -156,8 +153,26 @@ public class HomeGrid implements SettingsPanel.Host {
         root.addView(clock, clp);
 
         AppModel.ensureLoaded(c);
+        applyBackground();
         build();
         updateClock();
+    }
+
+    /** The chosen preset; the overlay re-reads it on each Home press. */
+    private Backgrounds.Preset look;
+
+    /** Read the background setting and repaint what depends on it. Cheap; no rebuild. */
+    public void applyBackground() {
+        Backgrounds.Preset p = Backgrounds.current(ctx);
+        if (p == look) return;
+        look = p;
+        root.setBackground(Backgrounds.drawable(p));
+        clock.setTextColor(p.text);
+        for (int i = 0; i < column.getChildCount(); i++) {
+            View v = column.getChildAt(i);
+            if (v instanceof TextView) ((TextView) v).setTextColor(p.text);
+        }
+        if (focusedCell != null) style(focusedCell, true);
     }
 
     private int dp(int v) { return AppModel.dp(ctx, v); }
@@ -236,8 +251,23 @@ public class HomeGrid implements SettingsPanel.Host {
         }
     }
 
+    /**
+     * Back to the plain grid. A Home press lands here, not on a page left open earlier.
+     * The first-run wizard stays, since losing it halfway through setup is worse.
+     */
+    public void closePanels() {
+        while (!panels.isEmpty()) {
+            if (!Prefs.onboarded(ctx)
+                    && panels.get(panels.size() - 1).getTag() instanceof BackHandler) {
+                return;
+            }
+            closePanel();
+        }
+    }
+
     public void rebuildGrid() {
         AppModel.invalidateMetrics();
+        applyBackground();
         rebuild();
     }
 
@@ -399,7 +429,7 @@ public class HomeGrid implements SettingsPanel.Host {
     private void addHeader(String text, boolean first) {
         TextView h = new TextView(ctx);
         h.setText(text);
-        h.setTextColor(Color.WHITE);
+        h.setTextColor(look.text);
         h.setTextSize(TypedValue.COMPLEX_UNIT_SP, HEADER_SP);
         h.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -490,9 +520,10 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /**
-     * Focus treatment: 1.1x scale and a dark ring (white is invisible on white banners).
-     * Set directly rather than via a selector so it survives the window losing focus
-     * during the overlay -> activity handoff.
+     * Focus treatment: 1.1x scale and a ring in the preset's colour (dark on the light
+     * default, since white is invisible on white banners; light on the dark presets). Set
+     * directly rather than via a selector so it survives the window losing focus during
+     * the overlay -> activity handoff.
      */
     private void style(View v, boolean focused) {
         if (!(v instanceof FrameLayout)) return;
@@ -500,7 +531,7 @@ public class HomeGrid implements SettingsPanel.Host {
         if (focused) {
             GradientDrawable ring = new GradientDrawable();
             ring.setCornerRadius(dp(8));
-            ring.setStroke(dp(3), 0xFF2C2C2C);
+            ring.setStroke(dp(3), look.ring);
             ring.setColor(Color.TRANSPARENT);
             f.setForeground(ring);
             f.setScaleX(1.10f);

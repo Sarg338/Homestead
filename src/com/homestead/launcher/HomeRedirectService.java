@@ -20,6 +20,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.PixelFormat;
+import android.media.tv.TvInputManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -284,11 +285,12 @@ public class HomeRedirectService extends AccessibilityService {
 
     // Fire OS 8 can report the same Amazon package changing over and over (seen with
     // com.amazon.ceviche), so events are gathered until they settle, and the grid is only
-    // rebuilt when something it shows changed.
+    // rebuilt when something it shows changed. HDMI input changes take the same path.
     private static final long PKG_SETTLE_MS = 1500L;
     private static final long PKG_MAX_WAIT_MS = 10000L;
     private final java.util.Set<String> pendingPkgs = new java.util.TreeSet<String>();
     private long firstPkgEventAt = 0L;
+    private TvInputManager tvInputs;
 
     private final Runnable pkgReload = new Runnable() {
         public void run() {
@@ -316,14 +318,25 @@ public class HomeRedirectService extends AccessibilityService {
             android.net.Uri d = (i == null) ? null : i.getData();
             String changed = (d == null) ? null : d.getSchemeSpecificPart();
             if (changed == null || changed.equals(getPackageName())) return;
-            long now = SystemClock.elapsedRealtime();
-            if (firstPkgEventAt == 0L) firstPkgEventAt = now;
-            pendingPkgs.add(changed);
-            handler.removeCallbacks(pkgReload);
-            long at = Math.min(now + PKG_SETTLE_MS, firstPkgEventAt + PKG_MAX_WAIT_MS);
-            handler.postDelayed(pkgReload, Math.max(0L, at - now));
+            queueChange(changed);
         }
     };
+
+    // HDMI inputs often register after the first load at boot, with no package event.
+    private final TvInputManager.TvInputCallback inputWatch = new TvInputManager.TvInputCallback() {
+        @Override public void onInputAdded(String id) { queueChange("input:" + id); }
+        @Override public void onInputRemoved(String id) { queueChange("input:" + id); }
+        @Override public void onInputUpdated(String id) { queueChange("input:" + id); }
+    };
+
+    private void queueChange(String what) {
+        long now = SystemClock.elapsedRealtime();
+        if (firstPkgEventAt == 0L) firstPkgEventAt = now;
+        pendingPkgs.add(what);
+        handler.removeCallbacks(pkgReload);
+        long at = Math.min(now + PKG_SETTLE_MS, firstPkgEventAt + PKG_MAX_WAIT_MS);
+        handler.postDelayed(pkgReload, Math.max(0L, at - now));
+    }
 
     @Override
     protected void onServiceConnected() {
@@ -332,6 +345,11 @@ public class HomeRedirectService extends AccessibilityService {
         instance = this;
         Prefs.setHomeOffByUser(this, false);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        // Before the first load, so an input that registers during it is still noticed.
+        try {
+            tvInputs = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+            if (tvInputs != null) tvInputs.registerCallback(inputWatch, handler);
+        } catch (Throwable t) { }
         try {
             home = buildGrid();
             Log.i(TAG, "grid pre-built");
@@ -382,6 +400,7 @@ public class HomeRedirectService extends AccessibilityService {
         cancelHide();
         detach();
         try { unregisterReceiver(pkgs); } catch (Throwable t) { }
+        try { if (tvInputs != null) tvInputs.unregisterCallback(inputWatch); } catch (Throwable t) { }
         handler.removeCallbacks(pkgReload);
         if (watcherBound) {
             try { unbindService(watcherConn); } catch (Throwable t) { }

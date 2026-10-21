@@ -143,6 +143,9 @@ public final class AppModel {
 
     public static void reload(Context c) {
         long t0 = android.os.SystemClock.uptimeMillis();
+        // Taken before loading: anything that appears during a slow load (HDMI inputs at
+        // boot) then differs at the next check instead of matching it.
+        String sig = signature(c);
         metrics(c);
         ITEMS.clear();
 
@@ -211,7 +214,7 @@ public final class AppModel {
         }
         // Let the per-package Resources opened by loadBanner/loadIcon be reclaimed.
         System.gc();
-        lastSignature = signature(c);
+        lastSignature = sig;
         loaded = true;
         resort(c);
         Log.i(TAG, "model loaded: " + ITEMS.size() + " items in "

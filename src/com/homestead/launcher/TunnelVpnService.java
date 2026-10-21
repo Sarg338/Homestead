@@ -282,6 +282,43 @@ public class TunnelVpnService extends VpnService {
     }
 
     /** True if the tunnel subnet overlaps a real network - routing it would hijack traffic. */
+    /**
+     * Make this app the prepared VPN again, without a prompt. The consent given in Setup
+     * survives a reboot, but being the prepared VPN app does not, and establish() returns
+     * null until prepare() runs again. Refused while another VPN is up, because preparing
+     * would disconnect it. @return true if the tunnel can start now.
+     */
+    static boolean prepareQuietly(Context c) {
+        if (otherVpnUp()) {
+            Log.w(TAG, "tunnel: another VPN is up; leaving it alone");
+            return false;
+        }
+        try {
+            if (VpnService.prepare(c) == null) return true;
+            Log.w(TAG, "tunnel: no VPN consent; switch the tunnel on again in Setup");
+        } catch (Throwable t) {
+            Log.w(TAG, "tunnel: prepare failed: " + t);
+        }
+        return false;
+    }
+
+    /** True if a VPN interface is up. Only asked while our own tunnel is down. */
+    private static boolean otherVpnUp() {
+        try {
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            while (nis != null && nis.hasMoreElements()) {
+                NetworkInterface ni = nis.nextElement();
+                if (ni == null || !ni.isUp()) continue;
+                String n = ni.getName();
+                if (n != null && (n.startsWith("tun") || n.startsWith("ppp")
+                        || n.startsWith("ipsec"))) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) { }
+        return false;
+    }
+
     private static boolean subnetInUse() {
         try {
             Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();

@@ -21,14 +21,16 @@ are.
 
 The app has exactly two network behaviours, and no others:
 
-- **Update check.** Once a day when the launcher opens, and whenever you press *Check for
-  updates* in Settings, one unauthenticated HTTPS GET to
+- **Update check.** At most once a day, when the home screen opens or comes back, and
+  whenever you press *Check for updates* in Settings, one unauthenticated HTTPS GET to
   `https://api.github.com/repos/Sarg338/Homestead/releases/latest`. It carries no token, no
   device identifier and nothing about your TV beyond what any HTTPS request carries. The
   APK itself is downloaded only when you choose *Install now*, and it is refused unless it is
   signed by the same certificate as the installed app.
 - **The ADB client.** Connects only to this television's own `adbd`, directly or through
-  a local tunnel on the TV. It never leaves the device.
+  a local tunnel on the TV. It never leaves the device. The tunnel is a VPN that routes only
+  its own private subnet. Updates and re-apply after reboot do not start it while another
+  VPN is running, so they never interrupt one you use.
 
 There is no telemetry, no crash reporting and no analytics of any kind.
 

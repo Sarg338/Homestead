@@ -393,13 +393,14 @@ public final class AdbBridge {
 
     /**
      * Worker thread. If the tunnel is enabled but down, start it and wait for isActive().
-     * VPN consent was already granted via VpnSetupActivity, so this is silent; the service
-     * comes up on the main thread, so waiting here cannot deadlock.
+     * The VPN consent from Setup makes this silent; the service comes up on the main
+     * thread, so waiting here cannot deadlock.
      */
     private static void ensureTunnelIfEnabled() {
         if (app == null || !Prefs.tunnelEnabled(app)) return;
         if (TunnelVpnService.isActive()) return;
         if (!AdbCrypto.hasKey(app)) return;
+        if (!TunnelVpnService.prepareQuietly(app)) return;
         try {
             app.startService(new Intent(app, TunnelVpnService.class));
         } catch (Throwable t) {

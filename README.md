@@ -254,8 +254,8 @@ Log lines worth knowing: `HomeRedirectService connected` (the service started),
 `Home pressed` then `overlay shown in … ms` (one Home press, caught by `HomeKeyWatcher`),
 `dispatchLag=…` (Amazon's launcher reached the front), `handing off to activity`,
 `foreground is now …, removing overlay`, `tunnel up`, `adb connected`, `adb idle, closing`,
-`package change […], grid unchanged` or `…, reloading model once` (package events, gathered
-for 1.5 seconds), `opening Settings (key … from device …, source …)` (device -1 is an
+`package change […], grid unchanged` or `…, reloading model once` (package and HDMI input
+events, gathered for 1.5 seconds; inputs are listed as `input:…`), `opening Settings (key … from device …, source …)` (device -1 is an
 injected key rather than the remote, and `(HDMI-CEC)` marks one sent over HDMI),
 `update check: …` (the result of each check for a new release).
 

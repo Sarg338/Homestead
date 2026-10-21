@@ -344,12 +344,23 @@ final class Debloat {
                         : "core system component";
             }
         }
-        String lower = pkg.toLowerCase(java.util.Locale.US);
-        for (int i = 0; i < NEVER_CONTAINING.length; i++) {
-            if (lower.contains(NEVER_CONTAINING[i])) return "core system component";
+        // The substring rules guard "Browse every system app". Catalogue entries were
+        // checked by hand, so they are exempt (com.amazon.wifilocker contains "wifi").
+        if (!inCatalogue(pkg)) {
+            String lower = pkg.toLowerCase(java.util.Locale.US);
+            for (int i = 0; i < NEVER_CONTAINING.length; i++) {
+                if (lower.contains(NEVER_CONTAINING[i])) return "core system component";
+            }
         }
         if (liveCritical(c).contains(pkg)) return "in use by the system right now";
         return null;
+    }
+
+    private static boolean inCatalogue(String pkg) {
+        for (int i = 0; i < CATALOGUE.length; i++) {
+            if (CATALOGUE[i].pkg.equals(pkg)) return true;
+        }
+        return false;
     }
 
     /** Fire OS's message when disable-user hits a package it protects. */

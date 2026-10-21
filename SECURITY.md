@@ -99,9 +99,17 @@ disabling it crash-loops Amazon's launcher.
 
 ## Signing
 
-Releases are signed with a key held outside this repository. The in-app updater refuses
-any APK whose signing certificate does not match the installed app's, so a release signed
-with any other key cannot be delivered through it.
+Releases are signed with a key held outside this repository. The signing certificate's
+SHA-256 fingerprint is:
+
+    624fe3f5ac83ccdef5ce518073cbe46217de6f5ab2eb7e282983e149f0a6663e
+
+Before the first install, check a downloaded APK with `apksigner verify --print-certs
+homestead.apk` (apksigner ships with the Android build-tools) and compare the "Signer #1
+certificate SHA-256 digest" line with the value above. After that first install, Android
+itself refuses any update signed with a different key, and the in-app updater checks the
+same thing before it hands a download to the installer, so a release signed with any other
+key cannot be delivered through it.
 
 ## Reporting
 

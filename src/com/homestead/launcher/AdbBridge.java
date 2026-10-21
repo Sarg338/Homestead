@@ -272,13 +272,14 @@ public final class AdbBridge {
     public static String[] selfSetupCommands(Context c, String currentServices) {
         String pkg = c.getPackageName();
         String comp = pkg + "/" + pkg + ".HomeRedirectService";
+        String current = cleanServices(currentServices);
         String services;
-        if (currentServices == null || currentServices.trim().length() == 0) {
+        if (current.length() == 0) {
             services = comp;
-        } else if (currentServices.contains(comp)) {
-            services = currentServices;
+        } else if (current.contains(comp)) {
+            services = current;
         } else {
-            services = currentServices + ":" + comp;
+            services = current + ":" + comp;
         }
         return new String[]{
                 "settings put secure enabled_accessibility_services '" + services + "'",
@@ -290,6 +291,23 @@ public final class AdbBridge {
                 // Lets HomeKeyWatcher catch Home presses before Amazon's home draws.
                 "pm grant " + pkg + " android.permission.READ_LOGS",
         };
+    }
+
+    /**
+     * The stored setting goes into a quoted shell command, so keep only entries that look
+     * like component names. Anything else is dropped rather than passed to the shell.
+     */
+    static String cleanServices(String current) {
+        if (current == null) return "";
+        StringBuilder out = new StringBuilder();
+        String[] parts = current.split(":");
+        for (int i = 0; i < parts.length; i++) {
+            String p = parts[i].trim();
+            if (p.length() == 0 || !p.matches("[A-Za-z0-9_.$/]+")) continue;
+            if (out.length() > 0) out.append(':');
+            out.append(p);
+        }
+        return out.toString();
     }
 
     /** Reversible by design: disable-user keeps the APK and its data, unlike uninstall. */

@@ -41,9 +41,10 @@ Real hardware, not emulators:
 |---|---|---|---|
 | Insignia F30-Series Fire TV Edition | `AFTDCT31` | 7.7.1.5 | **Everything**: launcher, Home button, HDMI/Composite tiles, Settings, TV Health, Debloat, and setup without a computer |
 | Amazon Fire TV Stick | `AFTSSS` | 7.7.1.6 | **Setup without a computer**: key approval, permissions, automatic shutdown of the tunnel |
+| Amazon Fire TV Stick 4K (2nd gen) | `AFTKM` | 8.1.8.5 | **Reported by a user, not tested here**: Home button, Debloat (28 packages switched off; Fire OS 8 protects a few more than Fire OS 7), several reboots. Set up from a computer. |
 
-Both run Android 9. Other Fire OS 7 devices are *expected* to work but are unverified.
-**Fire OS 8 is untested.**
+The first two run Android 9 and were tested by the maintainer. The Stick 4K row is a user
+report on Fire OS 8 (Android 11). Other devices are *expected* to work but are unverified.
 
 Debloat's list of packages was checked by hand on the Insignia TV above. Other models
 and Fire OS versions may use different package names. Anything on the list that your TV

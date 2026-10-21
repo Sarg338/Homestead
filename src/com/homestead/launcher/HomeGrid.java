@@ -153,6 +153,7 @@ public class HomeGrid implements SettingsPanel.Host {
         root.addView(clock, clp);
 
         AppModel.ensureLoaded(c);
+        Backgrounds.ensureFolder(c);
         applyBackground();
         build();
         updateClock();

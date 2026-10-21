@@ -54,6 +54,14 @@ final class Backgrounds {
         return PRESETS[i];
     }
 
+    /**
+     * Create the app's folder on external storage, so a custom background can be copied
+     * there with adb push. Android only creates it once something asks for it.
+     */
+    static void ensureFolder(Context c) {
+        try { c.getExternalFilesDir(null); } catch (Throwable ignored) { }
+    }
+
     static Drawable drawable(Preset p) {
         return new GradientDrawable(GradientDrawable.Orientation.BL_TR,
                 new int[]{ p.from, p.to });

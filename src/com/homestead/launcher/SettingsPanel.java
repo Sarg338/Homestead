@@ -73,17 +73,28 @@ public final class SettingsPanel {
             }
         });
 
-        final Panel.Row bg = p.addRow("Background", Backgrounds.current(c).name, null);
+        final Panel.Row bg = p.addRow("Background", Backgrounds.label(c), null);
+        final Panel.Row dim = p.addRow("Photo dimming", Backgrounds.dimLabel(c), null);
         bg.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                int n = (Prefs.background(c) + 1) % Backgrounds.PRESETS.length;
-                Prefs.setBackground(c, n);
-                bg.setValue(Backgrounds.current(c).name);
+                Prefs.setBackground(c, Backgrounds.next(c));
+                bg.setValue(Backgrounds.label(c));
                 host.rebuildGrid();
             }
         });
-        p.addNote("Black is for OLED screens and night viewing. Close this page to see it; "
-                + "the Home button uses it from the next press.");
+        dim.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Prefs.setPhotoDim(c, (Prefs.photoDim(c) + 1) % Backgrounds.DIM_NAMES.length);
+                dim.setValue(Backgrounds.dimLabel(c));
+                host.rebuildGrid();
+            }
+        });
+        p.addNote("Black is for OLED screens and night viewing. For Photo, copy a picture "
+                + "named background.jpg (or .png) to this TV from a computer:\n\n"
+                + "adb push background.jpg /sdcard/Android/data/" + c.getPackageName()
+                + "/files/\n\n"
+                + "Dimming darkens the photo so the labels stay readable. Close this page "
+                + "to see the change; the Home button uses it from the next press.");
 
         p.addHeader("Sections");
 

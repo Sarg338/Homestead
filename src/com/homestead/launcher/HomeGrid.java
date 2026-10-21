@@ -14,6 +14,7 @@ package com.homestead.launcher;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -159,22 +160,55 @@ public class HomeGrid implements SettingsPanel.Host {
         updateClock();
     }
 
-    /** The chosen preset; the overlay re-reads it on each Home press. */
+    /** The chosen look; the overlay and the activity re-read it when they come up. */
     private Backgrounds.Preset look;
+    /** What is painted now, so an unchanged setting costs only a file stat. */
+    private String painted;
 
-    /** Read the background setting and repaint what depends on it. Cheap; no rebuild. */
+    /**
+     * Read the background setting and repaint what depends on it. Cheap; no rebuild. A
+     * photo is decoded off the main thread, and this runs again once it has loaded.
+     */
     public void applyBackground() {
         Backgrounds.Preset p = Backgrounds.current(ctx);
-        if (p == look) return;
+        Bitmap photo = null;
+        String state = p.name;
+        if (!Backgrounds.photoChosen(ctx)) {
+            Backgrounds.drop();
+        } else {
+            java.io.File f = Backgrounds.photoFile(ctx);
+            if (f == null) Backgrounds.drop();
+            String key = Backgrounds.keyOf(f);
+            photo = Backgrounds.photoFor(key);
+            if (f != null && photo == null) {
+                Backgrounds.load(ctx, f, new Runnable() {
+                    public void run() { applyBackground(); }
+                });
+                // Keep the previous photo up until the replaced one has loaded.
+                photo = Backgrounds.lastPhoto();
+                key = "loading";
+            }
+            state = "photo|" + (photo == null ? "none" : key) + "|" + Backgrounds.dimAlpha(ctx);
+        }
+        if (state.equals(painted)) return;
+        painted = state;
         look = p;
-        root.setBackground(Backgrounds.drawable(p));
-        clock.setTextColor(p.text);
+        root.setBackground(photo != null ? Backgrounds.photoDrawable(ctx, photo)
+                : Backgrounds.drawable(p));
+        paintText(clock);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
-            if (v instanceof TextView) ((TextView) v).setTextColor(p.text);
+            if (v instanceof TextView) paintText((TextView) v);
         }
-        // The ring and the outline are per preset, so every cell is repainted.
+        // The ring and the outline are per look, so every cell is repainted.
         for (View cell : cellsByKey.values()) style(cell, cell == focusedCell);
+    }
+
+    /** Header and clock colour; on a photo, a soft shadow keeps them readable. */
+    private void paintText(TextView t) {
+        t.setTextColor(look.text);
+        if (look == Backgrounds.PHOTO_LOOK) t.setShadowLayer(dp(4), 0, dp(1), 0xCC000000);
+        else t.setShadowLayer(0, 0, 0, 0);
     }
 
     private int dp(int v) { return AppModel.dp(ctx, v); }
@@ -431,7 +465,7 @@ public class HomeGrid implements SettingsPanel.Host {
     private void addHeader(String text, boolean first) {
         TextView h = new TextView(ctx);
         h.setText(text);
-        h.setTextColor(look.text);
+        paintText(h);
         h.setTextSize(TypedValue.COMPLEX_UNIT_SP, HEADER_SP);
         h.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(

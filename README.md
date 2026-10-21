@@ -19,8 +19,8 @@ Both pictures are from the same TV, a few minutes apart.
 - **HDMI and Composite inputs as tiles**, so switching source is one press from home.
 - **Apps in the order you use them**, counted on the TV itself.
 - **Hide anything** you do not want to see: press MENU on a tile, or hold Select.
-- **Pick a background** in Settings: the blue gradient, a few darker ones, or plain black
-  for OLED screens and night viewing.
+- **Pick a background** in Settings: the blue gradient, a few darker ones, plain black for
+  OLED screens and night viewing, or [your own photo](#your-own-background-photo).
 - **TV Health** shows the state of the TV (animation speed, ad-tracking settings, the
   screensaver, which Amazon telemetry packages are running, free memory and storage). Each
   setting it flags can be fixed with one press.
@@ -125,6 +125,23 @@ from the remote. The second lets Homestead catch the Home press early, so Amazon
 screen does not flash first, and makes Home work while Amazon's home screen is showing.
 To switch packages off, open **Commands for a computer** in the app: it lists exactly the
 commands still needed on your TV.
+
+## Your own background photo
+
+Copy a picture named `background.jpg` (or `background.png`) into Homestead's own folder on
+the TV. Homestead creates that folder the first time it runs, and reading from it needs no
+storage permission:
+
+```sh
+adb push background.jpg /sdcard/Android/data/com.homestead.launcher/files/
+```
+
+Then choose **Photo** under Settings → **Background**. Any size or shape works: the picture
+is scaled and cropped to fill the screen, and only that screen-sized copy is kept in
+memory. **Photo dimming** darkens it (Off, Light or Dark) so the labels stay readable;
+Light is the default. To change the picture, push a new file over the old one; it shows on
+the next Home press. If the file is missing, the background is black and the Settings row
+says so. The folder is removed when Homestead is uninstalled.
 
 ## Removing Homestead
 

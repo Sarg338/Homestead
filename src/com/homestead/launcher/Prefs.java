@@ -36,6 +36,7 @@ public final class Prefs {
     private static final String K_SEC_NONTV = "sec_nontv";
     private static final String K_CLOCK = "clock";
     private static final String K_BACKGROUND = "background";
+    private static final String K_PHOTO_DIM = "photo_dim";
     private static final String K_ADB = "adb_enabled";
     private static final String K_TUNNEL = "adb_tunnel_enabled";
     private static final String K_REAPPLY = "adb_reapply_on_boot";
@@ -113,6 +114,10 @@ public final class Prefs {
     /** Index into Backgrounds.PRESETS. */
     public static int background(Context c) { return sp(c).getInt(K_BACKGROUND, 0); }
     public static void setBackground(Context c, int v) { sp(c).edit().putInt(K_BACKGROUND, v).apply(); }
+
+    /** Index into Backgrounds.DIM_NAMES. Light by default, so labels stay readable. */
+    public static int photoDim(Context c) { return sp(c).getInt(K_PHOTO_DIM, 1); }
+    public static void setPhotoDim(Context c, int v) { sp(c).edit().putInt(K_PHOTO_DIM, v).apply(); }
 
     public static int clockMode(Context c) { return sp(c).getInt(K_CLOCK, CLOCK_24H); }
     public static void setClockMode(Context c, int v) { sp(c).edit().putInt(K_CLOCK, v).apply(); }

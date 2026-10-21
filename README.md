@@ -43,7 +43,7 @@ Real hardware, not emulators:
 |---|---|---|---|
 | Insignia F30-Series Fire TV Edition | `AFTDCT31` | 7.7.1.5 | **Everything**: launcher, Home button, HDMI/Composite tiles, Settings, TV Health, Debloat, and setup without a computer |
 | Amazon Fire TV Stick | `AFTSSS` | 7.7.1.6 | **Setup without a computer**: key approval, permissions, automatic shutdown of the tunnel |
-| Amazon Fire TV Stick 4K (2nd gen) | `AFTKM` | 8.1.8.5 | **Reported by a user, not tested here**: Home button, Debloat (28 packages switched off; Fire OS 8 protects a few more than Fire OS 7), several reboots. Set up from a computer. |
+| Amazon Fire TV Stick 4K (2nd gen) | `AFTKM` | 8.1.8.5 | **Reported by a user, not tested here**: Home button, Debloat (28 packages switched off; Fire OS 8 protects a few more than Fire OS 7), several reboots, and a background photo sent from a computer (1.2.9). Set up from a computer. |
 | Hisense 65U65SFC Pro (Fire TV Edition) | `AFTCIBFBD1` | 8.1.8.0 | **Reported by a user, not tested here**: Home button, Debloat, a full reboot, and the fix for repeated package events (1.2.3 and later). Set up from a computer. |
 
 The first two run Android 9 and were tested by the maintainer. The last two are user
@@ -127,6 +127,18 @@ To switch packages off, open **Commands for a computer** in the app: it lists ex
 commands still needed on your TV.
 
 ## Your own background photo
+
+### From the TV, no computer
+
+Save a JPEG or PNG to the TV's Download folder; the Downloader app and the Silk browser both
+save there. Then open Settings → **Choose a photo on this TV**, pick the picture, and it
+becomes the background. Homestead looks in Download and hands the picture over through its
+on-device tunnel, so this needs the tunnel set up (see [Setup](#setup)) but no storage
+permission. Pictures whose names contain characters other than letters, numbers, spaces,
+dots, dashes, brackets or `+` are not listed, and the page says how many were left out:
+the name goes into a shell command, so anything unusual is skipped rather than escaped.
+
+### From a computer
 
 Send a JPEG or PNG to the TV from a computer, in two steps. The first copies it to the TV's
 Download folder; the second hands it to Homestead, which keeps its own copy in private

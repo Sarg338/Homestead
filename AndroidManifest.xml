@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.homestead.launcher"
-    android:versionCode="60" android:versionName="1.2.9">
+    android:versionCode="61" android:versionName="1.3.0">
 
   <!-- Optional: last-used times for app sorting, when granted. -->
   <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>

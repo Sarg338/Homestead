@@ -418,6 +418,10 @@ public final class AdbBridge {
         if (app == null || !Prefs.tunnelEnabled(app)) return;
         if (TunnelVpnService.isActive()) return;
         if (!AdbCrypto.hasKey(app)) return;
+        // A command just after an idle teardown can find our old interface still there.
+        if (!TunnelVpnService.awaitOwnTunnelGone(3000L)) {
+            Log.w(TAG, "tunnel: the 10.113.77.0/24 subnet is still in use");
+        }
         if (!TunnelVpnService.prepareQuietly(app)) return;
         try {
             app.startService(new Intent(app, TunnelVpnService.class));

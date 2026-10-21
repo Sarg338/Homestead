@@ -48,6 +48,13 @@ public final class BackgroundProvider extends ContentProvider {
     private static final int SHELL_UID = 2000, ROOT_UID = 0;
     private static final long MAX_BYTES = 25L * 1024L * 1024L;
 
+    /**
+     * The last transfer's outcome, so PhotoPanel can tell whether the file it sent through
+     * the tunnel was used. Wall-clock time of the result, and whether it was kept.
+     */
+    static volatile long lastResultAt;
+    static volatile boolean lastOk;
+
     /** Where a photo received this way is kept, in app-private storage. */
     static File photoFile(Context c) { return new File(c.getFilesDir(), "background"); }
 
@@ -111,6 +118,8 @@ public final class BackgroundProvider extends ContentProvider {
                     try { in.close(); } catch (Throwable ignored) { }
                     if (out != null) try { out.close(); } catch (Throwable ignored) { }
                     if (!ok) part.delete();
+                    lastOk = ok;
+                    lastResultAt = System.currentTimeMillis();
                 }
                 Log.i(TAG, ok ? "background photo received, " + total + " bytes"
                         : "background photo discarded");

@@ -302,6 +302,20 @@ public class TunnelVpnService extends VpnService {
         return false;
     }
 
+    /**
+     * Android removes the tun interface a moment after an idle teardown closes it. Until
+     * then our own leftover looks like another VPN and its subnet looks taken, so a restart
+     * right then is refused. Worker thread: waits up to maxMs for it to go. @return true
+     * if the subnet is free.
+     */
+    static boolean awaitOwnTunnelGone(long maxMs) {
+        long end = android.os.SystemClock.uptimeMillis() + maxMs;
+        while (subnetInUse() && android.os.SystemClock.uptimeMillis() < end) {
+            try { Thread.sleep(100); } catch (InterruptedException e) { return false; }
+        }
+        return !subnetInUse();
+    }
+
     /** True if a VPN interface is up. Only asked while our own tunnel is down. */
     private static boolean otherVpnUp() {
         try {

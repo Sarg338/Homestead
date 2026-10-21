@@ -114,6 +114,14 @@ shell runs as its own user, and it limits itself instead:
   25 MB and decodes as an image; anything else is discarded.
 - The photo is kept in the app's private storage, which only Homestead can read.
 
+**Choose a photo on this TV** uses the same endpoint from inside the app. Homestead holds no
+storage permission, so it runs two commands through its on-device tunnel: `ls` of
+`/sdcard/Download`, and `content write` of the chosen file into the endpoint. A file name is
+used only if it consists of letters, numbers, spaces, dots, dashes, brackets and `+` and
+ends in `.jpg`, `.jpeg` or `.png`, and it is single-quoted in the command; any other name
+is left out, so a file name cannot add to the command. Like every tunnel use, the tunnel
+is up only while this runs and for the short idle period after.
+
 ## Signing
 
 Releases are signed with a key held outside this repository. The signing certificate's

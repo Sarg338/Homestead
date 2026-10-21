@@ -89,8 +89,12 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        p.addNote("Black is for OLED screens and night viewing. For Photo, send a JPEG or "
-                + "PNG to this TV from a computer:\n\n"
+        p.addRow("Choose a photo on this TV", "", new Runnable() {
+            public void run() { host.showPanel(PhotoPanel.build(c, host)); }
+        });
+        p.addNote("Black is for OLED screens and night viewing. For Photo, choose a picture "
+                + "saved on the TV above (needs the on-device tunnel), or send a JPEG or PNG "
+                + "from a computer:\n\n"
                 + "adb push background.jpg /sdcard/Download/\n"
                 + "adb shell \"content write --uri content://" + BackgroundProvider.AUTHORITY
                 + "/photo < /sdcard/Download/background.jpg\"\n\n"

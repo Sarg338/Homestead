@@ -34,6 +34,9 @@ Both pictures are from the same TV, a few minutes apart.
   computer do the same job if you would rather not use it.
 - **Updates itself.** It checks this repository's releases once a day and installs a new
   version only when you press Install, and only if it is signed with the same key.
+- **[Simple mode](#setting-it-up-for-someone-else)** for a TV you set up for someone else:
+  Settings is out of sight, nothing can be hidden by accident, and there are no update
+  pop-ups.
 
 ## Verified on
 
@@ -167,6 +170,34 @@ Light is the default.
   refuses that folder to adb. A picture sent with the commands above takes precedence.
 
 The picture is removed when Homestead is uninstalled.
+
+## Setting it up for someone else
+
+Choose **Simple mode** on the first setup screen (or switch it on later in Settings) when
+the TV is for someone who just wants to watch it, such as a parent or grandparent.
+
+- **The Settings and TV Health tiles are hidden.** To open Settings, press **Menu (☰)
+  five times in a row** on the home screen. Setup has you try it before you finish. Every
+  Amazon Fire TV remote has a Menu button; a TV's own remote may not send it.
+- **Menu and holding Select no longer hide tiles,** so nothing disappears by accident.
+  Hide what you want before you switch it on, or open Settings to change it later.
+- **No update pop-ups.** Homestead does not check for updates by itself; use *Check for
+  updates* in Settings when you visit.
+- **When chosen during setup, it switches off Debloat's safe list** (what the *Switch off
+  everything marked safe* button does: ads, telemetry, tutorials and demo content), except
+  Amazon Photos, which stays on for family pictures. Alexa is left on too, since asking
+  for a show by voice is often easier than finding it with the remote. This needs the
+  on-device tunnel; without it, use the button in Debloat later (which does include Amazon
+  Photos). Turning Simple mode on or off in Settings does not change Debloat.
+
+Things to know before you leave the TV:
+
+- If Fire OS ever switches Homestead's Home button off (it can after a Fire OS update),
+  the *Finish setup* page appears on its own. That page is the sign the TV needs you.
+- Some Android versions forget an "Always allow" debugging key that has not been used for
+  some days. If that happens and **Re-apply after reboot** later needs to switch something
+  off again, the TV's key prompt could appear on screen. This has not been seen on the test
+  TV (Fire OS 7) and has not been tested on Fire OS 8.
 
 ## Removing Homestead
 

@@ -92,6 +92,25 @@ public class HomeGrid implements SettingsPanel.Host {
     private int lastKeyDevice;
     private int lastKeySource;
     private long lastKeyAt;
+    /** Shared by the overlay and activity grids, so presses across the handoff still count. */
+    private static final MenuTaps menuTaps = new MenuTaps();
+
+    /** Simple mode's way into Settings: Menu pressed five times, each within 2 s of the last. */
+    static final class MenuTaps {
+        static final int COUNT = 5;
+        private int n;
+        private long last;
+
+        /** @return true on the press that completes the sequence. */
+        boolean tap() {
+            long now = android.os.SystemClock.uptimeMillis();
+            n = (now - last <= 2000L) ? n + 1 : 1;
+            last = now;
+            if (n < COUNT) return false;
+            n = 0;
+            return true;
+        }
+    }
 
     public HomeGrid(Context c, Listener l) {
         this.ctx = c;
@@ -117,9 +136,16 @@ public class HomeGrid implements SettingsPanel.Host {
                     return true;
                 }
                 // Menu hides the focused tile, matching the stock Fire TV launcher's
-                // convention (long-press also works).
+                // convention (long-press also works). In Simple mode it hides nothing, and
+                // five presses in a row open Settings instead.
                 if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_MENU && panels.isEmpty()) {
-                    if (e.getAction() == android.view.KeyEvent.ACTION_UP) hideFocused();
+                    if (e.getAction() == android.view.KeyEvent.ACTION_UP) {
+                        if (!Prefs.simpleMode(ctx)) hideFocused();
+                        else if (menuTaps.tap()) {
+                            logOpen("Settings (Menu x" + MenuTaps.COUNT + ")");
+                            showPanel(SettingsPanel.build(ctx, HomeGrid.this));
+                        }
+                    }
                     return true;
                 }
                 return super.dispatchKeyEvent(e);
@@ -456,6 +482,17 @@ public class HomeGrid implements SettingsPanel.Host {
         }
         if (!Prefs.showNonTv(ctx)) nonTv.clear();
 
+        // Simple mode drops them too, unless nothing else is left: an empty grid has
+        // nothing to focus, so the Menu presses that open Settings may not reach us.
+        if (Prefs.simpleMode(ctx)) {
+            List<AppModel.Item> rest = new ArrayList<AppModel.Item>();
+            for (int i = 0; i < inputs.size(); i++) {
+                int t = inputs.get(i).type;
+                if (t != AppModel.TYPE_SETTINGS && t != AppModel.TYPE_HEALTH) rest.add(inputs.get(i));
+            }
+            if (!rest.isEmpty() || !nonTv.isEmpty() || !tv.isEmpty()) inputs = rest;
+        }
+
         boolean first = true;
         if (!inputs.isEmpty()) { addHeader("Inputs & System", first); first = false; addCardRow(inputs); }
         if (!nonTv.isEmpty())  { addHeader("Non-TV Applications", first); first = false; addCardRow(nonTv); }
@@ -549,7 +586,10 @@ public class HomeGrid implements SettingsPanel.Host {
             }
         });
         cell.setOnLongClickListener(new View.OnLongClickListener() {
-            public boolean onLongClick(View v) { return hideFocused(); }
+            // In Simple mode a held Select falls through to a normal click.
+            public boolean onLongClick(View v) {
+                return !Prefs.simpleMode(ctx) && hideFocused();
+            }
         });
         cellsByKey.put(it.key(), cell);
         style(cell, false);

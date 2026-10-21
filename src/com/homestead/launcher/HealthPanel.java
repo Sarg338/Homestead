@@ -185,7 +185,7 @@ public final class HealthPanel {
         left.setValueColor(stillOn == 0 ? OK : WARN);
         p.addRow("Protected by Fire OS", String.valueOf(fireOs), null);
         p.addRow("Kept on for safety", String.valueOf(locked), null);
-        p.addRow("Left on by choice (Alexa, Extras)", String.valueOf(choice), null);
+        p.addRow("Left on by choice (marked caution)", String.valueOf(choice), null);
 
         p.addRow("Open Debloat", "", new Runnable() {
             public void run() { host.showPanel(DebloatPanel.build(c, host)); }

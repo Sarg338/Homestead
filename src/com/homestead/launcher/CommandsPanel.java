@@ -103,8 +103,8 @@ public final class CommandsPanel {
                     + "\nEvery one of these is undone with:\n"
                     + "adb shell pm enable <package>\n\n"
                     + "Nothing is uninstalled and no data is deleted. The Debloat page "
-                    + "lists what each package does, and the Alexa and Extras groups are "
-                    + "left out here because they change how the TV behaves - choose those "
+                    + "lists what each package does. Alexa and everything else marked caution "
+                    + "are left out here because they change how the TV behaves - choose those "
                     + "individually.");
         } else {
             p.addNote("None of the tracked advertising or telemetry packages are running.");

@@ -69,9 +69,11 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
      * Check GitHub for a newer release (throttled to once a day) and prompt once per
      * version, unless a panel is open or the version was skipped. Run on every resume, not
      * only at creation: a TV that only goes to standby can keep this activity for days.
+     * Never in Simple mode; updates there come only from Settings.
      */
     private void maybeCheckForUpdate() {
         if (!Prefs.autoUpdateCheck(this) || !Prefs.onboarded(this)) return;
+        if (Prefs.simpleMode(this)) return;
         if (home == null || home.isPanelOpen()) return;
         UpdateChecker.check(this, false, new UpdateChecker.Callback() {
             public void onResult(UpdateChecker.Update u, String error) {

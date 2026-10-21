@@ -46,9 +46,9 @@ public final class SettingsPanel {
             public void onClick(View v) { host.showPanel(buildHiddenList(c, host)); }
         });
 
-        p.addNote("Press the MENU button on any tile to hide it (long-press works too). "
-                + "Hiding only changes what this launcher draws - nothing is disabled or "
-                + "uninstalled, and the app still works everywhere else.");
+        p.addNote("Press the MENU button on any tile to hide it (long-press works too; not "
+                + "in Simple mode). Hiding only changes what this launcher draws - nothing is "
+                + "disabled or uninstalled, and the app still works everywhere else.");
 
         final Panel.Row sort = p.addRow("Sort apps by", sortLabel(c), null);
         sort.cell.setOnClickListener(new View.OnClickListener() {
@@ -124,7 +124,8 @@ public final class SettingsPanel {
         });
 
         p.addNote("Settings and TV Health always stay reachable, even with "
-                + "\"Inputs & System\" switched off.");
+                + "\"Inputs & System\" switched off. Simple mode hides them; press MENU five "
+                + "times on the home screen to come back here.");
 
         p.addHeader("Clock");
 
@@ -155,6 +156,20 @@ public final class SettingsPanel {
                 setup.setValueColor(0xFFE8C468);
             }
         });
+
+        final Panel.Row simple = p.addRow("Simple mode", onOff(Prefs.simpleMode(c)), null);
+        simple.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean n = !Prefs.simpleMode(c);
+                Prefs.setSimpleMode(c, n);
+                simple.setValue(onOff(n));
+                host.rebuildGrid();
+            }
+        });
+        p.addNote("For a TV set up for someone else: the Settings and TV Health tiles are "
+                + "hidden (press MENU five times on the home screen to open Settings), MENU and "
+                + "long-press no longer hide tiles, and there are no update pop-ups; check for "
+                + "updates below. It does not change Debloat.");
 
         p.addRow("TV Health", "check", new Runnable() {
             public void run() { host.showPanel(HealthPanel.build(c, host)); }

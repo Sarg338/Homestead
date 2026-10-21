@@ -25,6 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -47,7 +48,11 @@ public final class OnboardingPanel {
     private static final int GRAD1 = 0xFF6991C7, GRAD2 = 0xFFA3BDED;
     private static final int GLOW = 0x8CA3BDED, GHOST_LINE = 0x40FFFFFF;
 
-    private static final int WELCOME = 0, CHOOSE = 1, HOME = 2, ADB = 3, DONE = 4;
+    private static final int WELCOME = 0, CHOOSE = 1, HOME = 2, ADB = 3, DONE = 4, SIMPLE = 5;
+    private static final int CARD_HOME = 0, CARD_CLEAN = 1, CARD_SIMPLE = 2;
+    // Simple mode's cleanup of the safe list, run when its step first shows.
+    private static final int CLEAN_IDLE = 0, CLEAN_RUNNING = 1, CLEAN_DONE = 2,
+            CLEAN_FAILED = 3, CLEAN_NO_LINK = 4;
 
     private final Context c;
     private final SettingsPanel.Host host;
@@ -55,13 +60,18 @@ public final class OnboardingPanel {
     private final LinearLayout dots, content, actions;
 
     private int pos = 0;                 // index into activeSteps()
-    private boolean wantHome = true, wantClean = true;
+    private boolean wantHome = true, wantClean = true, wantSimple = false;
     private final Handler poll = new Handler(Looper.getMainLooper());
-    private TextView chip;               // live-status pill on the HOME / ADB steps, else null
+    private TextView chip;               // status pill on the HOME / ADB / SIMPLE steps, else null
     private View focusTarget;            // control to focus after a render
     private boolean wantSelfSetup;       // switch the Home button on once the link is up
     private View homeContinue;           // focused once the Home button is on
     private boolean homeWasOn;
+    private int cleanState = CLEAN_IDLE;
+    private int cleanDone, cleanTotal;
+    private TextView menuHint;           // the Menu x5 try-out line on the SIMPLE step
+    private boolean menuTried;
+    private final HomeGrid.MenuTaps menuTaps = new HomeGrid.MenuTaps();
 
     public static View build(Context c, SettingsPanel.Host host) {
         return new OnboardingPanel(c, host).root;
@@ -71,7 +81,19 @@ public final class OnboardingPanel {
         this.c = c;
         this.host = host;
 
-        root = new FrameLayout(c);
+        // Overridden so Simple mode's step can let the helper try Menu x5 here.
+        root = new FrameLayout(c) {
+            @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+                if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_MENU && current() == SIMPLE) {
+                    if (e.getAction() == android.view.KeyEvent.ACTION_UP && menuTaps.tap()) {
+                        menuTried = true;
+                        paintMenuHint();
+                    }
+                    return true;
+                }
+                return super.dispatchKeyEvent(e);
+            }
+        };
         root.setBackgroundColor(NAVY);
         root.setClickable(true);
         root.setTag(new HomeGrid.BackHandler() {
@@ -92,12 +114,20 @@ public final class OnboardingPanel {
         dots.setGravity(Gravity.CENTER_VERTICAL);
         col.addView(dots, wrap());
 
-        content = new LinearLayout(c);
-        content.setOrientation(LinearLayout.VERTICAL);
+        // Scrolls so the three feature cards fit on any screen density; focus moving to
+        // a card scrolls it into view.
+        ScrollView sv = new ScrollView(c);
+        sv.setVerticalScrollBarEnabled(false);
+        sv.setFocusable(false);
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
         clp.topMargin = dp(28);
-        col.addView(content, clp);
+        col.addView(sv, clp);
+
+        content = new LinearLayout(c);
+        content.setOrientation(LinearLayout.VERTICAL);
+        sv.addView(content, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         actions = new LinearLayout(c);
         actions.setOrientation(LinearLayout.HORIZONTAL);
@@ -119,6 +149,7 @@ public final class OnboardingPanel {
         s.add(CHOOSE);
         if (wantHome) s.add(HOME);
         if (wantClean) s.add(ADB);
+        if (wantSimple) s.add(SIMPLE);
         s.add(DONE);
         return s;
     }
@@ -135,6 +166,7 @@ public final class OnboardingPanel {
     private void finish() {
         poll.removeCallbacks(tick);
         Prefs.setOnboarded(c, true);
+        if (wantSimple) Prefs.setSimpleMode(c, true);
         host.rebuildGrid();
         host.closePanel();
     }
@@ -145,6 +177,7 @@ public final class OnboardingPanel {
         content.removeAllViews();
         actions.removeAllViews();
         chip = null;
+        menuHint = null;
         focusTarget = null;
 
         int id = current();
@@ -153,6 +186,7 @@ public final class OnboardingPanel {
             case CHOOSE:  buildChoose();  break;
             case HOME:    buildHome();    break;
             case ADB:     buildAdb();     break;
+            case SIMPLE:  buildSimple();  break;
             case DONE:    buildDone();    break;
         }
         buildDots();
@@ -206,14 +240,18 @@ public final class OnboardingPanel {
     private void buildChoose() {
         content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
         content.addView(margin(title("What should we set up?"), dp(6), dp(6)));
-        content.addView(body("Turn on what you want now - you can change either one later from the Settings tile."));
+        content.addView(body("Turn on what you want now - you can change any of them later from Settings."));
 
         content.addView(featureCard("⌂", "Replace the home screen",
                 "The Home button opens this launcher instead of Amazon's.", null,
-                true));
+                CARD_HOME));
         content.addView(featureCard("✦", "Clean up my TV",
                 "Switch off Amazon's ads and telemetry, and turn off the animations.", "Advanced",
-                false));
+                CARD_CLEAN));
+        content.addView(featureCard("★", "Simple mode",
+                "For someone who just wants to watch TV: Settings hidden, no update pop-ups, "
+                        + "Amazon's ads and telemetry switched off.", "For someone else",
+                CARD_SIMPLE));
 
         View cont = button("Continue", true, new Runnable() { public void run() { next(); } });
         actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
@@ -319,6 +357,79 @@ public final class OnboardingPanel {
         focusTarget = (Prefs.tunnelEnabled(c) && AdbCrypto.hasKey(c)) ? cont : setup;
     }
 
+    private void buildSimple() {
+        content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
+        content.addView(margin(title("Simple mode"), dp(6), dp(4)));
+        content.addView(checkItem(true, "Settings and TV Health are hidden. Press Menu five times for Settings."));
+        content.addView(checkItem(true, "Menu and holding Select no longer hide tiles."));
+        content.addView(checkItem(true, "No update pop-ups. Check for updates from Settings instead."));
+
+        chip = pill();
+        content.addView(wrapMargin(chip, dp(14), dp(4)));
+        menuHint = note("");
+        content.addView(menuHint);
+        paintMenuHint();
+
+        // Runs on arrival, and again on a return after the link was missing.
+        if (cleanState == CLEAN_IDLE || cleanState == CLEAN_NO_LINK) startClean();
+        paintClean();
+
+        actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
+        actions.addView(gap());
+        if (cleanState == CLEAN_FAILED) {
+            actions.addView(button("Try again", false, new Runnable() {
+                public void run() { startClean(); render(); }
+            }));
+            actions.addView(space(dp(10)));
+        }
+        View cont = button("Continue", true, new Runnable() { public void run() { next(); } });
+        actions.addView(cont);
+        focusTarget = cont;
+    }
+
+    /** Switch off the Debloat page's safe list except Amazon Photos; never Alexa. */
+    private void startClean() {
+        if (!AdbBridge.canRun(c)) { cleanState = CLEAN_NO_LINK; return; }
+        int n = DebloatPanel.switchOffGroup(c, Debloat.SAFE,
+                java.util.Collections.singleton(Debloat.AMAZON_PHOTOS),
+                new DebloatPanel.BulkResult() {
+            public void onResult(boolean connected, int done, int total) {
+                cleanState = connected ? CLEAN_DONE : CLEAN_FAILED;
+                cleanDone = done;
+                cleanTotal = total;
+                if (root.getParent() != null && current() == SIMPLE) render();
+            }
+        });
+        if (n == 0) { cleanState = CLEAN_DONE; cleanDone = 0; cleanTotal = 0; }
+        else cleanState = CLEAN_RUNNING;
+    }
+
+    private void paintClean() {
+        if (chip == null) return;
+        if (cleanState == CLEAN_RUNNING) {
+            setChip(WARN, "Switching off Debloat's safe list: ads, telemetry, unused extras…");
+        } else if (cleanState == CLEAN_DONE && cleanTotal == 0) {
+            setChip(OK, "Debloat's safe list - already off");
+        } else if (cleanState == CLEAN_DONE && cleanDone == cleanTotal) {
+            setChip(OK, "Debloat's safe list - " + cleanDone + " switched off. Alexa and Amazon Photos left on");
+        } else if (cleanState == CLEAN_DONE) {
+            setChip(WARN, "Debloat's safe list - " + cleanDone + " of " + cleanTotal
+                    + " switched off; Fire OS protects the rest");
+        } else if (cleanState == CLEAN_FAILED) {
+            setChip(BAD, "Could not connect to run Debloat's safe list - try again");
+        } else {
+            setChip(WARN, "Safe list not run: it needs the connection from Set it up");
+        }
+    }
+
+    private void paintMenuHint() {
+        if (menuHint == null) return;
+        menuHint.setText(menuTried
+                ? "✓ That's it - on the home screen, five Menu presses open Settings."
+                : "Try it now: press Menu (the three-line button) five times.");
+        menuHint.setTextColor(menuTried ? OK : MUTE);
+    }
+
     private void buildDone() {
         content.addView(tag("All set"));
         content.addView(margin(title("You're ready."), dp(6), dp(14)));
@@ -327,9 +438,18 @@ public final class OnboardingPanel {
         boolean tun = Prefs.tunnelEnabled(c) || AdbBridge.isConnected();
         if (wantHome) content.addView(checkItem(svc, svc ? "Home screen - on" : "Home screen - skipped for now"));
         if (wantClean) content.addView(checkItem(tun, tun ? "TV cleanup - ready; choose what to switch off in Debloat" : "TV cleanup - skipped for now"));
+        if (wantSimple) {
+            content.addView(checkItem(true, "Simple mode - on"));
+            boolean off = cleanState == CLEAN_DONE;
+            content.addView(checkItem(off, off ? "Debloat's safe list - switched off"
+                    : "Debloat's safe list - not yet; use its button in Debloat"));
+        }
 
-        content.addView(margin(body("Find all of it again from the Settings tile on your home "
-                + "screen - hidden apps, sorting, TV Health and Debloat."), dp(14), dp(4)));
+        content.addView(margin(body(wantSimple
+                ? "To open Settings, press Menu five times on the home screen. Everything "
+                        + "is there - hidden apps, TV Health, Debloat, updates and Simple mode itself."
+                : "Find all of it again from the Settings tile on your home "
+                        + "screen - hidden apps, sorting, TV Health and Debloat."), dp(14), dp(4)));
 
         View fin = button("Finish", true, new Runnable() { public void run() { finish(); } });
         actions.addView(fin);
@@ -409,7 +529,7 @@ public final class OnboardingPanel {
     }
 
     private View featureCard(String glyph, String titleTxt, String desc, String pillTxt,
-                             final boolean isHome) {
+                             final int kind) {
         final FrameLayout cell = new FrameLayout(c);
         cell.setFocusable(true);
         cell.setFocusableInTouchMode(true);
@@ -432,7 +552,7 @@ public final class OnboardingPanel {
         LinearLayout.LayoutParams klp = new LinearLayout.LayoutParams(cs, cs);
         klp.rightMargin = dp(18);
         row.addView(check, klp);
-        paintCheck(check, isHome ? wantHome : wantClean);
+        paintCheck(check, wanted(kind));
 
         View g = glyph(glyph, dp(44));
         LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(dp(44), dp(44));
@@ -462,11 +582,16 @@ public final class OnboardingPanel {
         });
         cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                boolean on = isHome ? wantHome : wantClean;
-                // Keep at least one selected, so the flow always has a real step.
-                if (on && !(isHome ? wantClean : wantHome)) return;
-                if (isHome) wantHome = !wantHome; else wantClean = !wantClean;
-                paintCheck(check, isHome ? wantHome : wantClean);
+                if (kind == CARD_SIMPLE) {
+                    wantSimple = !wantSimple;
+                } else {
+                    boolean isHome = kind == CARD_HOME;
+                    boolean on = isHome ? wantHome : wantClean;
+                    // Keep one of these selected, so the flow always has a setup step.
+                    if (on && !(isHome ? wantClean : wantHome)) return;
+                    if (isHome) wantHome = !wantHome; else wantClean = !wantClean;
+                }
+                paintCheck(check, wanted(kind));
                 buildDots();
             }
         });
@@ -476,6 +601,10 @@ public final class OnboardingPanel {
         lp.topMargin = dp(12);
         cell.setLayoutParams(lp);
         return cell;
+    }
+
+    private boolean wanted(int kind) {
+        return kind == CARD_HOME ? wantHome : kind == CARD_CLEAN ? wantClean : wantSimple;
     }
 
     private void paintCheck(TextView check, boolean on) {

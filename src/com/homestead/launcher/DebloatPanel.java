@@ -89,12 +89,13 @@ public final class DebloatPanel {
         p.addHeader("All at once");
 
         final Panel.Row bulkOff = p.addRow("Switch off everything marked safe", "", null);
-        p.addNote("Ads and telemetry only. The Alexa and Extras groups are left out here, "
-                + "since each changes how the TV behaves.");
+        p.addNote("Advertising, telemetry, and the Extras that are marked safe (tutorials, "
+                + "demo content, Amazon Photos and the like). Alexa and everything marked "
+                + "caution are left out here, since each changes how the TV behaves.");
 
         final Panel.Row bulkCaution = p.addRow("Switch off everything marked caution", "", null);
-        p.addNote("The Alexa and Extras groups: voice search, casting, smart-home and the "
-                + "like. Each removes a feature, so read the rows above before using this.");
+        p.addNote("Alexa and the Extras marked caution: voice search, casting, smart-home "
+                + "and the like. Each removes a feature, so read the rows above before using this.");
 
         final Panel.Row undo = p.addRow("Undo everything this app switched off", "", null);
         final Panel.Row result = p.addRow("Last result", "", null);
@@ -254,38 +255,61 @@ public final class DebloatPanel {
 
     // ---------------------------------------------------------------- browse everything
 
-    /**
-     * Disable every catalogue entry in one group (caution or not) that is present, enabled
-     * and not Fire-OS-protected, in a single ADB batch. Refused packages are recorded as
-     * protected and do not stop the rest.
-     */
     private static void runBulk(final Context c, final boolean cautionGroup,
             final Panel.Row result, final Runnable refreshAll) {
         if (!AdbBridge.canRun(c)) return;
+        int n = switchOffGroup(c, cautionGroup, null, new BulkResult() {
+            public void onResult(boolean connected, int done, int total) {
+                if (!connected) {
+                    result.setValue("could not connect - try again");
+                    result.setValueColor(BAD);
+                } else {
+                    // Fire OS refuses some of these outright, so report a count.
+                    result.setValue(done + " of " + total + " switched off");
+                    result.setValueColor(done == total ? OK : WARN);
+                }
+                refreshAll.run();
+            }
+        });
+        if (n == 0) {
+            result.setValue("already done");
+            result.setValueColor(OK);
+        } else {
+            result.setValue("working on " + n + "...");
+        }
+    }
+
+    public interface BulkResult {
+        /** @param connected false when the batch never ran; done and total are then 0. */
+        void onResult(boolean connected, int done, int total);
+    }
+
+    /**
+     * Disable every catalogue entry in one group (caution or not) that is present, enabled
+     * and not Fire-OS-protected, in a single ADB batch. Refused packages are recorded as
+     * protected and do not stop the rest. Also used by Simple mode's setup step.
+     *
+     * @param skip packages to leave alone, or null
+     * @return how many packages the batch covers; 0 means nothing to do and no callback.
+     */
+    static int switchOffGroup(final Context c, boolean cautionGroup, Set<String> skip,
+            final BulkResult cb) {
+        AdbBridge.init(c);
         List<String> cmds = new ArrayList<String>();
         final List<String> pkgs = new ArrayList<String>();
         for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
             Debloat.Entry e = Debloat.CATALOGUE[i];
             if (e.caution != cautionGroup) continue;
+            if (skip != null && skip.contains(e.pkg)) continue;
             if (Debloat.isProtected(c, e.pkg)) continue;
             if (Debloat.stateOf(c, e.pkg) != Debloat.ENABLED) continue;
             cmds.add(AdbBridge.disableCommand(e.pkg));
             pkgs.add(e.pkg);
         }
-        if (cmds.isEmpty()) {
-            result.setValue("already done");
-            result.setValueColor(OK);
-            return;
-        }
-        result.setValue("working on " + cmds.size() + "...");
+        if (cmds.isEmpty()) return 0;
         AdbBridge.run(cmds.toArray(new String[cmds.size()]), new AdbBridge.Callback() {
             public void onDone(boolean ok, String out) {
-                if (!AdbBridge.ran(out)) {
-                    result.setValue("could not connect - try again");
-                    result.setValueColor(BAD);
-                    refreshAll.run();
-                    return;
-                }
+                if (!AdbBridge.ran(out)) { cb.onResult(false, 0, 0); return; }
                 int done = 0;
                 for (int i = 0; i < pkgs.size(); i++) {
                     boolean off = Debloat.stateOf(c, pkgs.get(i)) == Debloat.DISABLED;
@@ -293,12 +317,10 @@ public final class DebloatPanel {
                     Prefs.noteRefused(c, pkgs.get(i), !off && Debloat.refusedIn(out, pkgs.get(i)));
                     if (off) done++;
                 }
-                // Fire OS refuses some of these outright, so report a count.
-                result.setValue(done + " of " + pkgs.size() + " switched off");
-                result.setValueColor(done == pkgs.size() ? OK : WARN);
-                refreshAll.run();
+                cb.onResult(true, done, pkgs.size());
             }
         });
+        return cmds.size();
     }
 
     private static View buildBrowser(final Context c, final SettingsPanel.Host host) {

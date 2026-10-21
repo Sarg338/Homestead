@@ -51,6 +51,9 @@ final class Debloat {
     static final int GROUP_VOICE = 2;
     static final int GROUP_EXTRAS = 3;
 
+    /** Marked safe, but Simple mode leaves it on: family photos are a common use of the TV. */
+    static final String AMAZON_PHOTOS = "com.amazon.bueller.photos";
+
     /** Works, but has a consequence worth stating before the user presses the button. */
     static final boolean CAUTION = true;
     static final boolean SAFE = false;
@@ -232,7 +235,7 @@ final class Debloat {
             new Entry(GROUP_EXTRAS, "com.amazon.tv.ffsprovisioneeclient",
                     "Frustration-Free Setup client",
                     "Automatic setup of new Amazon devices from this one.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.bueller.photos",
+            new Entry(GROUP_EXTRAS, AMAZON_PHOTOS,
                     "Amazon Photos",
                     "Fed the ad screensaver. Only useful if you browse photos on the TV.", SAFE),
             new Entry(GROUP_EXTRAS, "com.amazon.tv.democontent.provider",

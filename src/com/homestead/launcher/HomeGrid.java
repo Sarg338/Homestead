@@ -172,7 +172,8 @@ public class HomeGrid implements SettingsPanel.Host {
             View v = column.getChildAt(i);
             if (v instanceof TextView) ((TextView) v).setTextColor(p.text);
         }
-        if (focusedCell != null) style(focusedCell, true);
+        // The ring and the outline are per preset, so every cell is repainted.
+        for (View cell : cellsByKey.values()) style(cell, cell == focusedCell);
     }
 
     private int dp(int v) { return AppModel.dp(ctx, v); }
@@ -516,7 +517,18 @@ public class HomeGrid implements SettingsPanel.Host {
             public boolean onLongClick(View v) { return hideFocused(); }
         });
         cellsByKey.put(it.key(), cell);
+        style(cell, false);
         return cell;
+    }
+
+    /** The preset's edge around an unfocused cell, or null when the preset has none. */
+    private Drawable outline() {
+        if (look == null || look.outline == 0) return null;
+        GradientDrawable d = new GradientDrawable();
+        d.setCornerRadius(dp(8));
+        d.setStroke(dp(1), look.outline);
+        d.setColor(Color.TRANSPARENT);
+        return d;
     }
 
     /**
@@ -538,7 +550,7 @@ public class HomeGrid implements SettingsPanel.Host {
             f.setScaleY(1.10f);
             f.setTranslationZ(dp(8));
         } else {
-            f.setForeground(null);
+            f.setForeground(outline());
             f.setScaleX(1f);
             f.setScaleY(1f);
             f.setTranslationZ(0f);

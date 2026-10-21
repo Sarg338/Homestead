@@ -86,6 +86,11 @@ public class HomeGrid implements SettingsPanel.Host {
     private String builtOrder;
     /** Settings / TV Health render inside this window; Back pops one level. */
     private final List<View> panels = new ArrayList<View>();
+    /** The last key released here, logged when a panel opens from a tile. */
+    private int lastKey;
+    private int lastKeyDevice;
+    private int lastKeySource;
+    private long lastKeyAt;
 
     public HomeGrid(Context c, Listener l) {
         this.ctx = c;
@@ -95,6 +100,12 @@ public class HomeGrid implements SettingsPanel.Host {
         // key listener on the root would never fire.
         root = new FrameLayout(c) {
             @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+                if (e.getAction() == android.view.KeyEvent.ACTION_UP) {
+                    lastKey = e.getKeyCode();
+                    lastKeyDevice = e.getDeviceId();
+                    lastKeySource = e.getSource();
+                    lastKeyAt = android.os.SystemClock.uptimeMillis();
+                }
                 if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK && !panels.isEmpty()) {
                     if (e.getAction() == android.view.KeyEvent.ACTION_UP) {
                         View top = panels.get(panels.size() - 1);
@@ -564,12 +575,28 @@ public class HomeGrid implements SettingsPanel.Host {
 
     // ---------------------------------------------------------------- launching
 
+    /**
+     * Says what opened a panel. Device -1 means the key was injected rather than sent by a
+     * remote; HDMI-CEC keys also carry the HDMI source.
+     */
+    private void logOpen(String what) {
+        String how = (lastKeyAt == 0L) ? "no key seen"
+                : "key " + android.view.KeyEvent.keyCodeToString(lastKey) + " from device "
+                        + lastKeyDevice + ", source 0x" + Integer.toHexString(lastKeySource)
+                        + ((lastKeySource & android.view.InputDevice.SOURCE_HDMI)
+                                == android.view.InputDevice.SOURCE_HDMI ? " (HDMI-CEC)" : "")
+                        + ", " + (android.os.SystemClock.uptimeMillis() - lastKeyAt) + "ms ago";
+        android.util.Log.i("Homestead", "opening " + what + " (" + how + ")");
+    }
+
     private void act(AppModel.Item it) {
         if (it.type == AppModel.TYPE_SETTINGS) {
+            logOpen(it.label);
             showPanel(SettingsPanel.build(ctx, this));
             return;
         }
         if (it.type == AppModel.TYPE_HEALTH) {
+            logOpen(it.label);
             showPanel(HealthPanel.build(ctx, this));
             return;
         }

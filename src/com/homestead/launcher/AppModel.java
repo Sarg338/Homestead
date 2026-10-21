@@ -95,6 +95,7 @@ public final class AppModel {
 
     private static final List<Item> ITEMS = new ArrayList<Item>();
     private static boolean loaded = false;
+    private static String lastSignature = "";
     private static int cellW = 0, cellH = 0;
 
     private AppModel() { }
@@ -210,10 +211,62 @@ public final class AppModel {
         }
         // Let the per-package Resources opened by loadBanner/loadIcon be reclaimed.
         System.gc();
+        lastSignature = signature(c);
         loaded = true;
         resort(c);
         Log.i(TAG, "model loaded: " + ITEMS.size() + " items in "
                 + (android.os.SystemClock.uptimeMillis() - t0) + "ms");
+    }
+
+    /**
+     * Whether changes to these packages could alter the grid: one of them is on it, or the
+     * launchable apps or HDMI inputs differ from the last load. Decodes no artwork.
+     */
+    public static boolean affectsGrid(Context c, Set<String> changed) {
+        if (!loaded) return true;
+        for (int i = 0; i < ITEMS.size(); i++) {
+            String p = ITEMS.get(i).pkg;
+            if (p != null && changed.contains(p)) return true;
+        }
+        return !signature(c).equals(lastSignature);
+    }
+
+    /** Launchable activities and HDMI inputs, as a string to compare between loads. */
+    private static String signature(Context c) {
+        List<String> parts = new ArrayList<String>();
+        try {
+            PackageManager pm = c.getPackageManager();
+            String[] cats = { Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER };
+            for (int ci = 0; ci < cats.length; ci++) {
+                Intent probe = new Intent(Intent.ACTION_MAIN);
+                probe.addCategory(cats[ci]);
+                List<ResolveInfo> ris = pm.queryIntentActivities(probe, 0);
+                if (ris == null) continue;
+                for (int k = 0; k < ris.size(); k++) {
+                    ActivityInfo ai = ris.get(k).activityInfo;
+                    if (ai != null) parts.add(ci + ":" + ai.packageName + "/" + ai.name);
+                }
+            }
+        } catch (Throwable t) {
+            parts.add("apps failed");
+        }
+        try {
+            TvInputManager tim = (TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
+            List<TvInputInfo> list = (tim == null) ? null : tim.getTvInputList();
+            if (list != null) {
+                for (int i = 0; i < list.size(); i++) {
+                    TvInputInfo info = list.get(i);
+                    if (info == null || !info.isPassthroughInput()) continue;
+                    CharSequence lb = null;
+                    try { lb = info.loadLabel(c); } catch (Throwable t) { }
+                    parts.add("in:" + info.getId() + "=" + lb);
+                }
+            }
+        } catch (Throwable t) {
+            parts.add("inputs failed");
+        }
+        Collections.sort(parts);
+        return parts.toString();
     }
 
     private static void loadInputs(Context c) {

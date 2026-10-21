@@ -282,6 +282,32 @@ public class HomeRedirectService extends AccessibilityService {
 
     // ---------------------------------------------------------------- lifecycle
 
+    // Fire OS 8 can report the same Amazon package changing over and over (seen with
+    // com.amazon.ceviche), so events are gathered until they settle, and the grid is only
+    // rebuilt when something it shows changed.
+    private static final long PKG_SETTLE_MS = 1500L;
+    private static final long PKG_MAX_WAIT_MS = 10000L;
+    private final java.util.Set<String> pendingPkgs = new java.util.TreeSet<String>();
+    private long firstPkgEventAt = 0L;
+
+    private final Runnable pkgReload = new Runnable() {
+        public void run() {
+            firstPkgEventAt = 0L;
+            String changed = pendingPkgs.toString();
+            boolean affects = AppModel.affectsGrid(HomeRedirectService.this, pendingPkgs);
+            pendingPkgs.clear();
+            if (!affects) {
+                Log.i(TAG, "package change " + changed + ", grid unchanged");
+                return;
+            }
+            Log.i(TAG, "package change " + changed + ", reloading model once");
+            AppModel.reload(HomeRedirectService.this);
+            if (home != null) home.rebuild();
+            MainActivity a = (liveActivity == null) ? null : liveActivity.get();
+            if (a != null) a.rebuildGrid();
+        }
+    };
+
     private final BroadcastReceiver pkgs = new BroadcastReceiver() {
         public void onReceive(Context c, Intent i) {
             // Registered on the service because the activity is rarely resumed while
@@ -289,12 +315,13 @@ public class HomeRedirectService extends AccessibilityService {
             // it is wasted work and memory.
             android.net.Uri d = (i == null) ? null : i.getData();
             String changed = (d == null) ? null : d.getSchemeSpecificPart();
-            if (changed != null && changed.equals(getPackageName())) return;
-            Log.i(TAG, "package change (" + changed + "), reloading model once");
-            AppModel.reload(c);
-            if (home != null) home.rebuild();
-            MainActivity a = (liveActivity == null) ? null : liveActivity.get();
-            if (a != null) a.rebuildGrid();
+            if (changed == null || changed.equals(getPackageName())) return;
+            long now = SystemClock.elapsedRealtime();
+            if (firstPkgEventAt == 0L) firstPkgEventAt = now;
+            pendingPkgs.add(changed);
+            handler.removeCallbacks(pkgReload);
+            long at = Math.min(now + PKG_SETTLE_MS, firstPkgEventAt + PKG_MAX_WAIT_MS);
+            handler.postDelayed(pkgReload, Math.max(0L, at - now));
         }
     };
 
@@ -355,6 +382,7 @@ public class HomeRedirectService extends AccessibilityService {
         cancelHide();
         detach();
         try { unregisterReceiver(pkgs); } catch (Throwable t) { }
+        handler.removeCallbacks(pkgReload);
         if (watcherBound) {
             try { unbindService(watcherConn); } catch (Throwable t) { }
             watcherBound = false;

@@ -117,9 +117,14 @@ final class Backgrounds {
         return DIM_NAMES[(d < 0 || d >= DIM.length) ? 1 : d];
     }
 
-    /** The photo in the app's folder, or null. */
+    /**
+     * The photo, or null: one received through BackgroundProvider (any Fire OS), else one
+     * pushed into the app's folder on external storage (Fire OS 7 only).
+     */
     static File photoFile(Context c) {
         try {
+            File own = BackgroundProvider.photoFile(c);
+            if (own.isFile() && own.length() > 0) return own;
             File dir = c.getExternalFilesDir(null);
             if (dir == null) return null;
             for (int i = 0; i < FILES.length; i++) {

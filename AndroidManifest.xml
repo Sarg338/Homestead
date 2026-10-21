@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.homestead.launcher"
-    android:versionCode="59" android:versionName="1.2.8">
+    android:versionCode="60" android:versionName="1.2.9">
 
   <!-- Optional: last-used times for app sorting, when granted. -->
   <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
@@ -92,6 +92,13 @@
               android:authorities="com.homestead.launcher.updates"
               android:exported="false"
               android:grantUriPermissions="true"/>
+
+    <!-- Receives a background photo from "adb shell content write". Exported so the shell
+         can reach it; the provider refuses every caller except the shell user and root,
+         and is write-only. -->
+    <provider android:name=".BackgroundProvider"
+              android:authorities="com.homestead.launcher.background"
+              android:exported="true"/>
 
     <!-- Open our launcher at boot instead of Amazon's -->
     <receiver android:name=".BootReceiver" android:exported="true">

@@ -128,20 +128,33 @@ commands still needed on your TV.
 
 ## Your own background photo
 
-Copy a picture named `background.jpg` (or `background.png`) into Homestead's own folder on
-the TV. Homestead creates that folder the first time it runs, and reading from it needs no
-storage permission:
+Send a JPEG or PNG to the TV from a computer, in two steps. The first copies it to the TV's
+Download folder; the second hands it to Homestead, which keeps its own copy in private
+storage. No storage permission is needed, and this works on Fire OS 7 and 8:
 
 ```sh
-adb push background.jpg /sdcard/Android/data/com.homestead.launcher/files/
+adb push background.jpg /sdcard/Download/
+adb shell "content write --uri content://com.homestead.launcher.background/photo < /sdcard/Download/background.jpg"
 ```
 
 Then choose **Photo** under Settings → **Background**. Any size or shape works: the picture
 is scaled and cropped to fill the screen, and only that screen-sized copy is kept in
 memory. **Photo dimming** darkens it (Off, Light or Dark) so the labels stay readable;
-Light is the default. To change the picture, push a new file over the old one; it shows on
-the next Home press. If the file is missing, the background is black and the Settings row
-says so. The folder is removed when Homestead is uninstalled.
+Light is the default.
+
+- **To change the picture**, run both commands again with the new file. It shows on the
+  next Home press. Homestead only replaces the old picture once the new one has arrived
+  whole and reads as an image; anything else is discarded, and the log says why.
+- **To remove it:** `adb shell content delete --uri content://com.homestead.launcher.background/photo`.
+  The background is then black, and the Settings row says there is no file.
+- Run the second command on the TV, as shown, rather than piping the file from your
+  computer (`adb shell "content write …" < background.jpg`): piped from a Windows computer,
+  the file arrived damaged in testing.
+- On Fire OS 7 only, copying the file straight into Homestead's folder also works:
+  `adb push background.jpg /sdcard/Android/data/com.homestead.launcher/files/`. Fire OS 8
+  refuses that folder to adb. A picture sent with the commands above takes precedence.
+
+The picture is removed when Homestead is uninstalled.
 
 ## Removing Homestead
 
@@ -226,7 +239,7 @@ comment explaining why it exists. Read it before changing the class.
 
 | Area | Classes |
 |---|---|
-| Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
+| Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `Backgrounds` (presets and the photo), `BackgroundProvider` (receives the photo over adb), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
 | Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate), `HomeKeyWatcher` (Home presses, from the system log) |
 | Pages | `Panel` (the list page), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
 | ADB | `AdbBridge` (one worker thread, link state, command batches), `AdbConnection` (the client), `AdbCrypto` (the key), `TunnelVpnService` and `VpnSetupActivity` (the on-device tunnel) |

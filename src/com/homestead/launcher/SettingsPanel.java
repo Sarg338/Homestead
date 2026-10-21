@@ -89,10 +89,11 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        p.addNote("Black is for OLED screens and night viewing. For Photo, copy a picture "
-                + "named background.jpg (or .png) to this TV from a computer:\n\n"
-                + "adb push background.jpg /sdcard/Android/data/" + c.getPackageName()
-                + "/files/\n\n"
+        p.addNote("Black is for OLED screens and night viewing. For Photo, send a JPEG or "
+                + "PNG to this TV from a computer:\n\n"
+                + "adb push background.jpg /sdcard/Download/\n"
+                + "adb shell \"content write --uri content://" + BackgroundProvider.AUTHORITY
+                + "/photo < /sdcard/Download/background.jpg\"\n\n"
                 + "Dimming darkens the photo so the labels stay readable. Close this page "
                 + "to see the change; the Home button uses it from the next press.");
 

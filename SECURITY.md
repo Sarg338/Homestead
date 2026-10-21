@@ -97,6 +97,23 @@ the enabled accessibility services are all queried from the platform and exclude
 of a fixed list of core components. `com.amazon.ceviche` is permanently excluded because
 disabling it crash-loops Amazon's launcher.
 
+## The background photo endpoint
+
+`BackgroundProvider` (authority `com.homestead.launcher.background`) is the one component
+other processes can reach besides the launcher activity, the accessibility service and the
+boot receiver. It exists so `adb shell content write` can hand Homestead a background photo
+on Fire OS 8, where adb may not write into the app's folder. It is exported because the
+shell runs as its own user, and it limits itself instead:
+
+- Every call is refused unless it comes from adb's shell user (uid 2000) or root. Any app,
+  including Homestead's own uid, gets a `SecurityException`; this was checked on the test
+  TV.
+- It is write-only. Opening it for reading, querying it, or asking for any path other than
+  `/photo` fails, so nothing can be read back through it.
+- A transfer goes to a temporary file and replaces the photo only if it arrives within
+  25 MB and decodes as an image; anything else is discarded.
+- The photo is kept in the app's private storage, which only Homestead can read.
+
 ## Signing
 
 Releases are signed with a key held outside this repository. The signing certificate's

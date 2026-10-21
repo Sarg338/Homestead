@@ -62,17 +62,17 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
             home.showPanel(OnboardingPanel.build(this, home));
         } else if (!SetupPanel.serviceEnabled(this) && !Prefs.homeOffByUser(this)) {
             home.showPanel(SetupPanel.build(this, home));
-        } else {
-            maybeCheckForUpdate();
         }
     }
 
     /**
      * Check GitHub for a newer release (throttled to once a day) and prompt once per
-     * version, unless a panel is open or the version was skipped.
+     * version, unless a panel is open or the version was skipped. Run on every resume, not
+     * only at creation: a TV that only goes to standby can keep this activity for days.
      */
     private void maybeCheckForUpdate() {
-        if (!Prefs.autoUpdateCheck(this)) return;
+        if (!Prefs.autoUpdateCheck(this) || !Prefs.onboarded(this)) return;
+        if (home == null || home.isPanelOpen()) return;
         UpdateChecker.check(this, false, new UpdateChecker.Callback() {
             public void onResult(UpdateChecker.Update u, String error) {
                 if (u == null || home == null || home.isPanelOpen()) return;
@@ -131,6 +131,7 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
                     + " scrollY=" + selScroll
                     + " rows=" + java.util.Arrays.toString(selRows));
         }
+        maybeCheckForUpdate();
 
         // Lift the overlay once this activity has laid out behind it. The service copies
         // the overlay's selection just before lifting, so late moves are kept.

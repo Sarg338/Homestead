@@ -122,6 +122,8 @@ public final class UpdateChecker {
                 } finally {
                     if (conn != null) try { conn.disconnect(); } catch (Throwable ignored) { }
                 }
+                Log.i(TAG, "update check: " + (u != null ? "v" + u.versionName + " available"
+                        : err != null ? err : "up to date"));
                 post(cb, u, err);
             }
         }, "homestead-update-check").start();

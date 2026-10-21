@@ -58,8 +58,10 @@ installed).
 
 Download `homestead.apk` from the [latest release](https://github.com/Sarg338/Homestead/releases/latest)
 and sideload it: `adb install homestead.apk` from a computer, or the Downloader app on the
-TV. The app checks that release page once a day and offers new versions under Settings →
-**Check for updates**; it never installs one until you press **Install now**.
+TV. When its home screen comes up, the app checks that release page (at most once a day)
+and shows a new version once, with **Install now**, **Later** and **Skip this version**.
+Settings → **Check for updates** checks straight away. It never installs one until you press
+**Install now**.
 
 Without the on-device tunnel, an update goes through Fire OS's installer, which first needs
 Homestead allowed to install apps: in the TV's Settings, **Device & Software** (**My Fire TV**
@@ -254,7 +256,8 @@ Log lines worth knowing: `HomeRedirectService connected` (the service started),
 `foreground is now …, removing overlay`, `tunnel up`, `adb connected`, `adb idle, closing`,
 `package change […], grid unchanged` or `…, reloading model once` (package events, gathered
 for 1.5 seconds), `opening Settings (key … from device …, source …)` (device -1 is an
-injected key rather than the remote, and `(HDMI-CEC)` marks one sent over HDMI).
+injected key rather than the remote, and `(HDMI-CEC)` marks one sent over HDMI),
+`update check: …` (the result of each check for a new release).
 
 Things that look like bugs but are Fire OS:
 

@@ -73,8 +73,6 @@ public class HomeGrid implements SettingsPanel.Host {
     private static final int HEADER_SP = 21;
     private static final int HEADER_TOP_DP = 28;
     private static final int HEADER_BOTTOM_DP = 12;
-    /** AppModel.Item.key() of the Live TV tile. */
-    private static final String LIVETV_KEY = "sys:livetv";
 
     private final Context ctx;
     private final Listener listener;
@@ -89,6 +87,8 @@ public class HomeGrid implements SettingsPanel.Host {
     private final List<HorizontalScrollView> rows = new ArrayList<HorizontalScrollView>();
     private View focusedCell;
     private String focusedKey;
+    /** The Live TV first tile, or null when that layout is not in use. */
+    private View topTile;
     /** AppModel.order() as of the last build, to spot a re-sort done by the other grid. */
     private String builtOrder;
     /** Settings / TV Health render inside this window; Back pops one level. */
@@ -258,11 +258,30 @@ public class HomeGrid implements SettingsPanel.Host {
 
     /** Focus for a fresh Home press: Live TV when it comes first, else as takeFocus(). */
     public void takeStartFocus() {
-        if (Prefs.liveTvFirst(ctx) && selectKey(LIVETV_KEY)) {
+        if (liveTvFirst() && selectKey(AppModel.LIVETV_KEY)) {
             scroll.scrollTo(0, 0);
             return;
         }
         takeFocus();
+    }
+
+    /**
+     * Live TV first is in effect: switched on, and this TV has the tile. Without the tile
+     * the switch is not offered in Settings, so a stale "on" must not keep the layout.
+     */
+    private boolean liveTvFirst() {
+        return Prefs.liveTvFirst(ctx) && AppModel.hasLiveTv();
+    }
+
+    /**
+     * The Live TV first tile has no header above it, so focusing it scrolls the page to the
+     * top. Repeated after layout, which would otherwise scroll it flush with the screen edge.
+     */
+    private void keepAtTop() {
+        scroll.scrollTo(0, 0);
+        scroll.post(new Runnable() {
+            public void run() { scroll.scrollTo(0, 0); }
+        });
     }
 
     public void takeFocus() {
@@ -466,6 +485,7 @@ public class HomeGrid implements SettingsPanel.Host {
         cellsByKey.clear();
         rows.clear();
         focusedCell = null;
+        topTile = null;
 
         List<AppModel.Item> safe = new ArrayList<AppModel.Item>();
         List<AppModel.Item> all = AppModel.allItems();
@@ -491,8 +511,9 @@ public class HomeGrid implements SettingsPanel.Host {
         List<AppModel.Item> tv = new ArrayList<AppModel.Item>();
 
         // Live TV first takes the Live TV tile out of its section and puts it above them all.
-        boolean tvFirst = Prefs.liveTvFirst(ctx);
+        boolean tvFirst = liveTvFirst();
         AppModel.Item liveTv = null;
+        topTile = null;
 
         List<AppModel.Item> all = AppModel.visibleItems(ctx);
         for (int i = 0; i < all.size(); i++) {
@@ -553,6 +574,7 @@ public class HomeGrid implements SettingsPanel.Host {
     /** Live TV first: one large tile, two banner cells wide, on its own row. */
     private void addLiveTvTile(AppModel.Item it) {
         FrameLayout cell = newCell(it);
+        topTile = cell;
         GradientDrawable card = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 new int[] { 0xFF168494, 0xFF0A3642 });
         card.setCornerRadius(dp(8));
@@ -654,6 +676,7 @@ public class HomeGrid implements SettingsPanel.Host {
                     focusedCell = v;
                     focusedKey = it.key();
                     style(v, true);
+                    if (v == topTile) keepAtTop();
                 } else {
                     style(v, false);
                 }
@@ -735,7 +758,7 @@ public class HomeGrid implements SettingsPanel.Host {
         boolean textTile = it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV;
         // Live TV first: inputs go a quiet grey so only the Live TV tile stands out, and
         // app labels get larger and brighter.
-        boolean tvFirst = Prefs.liveTvFirst(ctx);
+        boolean tvFirst = liveTvFirst();
         if (textTile) card.setColor(tvFirst ? 0xFF2A333D : 0xFF0E5A63);
         else card.setColor(0xFF033058);
         cell.setBackground(card);

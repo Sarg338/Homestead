@@ -56,16 +56,18 @@ echo "==> aapt2 compile"
 "$BT/aapt2" compile --dir res -o compiled.flata
 
 echo "==> aapt2 link"
+# --java writes gen/.../R.java, which the code uses for strings in res/values*.
 "$BT/aapt2" link -o app-unsigned.apk \
   -I "$ANDROID_JAR" \
   --manifest AndroidManifest.xml \
   -R compiled.flata \
   --min-sdk-version "$MIN_SDK" \
   --target-sdk-version "$TARGET_SDK" \
+  --java gen \
   --auto-add-overlay
 
 echo "==> javac"
-find src -name '*.java' > sources.txt
+find src gen -name '*.java' > sources.txt
 javac --release 11 -nowarn -encoding UTF-8 \
   -classpath "$(win "$ANDROID_JAR")" -d classes @sources.txt
 rm -f sources.txt

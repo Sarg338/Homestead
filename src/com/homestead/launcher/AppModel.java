@@ -60,6 +60,8 @@ public final class AppModel {
 
     static final String LIVETV_PKG = "com.amazon.tv.livetv";
     static final String LIVETV_SVC = "com.amazon.tv.livetv.TuneService";
+    /** Item.key() of the Live TV tile; also how it is stored when hidden. */
+    static final String LIVETV_KEY = "sys:livetv";
     static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     static final String AMAZON_HOME_CLS = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
 
@@ -91,7 +93,7 @@ public final class AppModel {
         /** Stable across a re-sort; the handoff carries this, never an index. */
         public String key() {
             if (type == TYPE_INPUT) return "in:" + inputId;
-            if (type == TYPE_LIVETV) return "sys:livetv";
+            if (type == TYPE_LIVETV) return LIVETV_KEY;
             if (type == TYPE_AMAZON_HOME) return "amz";
             if (type == TYPE_SETTINGS) return "sys:settings";
             if (type == TYPE_HEALTH) return "sys:health";
@@ -108,6 +110,14 @@ public final class AppModel {
 
     /** Everything, including tiles the user has hidden. Settings needs this. */
     public static List<Item> allItems() { return ITEMS; }
+
+    /** Whether the model has the Live TV tile, hidden or not. */
+    public static boolean hasLiveTv() {
+        for (int i = 0; i < ITEMS.size(); i++) {
+            if (ITEMS.get(i).type == TYPE_LIVETV) return true;
+        }
+        return false;
+    }
 
     /** What the grid should draw: everything except tiles the user hid. */
     public static List<Item> visibleItems(Context c) {
@@ -280,7 +290,7 @@ public final class AppModel {
     }
 
     /**
-     * True when this device has a tuner input and Amazon's Live TV TuneService, the same
+     * True when this device has a built-in tuner and Amazon's Live TV TuneService, the same
      * service the remote's TV button starts. It is exported without a permission, so any
      * app can start it; it resumes the last watched channel.
      */
@@ -293,12 +303,32 @@ public final class AppModel {
             List<TvInputInfo> list = (tim == null) ? null : tim.getTvInputList();
             if (list == null) return false;
             for (int i = 0; i < list.size(); i++) {
-                TvInputInfo info = list.get(i);
-                if (info != null && !info.isPassthroughInput()
-                        && info.getType() == TvInputInfo.TYPE_TUNER) return true;
+                if (isHardwareTuner(list.get(i))) return true;
             }
         } catch (Throwable t) { }
         return false;
+    }
+
+    /**
+     * A tuner in the TV itself. Channel apps (Tubi, Prime Video, Fire TV Channels...) also
+     * register inputs of TYPE_TUNER, so the type alone would match on any device with one
+     * of them. Android gives a hardware input the id "<service>/HW<n>"; an app's input id is
+     * just its service name.
+     */
+    static boolean isHardwareTuner(TvInputInfo info) {
+        if (info == null || info.isPassthroughInput()
+                || info.getType() != TvInputInfo.TYPE_TUNER) return false;
+        return isHardwareInputId(info.getId());
+    }
+
+    static boolean isHardwareInputId(String id) {
+        if (id == null) return false;
+        int slash = id.lastIndexOf('/');
+        if (slash < 0 || !id.startsWith("HW", slash + 1) || id.length() == slash + 3) return false;
+        for (int i = slash + 3; i < id.length(); i++) {
+            if (!Character.isDigit(id.charAt(i))) return false;
+        }
+        return true;
     }
 
     private static void loadInputs(Context c) {

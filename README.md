@@ -17,6 +17,9 @@ Both pictures are from the same TV, a few minutes apart.
 - **The Home button comes here.** Pressing Home opens Homestead in about 170 ms instead of
   Amazon's home screen.
 - **HDMI and Composite inputs as tiles**, so switching source is one press from home.
+- **A Live TV tile** on TVs with a built-in tuner, while Amazon's Live TV app is switched
+  on. It opens Live TV on the last channel you watched. **Live TV first** (Settings → Home
+  screen) makes it a large tile at the top, and the Home button always lands on it.
 - **Apps in the order you use them**, counted on the TV itself.
 - **Hide anything** you do not want to see: press MENU on a tile, or hold Select.
 - **Pick a background** in Settings: the blue gradient, a few darker ones, plain black for

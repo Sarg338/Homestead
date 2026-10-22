@@ -254,7 +254,8 @@ final class Debloat {
                     "The free ad-supported channels row and the Live input.", CAUTION),
             new Entry(GROUP_EXTRAS, "com.amazon.tv.livetv",
                     "Live tab and guide",
-                    "The Live tab and channel guide. Disabling removes the Live row.", CAUTION),
+                    "The Live tab, the channel guide and the Live TV player. Switching it off "
+                            + "removes all three, and Homestead's Live TV tile with them.", CAUTION),
             new Entry(GROUP_EXTRAS, "com.amazon.tv.mattercohost",
                     "Matter smart-home hub",
                     "Lets the TV act as a Matter smart-home controller.", CAUTION),

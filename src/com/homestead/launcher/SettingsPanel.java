@@ -176,17 +176,20 @@ public final class SettingsPanel {
 
         p.addHeader("Sections");
 
-        final Panel.Row tvFirst = p.addRow("Live TV first", onOff(Prefs.liveTvFirst(c)), null).asSwitch();
-        tvFirst.cell.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                boolean n = !Prefs.liveTvFirst(c);
-                Prefs.setLiveTvFirst(c, n);
-                tvFirst.setValue(onOff(n));
-                host.rebuildGrid();
-            }
-        });
-        tvFirst.setHelp("A large Live TV tile on top, then TV apps, then inputs; Home always "
-                + "lands on Live TV. Only on a TV with an antenna or cable tuner.");
+        // Only offered on a TV that has the Live TV tile.
+        if (AppModel.hasLiveTv()) {
+            final Panel.Row tvFirst = p.addRow("Live TV first", onOff(Prefs.liveTvFirst(c)), null).asSwitch();
+            tvFirst.cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    boolean n = !Prefs.liveTvFirst(c);
+                    Prefs.setLiveTvFirst(c, n);
+                    tvFirst.setValue(onOff(n));
+                    host.rebuildGrid();
+                }
+            });
+            tvFirst.setHelp("A large Live TV tile on top, then TV apps, then inputs; Home always "
+                    + "lands on Live TV.");
+        }
 
         final Panel.Row secIn = p.addRow("Show \"Inputs & System\"", onOff(Prefs.showInputs(c)), null).asSwitch();
         secIn.cell.setOnClickListener(new View.OnClickListener() {
@@ -301,6 +304,8 @@ public final class SettingsPanel {
                 for (int i = 0; i < all.size(); i++) {
                     if (k.equals(all.get(i).key())) { label = all.get(i).label; break; }
                 }
+                // Live TV leaves the model when its app is switched off; still name it.
+                if (label.equals(AppModel.LIVETV_KEY)) label = c.getString(R.string.home_livetv);
                 rows.add(label);
                 rowKeys.add(k);
             }

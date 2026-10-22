@@ -53,7 +53,7 @@ public final class PhotoPanel {
         p.addNote("Save a picture on the TV first: the Downloader app and the Silk browser "
                 + "both put files in Download. Homestead looks there through its on-device "
                 + "tunnel, so it needs no storage permission.");
-        final Panel.Row status = p.addRow("Status", "", null);
+        final Panel.Row status = p.addStatus("Status");
         status.cell.setFocusable(false);
 
         final Runnable close = new Runnable() { public void run() { host.closePanel(); } };

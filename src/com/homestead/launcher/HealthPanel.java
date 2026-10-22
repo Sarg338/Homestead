@@ -83,7 +83,7 @@ public final class HealthPanel {
 
         p.addRow("Open Setup", "", new Runnable() {
             public void run() { host.showPanel(SetupPanel.build(c, host)); }
-        });
+        }).opens();
 
         if (!svc) {
             p.addNote("Without the accessibility service the Home button goes to Amazon's "
@@ -189,21 +189,20 @@ public final class HealthPanel {
 
         p.addRow("Open Debloat", "", new Runnable() {
             public void run() { host.showPanel(DebloatPanel.build(c, host)); }
-        });
-
-        p.addNote("A few telemetry packages are protected by Fire OS and cannot be "
-                + "switched off by any app, even with the privacy switches above off.");
+        }).opens();
 
         p.addRow("Commands for a computer", "", new Runnable() {
             public void run() { host.showPanel(CommandsPanel.build(c, host)); }
-        });
+        }).opens();
 
-        p.addNote(stillOn == 0
+        p.addSectionHelp((stillOn == 0
                 ? "Everything on the list that Fire OS lets an app switch off is off."
                 : stillOn + " of the listed packages can still be switched off. Debloat can "
                         + "switch them off one at a time or all at once, and put them back "
                         + "the same way. Packages Fire OS refuses are counted as protected "
-                        + "once Debloat has tried them.");
+                        + "once Debloat has tried them.")
+                + "\n\nA few telemetry packages are protected by Fire OS and cannot be "
+                + "switched off by any app, even with the privacy switches above off.");
 
         // ---------------------------------------------------------- resources
         p.addHeader("Resources");
@@ -228,7 +227,6 @@ public final class HealthPanel {
         p.addRow("Back", "", new Runnable() {
             public void run() { host.closePanel(); }
         });
-        p.addNote("Press Back to close.");
         return p.root;
     }
 

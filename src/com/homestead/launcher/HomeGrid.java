@@ -87,6 +87,8 @@ public class HomeGrid implements SettingsPanel.Host {
     private String builtOrder;
     /** Settings / TV Health render inside this window; Back pops one level. */
     private final List<View> panels = new ArrayList<View>();
+    /** For each open panel, the view that had focus when the next one opened over it. */
+    private final List<View> panelFocus = new ArrayList<View>();
     /** The last key released here, logged when a panel opens from a tile. */
     private int lastKey;
     private int lastKeyDevice;
@@ -288,28 +290,43 @@ public class HomeGrid implements SettingsPanel.Host {
         // Stop the grid, and any panel underneath, from stealing D-pad focus.
         scroll.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         View under = panels.isEmpty() ? null : panels.get(panels.size() - 1);
+        // Taken first: blocking and hiding the page below can clear its focus.
+        if (under != null) panelFocus.set(panelFocus.size() - 1, under.findFocus());
         if (under instanceof ViewGroup) {
             ((ViewGroup) under).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         }
+        // Only the top page is drawn, so a sheet over a sheet does not dim the grid twice.
+        if (under != null) under.setVisibility(View.INVISIBLE);
         root.addView(v, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         panels.add(v);
+        panelFocus.add(null);
         v.post(new Runnable() { public void run() { v.requestFocus(); } });
     }
 
     public void closePanel() {
         if (panels.isEmpty()) return;
         View top = panels.remove(panels.size() - 1);
+        panelFocus.remove(panelFocus.size() - 1);
         root.removeView(top);
         if (panels.isEmpty()) {
             scroll.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
             takeFocus();
         } else {
             final View below = panels.get(panels.size() - 1);
+            below.setVisibility(View.VISIBLE);
             if (below instanceof ViewGroup) {
                 ((ViewGroup) below).setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
             }
-            below.post(new Runnable() { public void run() { below.requestFocus(); } });
+            // Back on the row that opened the closed page, if it is still there.
+            final View was = panelFocus.get(panelFocus.size() - 1);
+            below.post(new Runnable() {
+                public void run() {
+                    if (was == null || !was.isAttachedToWindow() || !was.requestFocus()) {
+                        below.requestFocus();
+                    }
+                }
+            });
         }
     }
 

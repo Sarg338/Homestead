@@ -134,7 +134,7 @@ commands still needed on your TV.
 ### From the TV, no computer
 
 Save a JPEG or PNG to the TV's Download folder; the Downloader app and the Silk browser both
-save there. Then open Settings → **Choose a photo on this TV**, pick the picture, and it
+save there. Then open Settings → Background → **Choose a photo on this TV**, pick the picture, and it
 becomes the background. Homestead looks in Download and hands the picture over through its
 on-device tunnel, so this needs the tunnel set up (see [Setup](#setup)) but no storage
 permission. Pictures whose names contain characters other than letters, numbers, spaces,
@@ -284,7 +284,7 @@ comment explaining why it exists. Read it before changing the class.
 |---|---|
 | Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `Backgrounds` (presets and the photo), `BackgroundProvider` (receives the photo over adb), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
 | Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate), `HomeKeyWatcher` (Home presses, from the system log) |
-| Pages | `Panel` (the list page), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
+| Pages | `Panel` (the settings page: a sheet over the home screen, or a full page with an explanation pane), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
 | ADB | `AdbBridge` (one worker thread, link state, command batches), `AdbConnection` (the client), `AdbCrypto` (the key), `TunnelVpnService` and `VpnSetupActivity` (the on-device tunnel) |
 | Debloat list | `Debloat` (the package catalogue, the never-touch lists, live locks) |
 | Updates | `UpdateChecker` (the GitHub repo is `UpdateChecker.REPO`), `UpdateInstaller`, `UpdateFileProvider` |

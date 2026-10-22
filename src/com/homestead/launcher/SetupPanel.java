@@ -31,6 +31,12 @@ public final class SetupPanel {
     private static final int WARN = 0xFFE8C468;
     private static final int BAD = 0xFFE89A8A;
 
+    /** Shown with "Turn off the Home button" here and in Settings. */
+    static final String TURN_OFF_HELP = "Turning it off sends Home back to Amazon's home "
+            + "screen straight away, and \"Re-apply after reboot\" stops while it is off. To "
+            + "turn it back on, run \"Finish setup automatically\" in Setup (ADB debugging "
+            + "must still be on), or use \"Commands for a computer\". Press twice to confirm.";
+
     private SetupPanel() { }
 
     public static View build(final Context c, final SettingsPanel.Host host) {
@@ -42,62 +48,76 @@ public final class SetupPanel {
         p.addHeader("Status");
 
         final Panel.Row svcRow = p.addRow("Home-button redirect", "", null);
-        final Panel.Row ovlRow = p.addRow("Instant home screen", "", null);
-        final Panel.Row useRow = p.addRow("App ordering", "", null);
-        final Panel.Row adbRow = p.addRow("Configure this TV", "", null);
-
-        // ------------------------------------------------------------------ step one
-        p.addHeader("1. Turn on the Home button redirect");
-
-        p.addNote("Fire OS does not list Homestead under Settings, Accessibility, so the "
+        svcRow.setHelp("Fire OS does not list Homestead under Settings, Accessibility, so the "
                 + "redirect is switched on over the TV's debugging connection: from this TV "
-                + "with step 2 below, or from a computer with \"Commands for a computer\".\n\n"
+                + "with \"Finish setup automatically\" below, or from a computer with "
+                + "\"Commands for a computer\".\n\n"
                 + "Without it, Homestead still works as an app you open yourself; only the "
                 + "Home button needs it.\n\n"
                 + "If the Home button ever goes back to Amazon's home screen, for example "
                 + "after an update, run \"Finish setup automatically\" again.");
+        final Panel.Row ovlRow = p.addRow("Instant home screen", "", null);
+        final Panel.Row useRow = p.addRow("App ordering", "", null);
+        final Panel.Row adbRow = p.addRow("Configure this TV", "", null);
 
-        // Set once refresh exists, further down.
-        final Runnable[] refreshRef = new Runnable[1];
-        final Runnable offPaint = addTurnOffRow(c, p, new Runnable() {
-            public void run() { if (refreshRef[0] != null) refreshRef[0].run(); }
-        });
-        p.addNote("Turning it off sends Home back to Amazon's home screen straight away, and "
-                + "\"Re-apply after reboot\" stops while it is off. To turn it back on, run "
-                + "\"Finish setup automatically\" (ADB debugging must still be on), or use "
-                + "\"Commands for a computer\".");
+        // ------------------------------------------------------------------ configure
+        p.addHeader("Let this app configure the TV");
 
-        // ------------------------------------------------------------------ step two
-        p.addHeader("2. Let this app configure the TV");
-
-        p.addNote("This switches on the Home button redirect. It also lets the app switch "
+        p.addSectionHelp("This switches on the Home button redirect. It also lets the app switch "
                 + "off Amazon's advertising and telemetry packages and turn off the "
                 + "animations, if you choose to.\n\n"
                 + "Fire OS runs its debugging service on the television itself, so with "
                 + "your permission this app can connect to it and gain the same access a "
                 + "computer would have. The connection never leaves the TV. The TELEVISION, "
                 + "not this app, asks you to approve a key - check that the fingerprint it "
-                + "shows matches the one below, and tick \"Always allow\" so it is not asked "
+                + "shows matches the one here, and tick \"Always allow\" so it is not asked "
                 + "again.\n\n"
                 + "A direct connection will be refused, and not because anything is wrong: "
                 + "recent Fire OS builds drop any ADB connection that starts on the TV "
-                + "itself.\n\n"
-                + "\"On-device tunnel\" below gets around that block from inside the app - no "
-                + "computer needed. If you would rather not, \"Commands for a computer\" "
+                + "itself. \"On-device tunnel\" gets around that block from inside the app - "
+                + "no computer needed. If you would rather not, \"Commands for a computer\" "
                 + "lists exactly what to run instead.");
 
         p.addRow("Open \"My Fire TV\" (ADB debugging lives here)", "", new Runnable() {
             public void run() { openDeviceSettings(c); }
-        });
+        }).opens();
 
         final Panel.Row connectRow = p.addRow("ADB link", "", null);
         final Panel.Row fpRow = p.addRow("Key fingerprint", "", null);
         final Panel.Row applyRow = p.addRow("Finish setup automatically", "", null);
         final Panel.Row bootRow = p.addRow("Re-apply after reboot",
-                Prefs.reapplyOnBoot(c) ? "on" : "off", null);
+                Prefs.reapplyOnBoot(c) ? "on" : "off", null).asSwitch();
         final Panel.Row forgetRow = p.addRow("Forget our key", "", null);
+        forgetRow.setHelp("Deleting our key here stops this app using the link. The TV keeps its "
+                + "own copy until you use \"Revoke ADB authorisations\" under My Fire TV, "
+                + "Developer options.");
         final Panel.Row tunnelRow = p.addRow("On-device tunnel (advanced)", "", null);
-        final Panel.Row logRow = p.addRow("Last result", "", null);
+        tunnelRow.setHelp("Fire OS refuses ADB connections that start "
+                + "on the TV, so the app reaches its own debugging service the way a "
+                + "computer would - through a local VPN that presents an outside-looking "
+                + "address. It routes only its own private subnet, stays entirely on this "
+                + "TV, and makes no internet connection. Turning it on shows the system's "
+                + "VPN prompt once and a key icon in the status bar; the first connect asks "
+                + "you to approve the key on the TV.\n\n"
+                + "It only comes up while the app is actively configuring the TV and shuts "
+                + "off again within seconds of finishing (\"ready\" means enabled but down, "
+                + "\"active\" means up right now). While it is up, the TV's own ADB is "
+                + "reachable to apps on this device again - they would still each need you "
+                + "to approve their key on screen, so approve ONLY prompts you expected. "
+                + "Needs \"ADB debugging\" left on under My Fire TV; turn that off when you "
+                + "are done for the tightest setup. Reversible any time, and Amazon may "
+                + "re-block it in a future update.");
+        final Panel.Row logRow = p.addStatus("Last result");
+
+        // ------------------------------------------------------------------ home button
+        p.addHeader("Home button");
+
+        // Set once refresh exists, just below.
+        final Runnable[] refreshRef = new Runnable[1];
+        final Runnable offPaint = addTurnOffRow(c, p, new Runnable() {
+            public void run() { if (refreshRef[0] != null) refreshRef[0].run(); }
+        });
+        p.addNote(TURN_OFF_HELP);
 
         // ------------------------------------------------------------------ behaviour
 
@@ -232,29 +252,11 @@ public final class SetupPanel {
             }
         });
 
-        p.addNote("Deleting our key here stops this app using the link. The TV keeps its "
-                + "own copy until you use \"Revoke ADB authorisations\" under My Fire TV, "
-                + "Developer options.");
-
-        p.addNote("On-device tunnel (advanced): Fire OS refuses ADB connections that start "
-                + "on the TV, so the app reaches its own debugging service the way a "
-                + "computer would - through a local VPN that presents an outside-looking "
-                + "address. It routes only its own private subnet, stays entirely on this "
-                + "TV, and makes no internet connection. Turning it on shows the system's "
-                + "VPN prompt once and a key icon in the status bar; the first connect asks "
-                + "you to approve the key on the TV.\n\n"
-                + "It only comes up while the app is actively configuring the TV and shuts "
-                + "off again within seconds of finishing (\"ready\" means enabled but down, "
-                + "\"active\" means up right now). While it is up, the TV's own ADB is "
-                + "reachable to apps on this device again - they would still each need you "
-                + "to approve their key on screen, so approve ONLY prompts you expected. "
-                + "Needs \"ADB debugging\" left on under My Fire TV; turn that off when you "
-                + "are done for the tightest setup. Reversible any time, and Amazon may "
-                + "re-block it in a future update.");
-
+        p.addHeader("More");
         p.addRow("Commands for a computer", "", new Runnable() {
             public void run() { host.showPanel(CommandsPanel.build(c, host)); }
-        });
+        }).opens().setHelp("The same steps as commands to run from a computer, filtered "
+                + "down to what this TV still needs.");
 
         p.addRow("Close", "", new Runnable() {
             public void run() { host.closePanel(); }

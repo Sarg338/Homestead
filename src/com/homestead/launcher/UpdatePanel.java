@@ -37,14 +37,14 @@ public final class UpdatePanel {
         final Panel p = new Panel(c, "Update available",
                 "Homestead " + installed + "  →  " + u.versionName);
 
-        p.addHeader("What's new");
         String notes = u.notes != null ? u.notes.trim() : "";
         if (notes.length() == 0) notes = "See the release page for details.";
         if (notes.length() > 1200) notes = notes.substring(0, 1200) + "…";
-        p.addNote(notes);
 
+        // Install first so it is in view with focus; the release notes follow it.
         p.addHeader("Install");
-        final Panel.Row status = p.addRow("Status", "ready", null);
+        final Panel.Row status = p.addStatus("Status");
+        status.setValue("ready");
         status.cell.setFocusable(false);
         status.setValueColor(MUTE);
         final TextView message = p.addNote("");
@@ -125,9 +125,12 @@ public final class UpdatePanel {
             }
         });
 
-        p.addNote("Updates install through the on-device tunnel with no prompts when it is "
-                + "set up. Without it, the system installer opens to confirm. Homestead only "
-                + "installs an update signed with the same key as the copy you have now.");
+        p.addSectionHelp("Updates install through the on-device tunnel with no prompts when "
+                + "it is set up. Without it, the system installer opens to confirm. Homestead "
+                + "only installs an update signed with the same key as the copy you have now.");
+
+        p.addHeader("What's new");
+        p.addText(notes);
 
         final View first = install.cell;
         p.root.post(new Runnable() { public void run() { first.requestFocus(); } });

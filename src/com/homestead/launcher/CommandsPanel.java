@@ -99,7 +99,7 @@ public final class CommandsPanel {
         Panel.Row pkgs = p.addRow("Still running", count == 0 ? "none" : String.valueOf(count), null);
         pkgs.setValueColor(count == 0 ? OK : WARN);
         if (count > 0) {
-            p.addNote(off.toString()
+            p.addText(off.toString()
                     + "\nEvery one of these is undone with:\n"
                     + "adb shell pm enable <package>\n\n"
                     + "Nothing is uninstalled and no data is deleted. The Debloat page "

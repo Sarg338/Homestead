@@ -34,6 +34,11 @@ public final class DebloatPanel {
     private static final int BAD = 0xFFE89A8A;
     private static final int MUTED = 0xFF7F8FA0;
 
+    /** Shown with every Alexa row. */
+    private static final String ALEXA = "Switching these off removes Alexa: no voice search, "
+            + "no voice timers, and the microphone button on the remote stops doing anything. "
+            + "Everything else keeps working.";
+
     private DebloatPanel() { }
 
     public static View build(final Context c, final SettingsPanel.Host host) {
@@ -41,6 +46,8 @@ public final class DebloatPanel {
                 "Reversible. Nothing is ever uninstalled.");
 
         AdbBridge.init(c);
+
+        p.addHeader("This TV");
 
         final Panel.Row link = p.addRow("ADB link", "", null);
         link.cell.setOnClickListener(new View.OnClickListener() {
@@ -50,9 +57,9 @@ public final class DebloatPanel {
             }
         });
 
-        p.addNote("Each item is switched off with \"pm disable-user\", which leaves the app "
-                + "and its data on the TV and is undone with \"pm enable\". Disabling does "
-                + "not free storage; what you get back is memory and processor time.");
+        p.addSectionHelp("Each item is switched off with \"pm disable-user\", which leaves "
+                + "the app and its data on the TV and is undone with \"pm enable\". Disabling "
+                + "does not free storage; what you get back is memory and processor time.");
 
         // The list was checked on one model; say how much of it applies to this TV.
         int absent = 0;
@@ -69,21 +76,6 @@ public final class DebloatPanel {
         }
 
         final List<Row> rows = new ArrayList<Row>();
-        int group = -1;
-        for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
-            final Debloat.Entry e = Debloat.CATALOGUE[i];
-            if (e.group != group) {
-                group = e.group;
-                p.addHeader(Debloat.groupName(group));
-                if (group == Debloat.GROUP_VOICE) {
-                    p.addNote("Switching these off removes Alexa: no voice search, no voice "
-                            + "timers, and the microphone button on the remote stops doing "
-                            + "anything. Everything else keeps working.");
-                }
-            }
-            Row row = new Row(c, p, e);
-            rows.add(row);
-        }
 
         // ------------------------------------------------------------------ bulk actions
         p.addHeader("All at once");
@@ -95,10 +87,12 @@ public final class DebloatPanel {
 
         final Panel.Row bulkCaution = p.addRow("Switch off everything marked caution", "", null);
         p.addNote("Alexa and the Extras marked caution: voice search, casting, smart-home "
-                + "and the like. Each removes a feature, so read the rows above before using this.");
+                + "and the like. Each removes a feature, so read the rows below before using this.");
 
         final Panel.Row undo = p.addRow("Undo everything this app switched off", "", null);
-        final Panel.Row result = p.addRow("Last result", "", null);
+        p.addNote("Switches back on exactly the packages this app switched off, and nothing "
+                + "else.");
+        final Panel.Row result = p.addStatus("Last result");
 
         final Runnable refreshAll = new Runnable() {
             public void run() {
@@ -148,18 +142,30 @@ public final class DebloatPanel {
             }
         });
 
+        // ------------------------------------------------------------------ the list
+        int group = -1;
+        for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
+            final Debloat.Entry e = Debloat.CATALOGUE[i];
+            if (e.group != group) {
+                group = e.group;
+                p.addHeader(Debloat.groupName(group));
+            }
+            Row row = new Row(c, p, e);
+            rows.add(row);
+        }
+
         // ------------------------------------------------------------------ everything else
         p.addHeader("Beyond the list");
         p.addRow("Browse every system app", "", new Runnable() {
             public void run() { host.showPanel(buildBrowser(c, host)); }
-        });
+        }).opens();
         p.addNote("The list above has been checked as safe to switch off. The browser "
                 + "shows every other package but cannot tell you which are safe, and "
                 + "anything the system is currently relying on is locked.");
 
         p.addRow("Commands for a computer", "", new Runnable() {
             public void run() { host.showPanel(CommandsPanel.build(c, host)); }
-        });
+        }).opens();
         p.addNote("To do this from a computer instead: the exact commands, filtered down to "
                 + "what is still switched on on this TV.");
 
@@ -190,8 +196,12 @@ public final class DebloatPanel {
         Row(Context c, Panel p, Debloat.Entry e) {
             this.entry = e;
             this.locked = Debloat.protectionReason(c, e.pkg);
-            this.row = p.addRow(e.title + (e.caution ? "  (changes behaviour)" : ""), "", null);
-            p.addNote(e.note);
+            this.row = p.addRow(e.title, "", null).asSwitch();
+            if (e.caution) row.setBadge("Caution");
+            String why = e.group == Debloat.GROUP_VOICE ? ALEXA
+                    : e.caution ? "Marked caution: switching it off changes how the TV behaves."
+                    : null;
+            row.setHelp(e.note + (why != null ? "\n\n" + why : "") + "\n\n" + e.pkg);
         }
 
         void bind(final Context c, final Runnable after, final Panel.Row result) {
@@ -328,17 +338,18 @@ public final class DebloatPanel {
         final Panel p = new Panel(c, "Every system app",
                 all.size() + " packages on this TV");
 
-        p.addNote("Anything the system is currently using as a keyboard, a TV input, a home "
-                + "screen, a device administrator or an accessibility service is locked, and "
-                + "so is a short list of components the TV cannot start without. Everything "
-                + "else is yours to switch off - reversibly.");
+        p.addText("Anything the system is currently using as a keyboard, a TV input, "
+                + "a home screen, a device administrator or an accessibility service is locked, "
+                + "and so is a short list of components the TV cannot start without. "
+                + "Everything else is yours to switch off - reversibly.");
 
-        final Panel.Row result = p.addRow("Last result", "", null);
+        final Panel.Row result = p.addStatus("Last result");
 
         for (int i = 0; i < all.size(); i++) {
             final Debloat.Installed app = all.get(i);
             final String locked = Debloat.protectionReason(c, app.pkg);
-            final Panel.Row row = p.addRow(app.label, "", null);
+            final Panel.Row row = p.addRow(app.label, "", null).asSwitch();
+            row.setHelp(app.pkg);
             if (locked != null) {
                 row.setValue(locked);
                 row.setValueColor(MUTED);

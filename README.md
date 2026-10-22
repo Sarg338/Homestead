@@ -51,9 +51,11 @@ Real hardware, not emulators:
 | Amazon Fire TV Stick | `AFTSSS` | 7.7.1.6 | **Setup without a computer**: key approval, permissions, automatic shutdown of the tunnel |
 | Amazon Fire TV Stick 4K (2nd gen) | `AFTKM` | 8.1.8.5 | **Reported by a user, not tested here**: Home button, Debloat (28 packages switched off; Fire OS 8 protects a few more than Fire OS 7), several reboots, and a background photo sent from a computer (1.2.9). Set up from a computer. |
 | Hisense 65U65SFC Pro (Fire TV Edition) | `AFTCIBFBD1` | 8.1.8.0 | **Reported by a user, not tested here**: Home button, Debloat, a full reboot, and the fix for repeated package events (1.2.3 and later). Set up from a computer. |
+| TCL 40V5D (Fire TV Edition) | `AFTTIFB900` | 14 (build SL14SHIP1021.86N) | **Reported by a user, not tested here**: Home button, Debloat, TV Health, a full reboot, HDMI/Composite tiles, and setup from a computer. |
 
-The first two run Android 9 and were tested by the maintainer. The last two are user
-reports on Fire OS 8 (Android 11). Other devices are *expected* to work but are unverified.
+The first two run Android 9 and were tested by the maintainer. The last three are user
+reports: two on Fire OS 8 (Android 11), one on Fire OS 14. Other devices are *expected* to
+work but are unverified.
 
 Debloat's list of packages was checked by hand on the Insignia TV above. Other models
 and Fire OS versions may use different package names. Anything on the list that your TV

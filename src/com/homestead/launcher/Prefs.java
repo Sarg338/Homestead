@@ -51,6 +51,7 @@ public final class Prefs {
     private static final String K_UPD_NOTIFIED = "update_notified_version";
     private static final String K_UPD_AUTO = "update_auto_check";
     private static final String K_SIMPLE = "simple_mode";
+    private static final String K_TV_FIRST = "livetv_first";
 
     public static final int SORT_LAST_USED = 0;
     public static final int SORT_ALPHA = 1;
@@ -177,6 +178,15 @@ public final class Prefs {
     public static boolean simpleMode(Context c) { return sp(c).getBoolean(K_SIMPLE, false); }
     public static void setSimpleMode(Context c, boolean v) {
         sp(c).edit().putBoolean(K_SIMPLE, v).apply();
+    }
+
+    /**
+     * Live TV first: a large Live TV tile on top, then TV apps, then inputs; Home lands on
+     * Live TV. Off by default; it only changes anything on a TV with a tuner.
+     */
+    public static boolean liveTvFirst(Context c) { return sp(c).getBoolean(K_TV_FIRST, false); }
+    public static void setLiveTvFirst(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_TV_FIRST, v).apply();
     }
 
     // ---------------------------------------------------------------- updates

@@ -13,7 +13,11 @@
 package com.homestead.launcher;
 
 import android.content.Context;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.widget.Toast;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -69,6 +73,8 @@ public class HomeGrid implements SettingsPanel.Host {
     private static final int HEADER_SP = 21;
     private static final int HEADER_TOP_DP = 28;
     private static final int HEADER_BOTTOM_DP = 12;
+    /** AppModel.Item.key() of the Live TV tile. */
+    private static final String LIVETV_KEY = "sys:livetv";
 
     private final Context ctx;
     private final Listener listener;
@@ -248,6 +254,15 @@ public class HomeGrid implements SettingsPanel.Host {
         if (mode == Prefs.CLOCK_OFF) { clock.setText(""); return; }
         String fmt = (mode == Prefs.CLOCK_12H) ? "h:mm a" : "HH:mm";
         clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(new Date()));
+    }
+
+    /** Focus for a fresh Home press: Live TV when it comes first, else as takeFocus(). */
+    public void takeStartFocus() {
+        if (Prefs.liveTvFirst(ctx) && selectKey(LIVETV_KEY)) {
+            scroll.scrollTo(0, 0);
+            return;
+        }
+        takeFocus();
     }
 
     public void takeFocus() {
@@ -475,10 +490,17 @@ public class HomeGrid implements SettingsPanel.Host {
         List<AppModel.Item> nonTv = new ArrayList<AppModel.Item>();
         List<AppModel.Item> tv = new ArrayList<AppModel.Item>();
 
+        // Live TV first takes the Live TV tile out of its section and puts it above them all.
+        boolean tvFirst = Prefs.liveTvFirst(ctx);
+        AppModel.Item liveTv = null;
+
         List<AppModel.Item> all = AppModel.visibleItems(ctx);
         for (int i = 0; i < all.size(); i++) {
             AppModel.Item it = all.get(i);
-            if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_AMAZON_HOME
+            if (tvFirst && it.type == AppModel.TYPE_LIVETV) {
+                liveTv = it;
+            } else if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV
+                    || it.type == AppModel.TYPE_AMAZON_HOME
                     || it.type == AppModel.TYPE_SETTINGS || it.type == AppModel.TYPE_HEALTH) {
                 inputs.add(it);
             } else if (it.tvApp && it.banner != null) {
@@ -507,13 +529,58 @@ public class HomeGrid implements SettingsPanel.Host {
                 int t = inputs.get(i).type;
                 if (t != AppModel.TYPE_SETTINGS && t != AppModel.TYPE_HEALTH) rest.add(inputs.get(i));
             }
-            if (!rest.isEmpty() || !nonTv.isEmpty() || !tv.isEmpty()) inputs = rest;
+            if (!rest.isEmpty() || !nonTv.isEmpty() || !tv.isEmpty() || liveTv != null) {
+                inputs = rest;
+            }
         }
 
+        String inputsTitle = ctx.getString(R.string.home_sec_inputs);
+        String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
+        String tvTitle = ctx.getString(R.string.home_sec_tv);
         boolean first = true;
-        if (!inputs.isEmpty()) { addHeader("Inputs & System", first); first = false; addCardRow(inputs); }
-        if (!nonTv.isEmpty())  { addHeader("Non-TV Applications", first); first = false; addCardRow(nonTv); }
-        if (!tv.isEmpty())     { addHeader("TV Applications", first); addTileGrid(tv); }
+        if (tvFirst) {
+            if (liveTv != null)    { addLiveTvTile(liveTv); first = false; }
+            if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
+            if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
+            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); addCardRow(nonTv); }
+            return;
+        }
+        if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
+        if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addCardRow(nonTv); }
+        if (!tv.isEmpty())     { addHeader(tvTitle, first); addTileGrid(tv); }
+    }
+
+    /** Live TV first: one large tile, two banner cells wide, on its own row. */
+    private void addLiveTvTile(AppModel.Item it) {
+        FrameLayout cell = newCell(it);
+        GradientDrawable card = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[] { 0xFF168494, 0xFF0A3642 });
+        card.setCornerRadius(dp(8));
+        cell.setBackground(card);
+
+        LinearLayout text = new LinearLayout(ctx);
+        text.setOrientation(LinearLayout.VERTICAL);
+        text.setGravity(Gravity.CENTER_VERTICAL);
+        text.setPadding(dp(24), dp(12), dp(24), dp(12));
+
+        TextView title = new TextView(ctx);
+        title.setText(it.label);
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        text.addView(title);
+
+        TextView hint = new TextView(ctx);
+        hint.setText(ctx.getString(R.string.home_livetv_hint));
+        hint.setTextColor(0xCCFFFFFF);
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        text.addView(hint);
+
+        cell.addView(text, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        int w = AppModel.cellW(ctx) * 2 + dp(GAP_DP);
+        int h = AppModel.cellH(ctx) * 3 / 2;
+        column.addView(cell, new LinearLayout.LayoutParams(w, h));
     }
 
     private void addHeader(String text, boolean first) {
@@ -665,10 +732,15 @@ public class HomeGrid implements SettingsPanel.Host {
         FrameLayout cell = newCell(it);
         GradientDrawable card = new GradientDrawable();
         card.setCornerRadius(dp(8));
-        card.setColor(it.type == AppModel.TYPE_INPUT ? 0xFF0E5A63 : 0xFF033058);
+        boolean textTile = it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV;
+        // Live TV first: inputs go a quiet grey so only the Live TV tile stands out, and
+        // app labels get larger and brighter.
+        boolean tvFirst = Prefs.liveTvFirst(ctx);
+        if (textTile) card.setColor(tvFirst ? 0xFF2A333D : 0xFF0E5A63);
+        else card.setColor(0xFF033058);
         cell.setBackground(card);
 
-        if (it.type == AppModel.TYPE_INPUT) {
+        if (textTile) {
             TextView tv = new TextView(ctx);
             tv.setText(it.label);
             tv.setTextColor(Color.WHITE);
@@ -694,8 +766,8 @@ public class HomeGrid implements SettingsPanel.Host {
 
         TextView tv = new TextView(ctx);
         tv.setText(it.label);
-        tv.setTextColor(0xFFA2AFBB);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tv.setTextColor(tvFirst ? 0xFFD5DDE5 : 0xFFA2AFBB);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, tvFirst ? 14 : 12);
         tv.setMaxLines(2);
         tv.setEllipsize(TextUtils.TruncateAt.END);
         tv.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
@@ -733,6 +805,18 @@ public class HomeGrid implements SettingsPanel.Host {
         if (it.type == AppModel.TYPE_HEALTH) {
             logOpen(it.label);
             showPanel(HealthPanel.build(ctx, this));
+            return;
+        }
+        if (it.type == AppModel.TYPE_LIVETV) {
+            logOpen(it.label);
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("livetv://showLiveTVButtonContent/"));
+                i.setComponent(new ComponentName(AppModel.LIVETV_PKG, AppModel.LIVETV_SVC));
+                if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i);
+                else ctx.startService(i);
+            } catch (Throwable t) {
+                Toast.makeText(ctx, R.string.home_livetv_failed, Toast.LENGTH_SHORT).show();
+            }
             return;
         }
         if (it.type == AppModel.TYPE_INPUT) {

@@ -176,6 +176,18 @@ public final class SettingsPanel {
 
         p.addHeader("Sections");
 
+        final Panel.Row tvFirst = p.addRow("Live TV first", onOff(Prefs.liveTvFirst(c)), null).asSwitch();
+        tvFirst.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean n = !Prefs.liveTvFirst(c);
+                Prefs.setLiveTvFirst(c, n);
+                tvFirst.setValue(onOff(n));
+                host.rebuildGrid();
+            }
+        });
+        tvFirst.setHelp("A large Live TV tile on top, then TV apps, then inputs; Home always "
+                + "lands on Live TV. Only on a TV with an antenna or cable tuner.");
+
         final Panel.Row secIn = p.addRow("Show \"Inputs & System\"", onOff(Prefs.showInputs(c)), null).asSwitch();
         secIn.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {

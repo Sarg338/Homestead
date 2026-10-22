@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="home_livetv">Canali TV</string>
+  <string name="home_livetv_hint">Premi OK per guardare la TV</string>
+  <string name="home_livetv_failed">I canali TV non sono disponibili</string>
+  <string name="home_sec_inputs">Ingressi e sistema</string>
+  <string name="home_sec_nontv">App non TV</string>
+  <string name="home_sec_tv">App TV</string>
+</resources>

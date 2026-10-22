@@ -2,4 +2,11 @@
 <resources>
   <string name="app_name">Homestead</string>
   <string name="service_desc">Redirects the Home button to Homestead instead of Amazon\'s launcher.</string>
+  <!-- Home screen. Translations live in values-<lang>; Android picks the TV's language. -->
+  <string name="home_livetv">Live TV</string>
+  <string name="home_livetv_hint">Press OK to watch</string>
+  <string name="home_livetv_failed">Live TV is not available</string>
+  <string name="home_sec_inputs">Inputs &amp; System</string>
+  <string name="home_sec_nontv">Non-TV Applications</string>
+  <string name="home_sec_tv">TV Applications</string>
 </resources>

@@ -15,6 +15,7 @@ package com.homestead.launcher;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -54,7 +55,11 @@ public final class AppModel {
     public static final int TYPE_AMAZON_HOME = 2;
     public static final int TYPE_SETTINGS = 3;
     public static final int TYPE_HEALTH = 4;
+    /** Fire TV Live TV (antenna/cable tuner), started through Amazon's public TuneService. */
+    public static final int TYPE_LIVETV = 5;
 
+    static final String LIVETV_PKG = "com.amazon.tv.livetv";
+    static final String LIVETV_SVC = "com.amazon.tv.livetv.TuneService";
     static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     static final String AMAZON_HOME_CLS = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
 
@@ -86,6 +91,7 @@ public final class AppModel {
         /** Stable across a re-sort; the handoff carries this, never an index. */
         public String key() {
             if (type == TYPE_INPUT) return "in:" + inputId;
+            if (type == TYPE_LIVETV) return "sys:livetv";
             if (type == TYPE_AMAZON_HOME) return "amz";
             if (type == TYPE_SETTINGS) return "sys:settings";
             if (type == TYPE_HEALTH) return "sys:health";
@@ -268,11 +274,40 @@ public final class AppModel {
         } catch (Throwable t) {
             parts.add("inputs failed");
         }
+        if (liveTvAvailable(c)) parts.add("livetv");
         Collections.sort(parts);
         return parts.toString();
     }
 
+    /**
+     * True when this device has a tuner input and Amazon's Live TV TuneService, the same
+     * service the remote's TV button starts. It is exported without a permission, so any
+     * app can start it; it resumes the last watched channel.
+     */
+    static boolean liveTvAvailable(Context c) {
+        try {
+            Intent probe = new Intent();
+            probe.setComponent(new ComponentName(LIVETV_PKG, LIVETV_SVC));
+            if (c.getPackageManager().resolveService(probe, 0) == null) return false;
+            TvInputManager tim = (TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
+            List<TvInputInfo> list = (tim == null) ? null : tim.getTvInputList();
+            if (list == null) return false;
+            for (int i = 0; i < list.size(); i++) {
+                TvInputInfo info = list.get(i);
+                if (info != null && !info.isPassthroughInput()
+                        && info.getType() == TvInputInfo.TYPE_TUNER) return true;
+            }
+        } catch (Throwable t) { }
+        return false;
+    }
+
     private static void loadInputs(Context c) {
+        if (liveTvAvailable(c)) {
+            Item tv = new Item();
+            tv.type = TYPE_LIVETV;
+            tv.label = c.getString(R.string.home_livetv);
+            ITEMS.add(tv);
+        }
         try {
             TvInputManager tim = (TvInputManager) c.getSystemService(Context.TV_INPUT_SERVICE);
             if (tim == null) return;
@@ -376,9 +411,10 @@ public final class AppModel {
                 return x.label.compareToIgnoreCase(y.label);
             }
             private int rank(int t) {
-                if (t == TYPE_INPUT) return 0;
-                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH) return 1;
-                return 2;
+                if (t == TYPE_LIVETV) return 0;
+                if (t == TYPE_INPUT) return 1;
+                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH) return 2;
+                return 3;
             }
         });
         return !before.equals(order());

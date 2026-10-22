@@ -53,7 +53,7 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         super.onCreate(b);
         home = new HomeGrid(this, this);
         setContentView(home.root);
-        home.takeFocus();
+        home.takeStartFocus();
         AdbBridge.init(this);
 
         // First run shows the wizard; later, if the accessibility service is off (e.g.

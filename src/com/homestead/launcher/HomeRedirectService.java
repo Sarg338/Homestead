@@ -460,7 +460,7 @@ public class HomeRedirectService extends AccessibilityService {
             home.closePanels();
             home.applyBackground();
             home.updateClock();
-            home.takeFocus();
+            home.takeStartFocus();
             Log.i(TAG, "overlay shown in " + (SystemClock.uptimeMillis() - t0)
                     + "ms epoch=" + epoch);
 

@@ -13,7 +13,7 @@ Both pictures are from the same TV, a few minutes apart.
 ## What it does
 
 - **A home screen without the ads.** Your inputs, your TV apps and everything else, in
-  three rows. No sponsored rows, no auto-playing trailers, no promoted tiles.
+  three sections. No sponsored rows, no auto-playing trailers, no promoted tiles.
 - **The Home button comes here.** Pressing Home opens Homestead in about 170 ms instead of
   Amazon's home screen.
 - **HDMI and Composite inputs as tiles**, so switching source is one press from home.
@@ -21,6 +21,9 @@ Both pictures are from the same TV, a few minutes apart.
 - **Hide anything** you do not want to see: press MENU on a tile, or hold Select.
 - **Pick a background** in Settings: the blue gradient, a few darker ones, plain black for
   OLED screens and night viewing, or [your own photo](#your-own-background-photo).
+- **Settings opens over the home screen**, so changes to the background, columns, clock and
+  sections show behind it as you make them. Larger pages explain the selected row beside
+  the list.
 - **TV Health** shows the state of the TV (animation speed, ad-tracking settings, the
   screensaver, which Amazon telemetry packages are running, free memory and storage). Each
   setting it flags can be fixed with one press.
@@ -65,8 +68,9 @@ installed).
 
 Download `homestead.apk` from the [latest release](https://github.com/Sarg338/Homestead/releases/latest)
 and sideload it: `adb install homestead.apk` from a computer, or the Downloader app on the
-TV. When its home screen comes up, the app checks that release page (at most once a day)
-and shows a new version once, with **Install now**, **Later** and **Skip this version**.
+TV. When its home screen comes up, the app checks that release page (at most once a day,
+and never in [Simple mode](#setting-it-up-for-someone-else)) and shows a new version once,
+with **Install now**, **Later** and **Skip this version**.
 Settings → **Check for updates** checks straight away. It never installs one until you press
 **Install now**.
 
@@ -152,7 +156,8 @@ adb push background.jpg /sdcard/Download/
 adb shell "content write --uri content://com.homestead.launcher.background/photo < /sdcard/Download/background.jpg"
 ```
 
-Then choose **Photo** under Settings → **Background**. Any size or shape works: the picture
+Then open Settings → **Background** and select the **Background** row until it says
+**Photo**. Any size or shape works: the picture
 is scaled and cropped to fill the screen, and only that screen-sized copy is kept in
 memory. **Photo dimming** darkens it (Off, Light or Dark) so the labels stay readable;
 Light is the default.
@@ -255,7 +260,7 @@ says exactly what is read.
 
 Only needed if you want to build the app from source; to use Homestead, install the signed
 `homestead.apk` from the [releases](https://github.com/Sarg338/Homestead/releases/latest).
-No Gradle, no dependencies, about two seconds:
+No Gradle, no dependencies, under ten seconds:
 
 ```sh
 ./build.sh            # build + sign
@@ -284,7 +289,7 @@ comment explaining why it exists. Read it before changing the class.
 |---|---|
 | Home screen | `MainActivity`, `HomeGrid` (the UI, shared by the activity and the overlay), `AppModel` (tiles, artwork, order), `Backgrounds` (presets and the photo), `BackgroundProvider` (receives the photo over adb), `UsageTracker`, `HdmiActivity`, `BootReceiver` |
 | Home button | `HomeRedirectService` (accessibility service and overlay; its timings are deliberate), `HomeKeyWatcher` (Home presses, from the system log) |
-| Pages | `Panel` (the settings page: a sheet over the home screen, or a full page with an explanation pane), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel` |
+| Pages | `Panel` (the settings page: a sheet over the home screen, or a full page with an explanation pane), `OnboardingPanel` (first-run setup), `SetupPanel`, `SettingsPanel`, `HealthPanel` (TV Health), `DebloatPanel`, `CommandsPanel`, `UpdatePanel`, `PhotoPanel` (choose a photo on the TV) |
 | ADB | `AdbBridge` (one worker thread, link state, command batches), `AdbConnection` (the client), `AdbCrypto` (the key), `TunnelVpnService` and `VpnSetupActivity` (the on-device tunnel) |
 | Debloat list | `Debloat` (the package catalogue, the never-touch lists, live locks) |
 | Updates | `UpdateChecker` (the GitHub repo is `UpdateChecker.REPO`), `UpdateInstaller`, `UpdateFileProvider` |

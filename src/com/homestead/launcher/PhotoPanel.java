@@ -48,36 +48,32 @@ public final class PhotoPanel {
     private PhotoPanel() { }
 
     public static View build(final Context c, final SettingsPanel.Host host) {
-        final Panel p = new Panel(c, "Choose a photo on this TV",
-                "Pictures in the TV's Download folder");
-        p.addNote("Save a picture on the TV first: the Downloader app and the Silk browser "
-                + "both put files in Download. Homestead looks there through its on-device "
-                + "tunnel, so it needs no storage permission.");
-        final Panel.Row status = p.addStatus("Status");
+        final Panel p = new Panel(c, c.getString(R.string.set_photo_pick),
+                c.getString(R.string.photo_sub));
+        p.addNote(c.getString(R.string.photo_note));
+        final Panel.Row status = p.addStatus(c.getString(R.string.upd_status));
         status.cell.setFocusable(false);
 
         final Runnable close = new Runnable() { public void run() { host.closePanel(); } };
 
         if (!AdbBridge.canRun(c)) {
-            status.setValue("needs the tunnel");
+            status.setValue(c.getString(R.string.photo_needs_tunnel));
             status.setValueColor(WARN);
-            p.addNote("This uses the on-device tunnel, which is not set up on this TV. Set "
-                    + "it up in Setup, or send a photo from a computer (Settings, "
-                    + "Background has the commands).");
-            p.addRow("Back", "", close);
+            p.addNote(c.getString(R.string.photo_no_tunnel_note));
+            p.addRow(c.getString(R.string.set_back), "", close);
             return p.root;
         }
 
-        status.setValue("looking...");
+        status.setValue(c.getString(R.string.photo_looking));
         status.setValueColor(WARN);
         // Newest first, so a picture just downloaded is at the top. Through "| cat" because
         // the shell runs in a terminal, where ls escapes spaces as "\ ".
         AdbBridge.run("ls -1t " + DIR + " | cat", new AdbBridge.Callback() {
             public void onDone(boolean ok, String out) {
                 if (!AdbBridge.ran(out)) {
-                    status.setValue("could not connect");
+                    status.setValue(c.getString(R.string.photo_could_not_connect));
                     status.setValueColor(BAD);
-                    p.addRow("Back", "", close).cell.requestFocus();
+                    p.addRow(c.getString(R.string.set_back), "", close).cell.requestFocus();
                     return;
                 }
                 List<String> names = new ArrayList<String>();
@@ -90,20 +86,14 @@ public final class PhotoPanel {
                     else if (n.toLowerCase(java.util.Locale.US).matches(".*\\.(jpe?g|png)")) skipped++;
                 }
                 if (names.isEmpty()) {
-                    status.setValue("no pictures found");
-                    p.addNote("No JPEG or PNG files in Download yet.");
+                    status.setValue(c.getString(R.string.photo_none_found));
+                    p.addNote(c.getString(R.string.photo_none_note));
                 } else {
-                    status.setValue(names.size() + (names.size() == 1 ? " picture" : " pictures"));
+                    status.setValue(c.getResources().getQuantityString(R.plurals.photo_n, names.size(), names.size()));
                     status.setValueColor(OK);
                 }
                 if (skipped > 0) {
-                    p.addNote(skipped == 1
-                            ? "1 picture is not listed because of unusual characters in its "
-                                    + "name. Rename it using letters, numbers, spaces, dots or "
-                                    + "dashes."
-                            : skipped + " pictures are not listed because of unusual characters "
-                                    + "in their names. Rename them using letters, numbers, "
-                                    + "spaces, dots or dashes.");
+                    p.addNote(c.getResources().getQuantityString(R.plurals.photo_skipped, skipped, skipped));
                 }
                 Panel.Row first = null;
                 for (int i = 0; i < names.size(); i++) {
@@ -114,7 +104,7 @@ public final class PhotoPanel {
                     });
                     if (first == null) first = self[0];
                 }
-                Panel.Row back = p.addRow("Back", "", close);
+                Panel.Row back = p.addRow(c.getString(R.string.set_back), "", close);
                 (first != null ? first : back).cell.requestFocus();
             }
         });
@@ -125,7 +115,7 @@ public final class PhotoPanel {
     private static void pick(final Context c, final SettingsPanel.Host host,
                              final Panel.Row status, final Panel.Row row, final String name) {
         if (!SAFE.matcher(name).matches()) return;
-        status.setValue("sending...");
+        status.setValue(c.getString(R.string.photo_sending));
         status.setValueColor(WARN);
         row.setValue("");
         final long since = System.currentTimeMillis();
@@ -134,7 +124,7 @@ public final class PhotoPanel {
         AdbBridge.run(cmd, new AdbBridge.Callback() {
             public void onDone(boolean ok, String out) {
                 if (!AdbBridge.ran(out)) {
-                    status.setValue("could not connect");
+                    status.setValue(c.getString(R.string.photo_could_not_connect));
                     status.setValueColor(BAD);
                     return;
                 }
@@ -151,20 +141,20 @@ public final class PhotoPanel {
             if (BackgroundProvider.lastOk) {
                 Backgrounds.choose(c, Backgrounds.PHOTO_ID);
                 host.rebuildGrid();
-                status.setValue("set as the background");
+                status.setValue(c.getString(R.string.photo_set));
                 status.setValueColor(OK);
-                row.setValue("in use");
+                row.setValue(c.getString(R.string.photo_in_use));
                 row.setValueColor(OK);
             } else {
-                status.setValue("not a picture Homestead can use");
+                status.setValue(c.getString(R.string.photo_bad));
                 status.setValueColor(BAD);
-                row.setValue("not used");
+                row.setValue(c.getString(R.string.photo_not_used));
                 row.setValueColor(BAD);
             }
             return;
         }
         if (System.currentTimeMillis() - started > RESULT_WAIT_MS) {
-            status.setValue("no answer - try again");
+            status.setValue(c.getString(R.string.photo_no_answer));
             status.setValueColor(BAD);
             return;
         }

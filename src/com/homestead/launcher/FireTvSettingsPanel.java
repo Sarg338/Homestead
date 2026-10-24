@@ -79,7 +79,23 @@ public final class FireTvSettingsPanel {
             { R.string.home_sc_device, R.string.home_sc_device },
     };
 
+    /** What each screen holds, row for row with SCREENS, in the TV's language. */
+    private static final int[] HELPS = {
+            R.string.ftv_h_network, R.string.ftv_h_display, R.string.ftv_h_controllers,
+            R.string.ftv_h_accessibility, R.string.ftv_h_applications, R.string.ftv_h_language,
+            R.string.ftv_h_preferences, R.string.ftv_h_data, R.string.ftv_h_account,
+            R.string.ftv_h_device,
+    };
+
     private FireTvSettingsPanel() { }
+
+    /** A screen's name and help on these pages: the home screen's name, the help above. */
+    private static String title(Context c, String[] s) { return homeLabel(c, s[ACTION], false); }
+
+    private static String help(Context c, String[] s) {
+        for (int i = 0; i < SCREENS.length; i++) if (SCREENS[i] == s) return c.getString(HELPS[i]);
+        return s[HELP];
+    }
 
     /** A screen's name on the home screen, by its action; null for an action not in SCREENS. */
     static String homeLabel(Context c, String action, boolean pill) {
@@ -109,7 +125,7 @@ public final class FireTvSettingsPanel {
             // checkPermission, not checkSelfPermission: the latter is Android 6+ only.
             if (need != null && c.checkPermission(need, android.os.Process.myPid(),
                     android.os.Process.myUid()) != PackageManager.PERMISSION_GRANTED) {
-                if (locked != null) locked.add(SCREENS[i][TITLE]);
+                if (locked != null) locked.add(c.getString(HOME_LABELS[i][0]));
                 continue;
             }
             out.add(SCREENS[i]);
@@ -120,59 +136,54 @@ public final class FireTvSettingsPanel {
     // ---------------------------------------------------------------- the hub
 
     public static View build(final Context c, final SettingsPanel.Host host) {
-        final Panel p = new Panel(c, "Fire TV settings", null, Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.home_sec_settings), null, Panel.SHEET);
         List<String> locked = new ArrayList<String>();
         List<String[]> open = available(c, locked);
 
-        p.addHeader("Open from here");
+        p.addHeader(c.getString(R.string.ftv_open_here));
         for (int i = 0; i < open.size(); i++) {
             final Intent intent = intentFor(open.get(i)[ACTION]);
-            p.addRow(open.get(i)[TITLE], "", new Runnable() {
+            p.addRow(title(c, open.get(i)), "", new Runnable() {
                 public void run() { SetupPanel.start(c, intent); }
-            }).opens().setHelp(open.get(i)[HELP]);
+            }).opens().setHelp(help(c, open.get(i)));
         }
-        final Panel.Row all = p.addRow("All Amazon settings",
-                AppModel.amazonLauncherOn(c) ? "" : "needs the launcher", null).opens();
+        final Panel.Row all = p.addRow(c.getString(R.string.ftv_all),
+                AppModel.amazonLauncherOn(c) ? "" : c.getString(R.string.ftv_all_needs), null).opens();
         all.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { openAll(c, host); }
         });
-        all.setHelp("Amazon's full settings menu"
-                + (locked.isEmpty() ? "." : ", including " + join(locked) + ".")
-                + (AppModel.amazonLauncherOn(c) ? ""
-                        : " With Amazon's launcher off it is switched on for a moment first."));
+        all.setHelp((locked.isEmpty() ? c.getString(R.string.ftv_all_help)
+                        : c.getString(R.string.ftv_all_help_incl, join(locked)))
+                + (AppModel.amazonLauncherOn(c) ? "" : " " + c.getString(R.string.ftv_all_help_off)));
 
-        p.addHeader("Shortcuts on the home screen");
-        final Panel.Row place = p.addRow("Shortcuts row", placeLabel(Prefs.shortcutsPlace(c)), null);
+        p.addHeader(c.getString(R.string.ftv_sc_header));
+        final Panel.Row place = p.addRow(c.getString(R.string.ftv_sc_row), placeLabel(c, Prefs.shortcutsPlace(c)), null);
         place.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 int now = Prefs.shortcutsPlace(c);
                 int n = now == Prefs.SHORTCUTS_OFF ? Prefs.SHORTCUTS_ROW
                         : now == Prefs.SHORTCUTS_ROW ? Prefs.SHORTCUTS_BAR : Prefs.SHORTCUTS_OFF;
                 Prefs.setShortcutsPlace(c, n);
-                place.setValue(placeLabel(n));
+                place.setValue(placeLabel(c, n));
                 AppModel.reload(c);
                 host.rebuildGrid();
             }
         });
-        place.setHelp("Settings shortcuts on the home screen: a row, placed with the others in "
-                + "Settings, Home screen, Row order, or small buttons beside the clock. The top "
-                + "bar shows the first three you chose, then More settings and Settings. Not in "
-                + "Simple mode.");
-        p.addRow("Choose shortcuts", "", new Runnable() {
+        place.setHelp(c.getString(R.string.ftv_sc_row_help));
+        p.addRow(c.getString(R.string.ftv_choose), "", new Runnable() {
             public void run() { host.showPanel(buildChoose(c, host)); }
-        }).opens().setHelp("Which screens go in the row.");
+        }).opens().setHelp(c.getString(R.string.ftv_choose_help));
 
-        p.addHeader("Amazon's launcher");
+        p.addHeader(c.getString(R.string.db_launcher_t));
         if (AppModel.amazonLauncherOn(c)) {
-            p.addRow("Amazon's launcher", "on", null)
-                    .setHelp("Switch it off in Debloat to make Home open Homestead directly.");
+            p.addRow(c.getString(R.string.db_launcher_t), c.getString(R.string.v_on), null)
+                    .setHelp(c.getString(R.string.ftv_launcher_on_help));
         } else {
-            p.addRow("Amazon's launcher", "off", new Runnable() {
+            p.addRow(c.getString(R.string.db_launcher_t), c.getString(R.string.v_off), new Runnable() {
                 public void run() { host.showPanel(SettingsPanel.buildLauncherOff(c, host)); }
-            }).opens().setHelp("What changes while it is off, and how to get the screens "
-                    + "that need it.");
+            }).opens().setHelp(c.getString(R.string.ftv_launcher_off_help));
         }
-        final Panel.Row watch = p.addRow("Warn if the system undoes Debloat",
+        final Panel.Row watch = p.addRow(c.getString(R.string.ftv_watch),
                 onOff(Prefs.restoreWatch(c)), null).asSwitch();
         watch.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -183,23 +194,22 @@ public final class FireTvSettingsPanel {
                 host.rebuildGrid();
             }
         });
-        watch.setHelp("If an update switches back on something Debloat turned off, the home "
-                + "screen shows it for 10 seconds, and OK switches it off again.");
+        watch.setHelp(c.getString(R.string.ftv_watch_help));
 
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
     }
 
     private static View buildChoose(final Context c, final SettingsPanel.Host host) {
-        final Panel p = new Panel(c, "Choose shortcuts", null, Panel.SHEET);
-        p.addHeader("In the shortcuts row");
+        final Panel p = new Panel(c, c.getString(R.string.ftv_choose), null, Panel.SHEET);
+        p.addHeader(c.getString(R.string.ftv_choose_header));
         final java.util.Set<String> on = Prefs.shortcuts(c);
         List<String[]> open = available(c, null);
         for (int i = 0; i < open.size(); i++) {
             final String id = open.get(i)[ID];
-            final Panel.Row row = p.addRow(open.get(i)[TITLE], onOff(on.contains(id)), null).asSwitch();
+            final Panel.Row row = p.addRow(title(c, open.get(i)), onOff(on.contains(id)), null).asSwitch();
             row.cell.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
                     boolean n = !Prefs.shortcuts(c).contains(id);
@@ -209,12 +219,12 @@ public final class FireTvSettingsPanel {
                     host.rebuildGrid();
                 }
             });
-            row.setHelp(open.get(i)[HELP]);
+            row.setHelp(help(c, open.get(i)));
         }
         if (Prefs.shortcutsPlace(c) == Prefs.SHORTCUTS_OFF) {
-            p.addNote("The row is off. Turn it on with \"Shortcuts row\" on the previous page.");
+            p.addNote(c.getString(R.string.ftv_choose_off));
         }
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
@@ -224,23 +234,19 @@ public final class FireTvSettingsPanel {
 
     /** The warning, then the button: what is about to happen and what it costs. */
     private static View buildOpenRest(final Context c, final SettingsPanel.Host host) {
-        final Panel p = new Panel(c, "All Amazon settings", null, Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.ftv_all), null, Panel.SHEET);
 
-        p.addHeader("What will happen");
-        p.addNote("1. Amazon's launcher is switched back on, over the ADB link.");
-        p.addNote("2. Amazon's settings menu opens. Change what you need.");
-        p.addNote("3. Press Home when you are done. Homestead covers Amazon's home again, with "
-                + "a tile on top saying the launcher was switched back on. Press OK on it to "
-                + "switch the launcher off again.");
-        p.addHeader("What it costs if you leave it on");
-        p.addNote("With Amazon's launcher on, Home goes through Amazon's home screen again: "
-                + "its ads and a flash of it on every press. This also turns on \"Warn if the "
-                + "system undoes Debloat\", which is what shows the tile in step 3.");
+        p.addHeader(c.getString(R.string.ftv_rest_what));
+        p.addNote(c.getString(R.string.ftv_rest_1));
+        p.addNote(c.getString(R.string.ftv_rest_2));
+        p.addNote(c.getString(R.string.ftv_rest_3));
+        p.addHeader(c.getString(R.string.ftv_rest_cost));
+        p.addNote(c.getString(R.string.ftv_rest_cost_note));
 
-        p.addRow("Switch it on and open the settings", "", new Runnable() {
+        p.addRow(c.getString(R.string.ftv_rest_go), "", new Runnable() {
             public void run() { openRest(c); }
         });
-        p.addRow("Cancel", "", new Runnable() {
+        p.addRow(c.getString(R.string.ftv_cancel), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
@@ -286,12 +292,13 @@ public final class FireTvSettingsPanel {
 
     // ---------------------------------------------------------------- small helpers
 
-    private static String placeLabel(int place) {
-        if (place == Prefs.SHORTCUTS_ROW) return "row";
-        if (place == Prefs.SHORTCUTS_BAR) return "top bar";
-        return "off";
+    private static String placeLabel(Context c, int place) {
+        if (place == Prefs.SHORTCUTS_ROW) return c.getString(R.string.ftv_place_row);
+        if (place == Prefs.SHORTCUTS_BAR) return c.getString(R.string.ftv_place_bar);
+        return c.getString(R.string.v_off);
     }
 
+    // The switch rows draw "on"/"off" as a toggle, so these stay as they are, in any language.
     private static String onOff(boolean on) { return on ? "on" : "off"; }
 
     private static String join(List<String> items) {

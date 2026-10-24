@@ -1119,7 +1119,7 @@ public class HomeGrid implements SettingsPanel.Host {
         List<String> pkgs = AppModel.reverted(ctx);
         TextView hint = new TextView(ctx);
         hint.setText(ctx.getString(pkgs.size() == 1 ? R.string.home_restore_hint_one
-                : R.string.home_restore_hint_many, revertedNames(pkgs)));
+                : R.string.home_restore_hint_many, revertedNames(ctx, pkgs)));
         hint.setTextColor(0xE6FFFFFF);
         hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         hint.setMaxLines(2);
@@ -1255,15 +1255,15 @@ public class HomeGrid implements SettingsPanel.Host {
 
     /** The reverted packages by name, short enough for the tile: "A", "A and B",
      *  "A, B and C", or "A, B and 4 more". */
-    private static String revertedNames(List<String> pkgs) {
+    private static String revertedNames(Context c, List<String> pkgs) {
         int n = pkgs.size();
         if (n == 0) return "";
-        String a = Debloat.titleOf(pkgs.get(0));
+        String a = Debloat.titleOf(c, pkgs.get(0));
         if (n == 1) return a;
-        String b = Debloat.titleOf(pkgs.get(1));
-        if (n == 2) return a + " and " + b;
-        if (n == 3) return a + ", " + b + " and " + Debloat.titleOf(pkgs.get(2));
-        return a + ", " + b + " and " + (n - 2) + " more";
+        String b = Debloat.titleOf(c, pkgs.get(1));
+        if (n == 2) return c.getString(R.string.home_names_two, a, b);
+        if (n == 3) return c.getString(R.string.home_names_three, a, b, Debloat.titleOf(c, pkgs.get(2)));
+        return c.getString(R.string.home_names_more, a, b, n - 2);
     }
 
     /** Switch off again whatever the system switched back on; open Setup if there is no link. */
@@ -1293,7 +1293,7 @@ public class HomeGrid implements SettingsPanel.Host {
                     Prefs.noteDisabled(ctx, list[i], off);
                     if (!off) {
                         if (kept.length() > 0) kept.append(", ");
-                        kept.append(Debloat.titleOf(list[i]));
+                        kept.append(Debloat.titleOf(ctx, list[i]));
                     }
                 }
                 // Fire OS refuses some packages; the record is dropped so the tile does not

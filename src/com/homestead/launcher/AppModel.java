@@ -221,7 +221,7 @@ public final class AppModel {
         if (amazonLauncherOn(c)) {
             Item amazon = new Item();
             amazon.type = TYPE_AMAZON_HOME;
-            amazon.label = "Amazon Home";
+            amazon.label = c.getString(R.string.home_amazon);
             d = fire ? fireOsIcon(c, AMAZON_LAUNCHER, "ic_home") : null;
             amazon.icon = toBitmap(c, d != null ? d : appIcon(c, AMAZON_LAUNCHER), ICON_PX, ICON_PX, false);
             ITEMS.add(amazon);
@@ -229,14 +229,14 @@ public final class AppModel {
 
         Item settings = new Item();
         settings.type = TYPE_SETTINGS;
-        settings.label = "Settings";
+        settings.label = c.getString(R.string.set_title);
         d = fire ? fireOsIcon(c, AMAZON_LAUNCHER, "ic_settings_default_60dp") : null;
         settings.icon = toBitmap(c, d != null ? d : drawable(c, android.R.drawable.ic_menu_manage), ICON_PX, ICON_PX, false);
         ITEMS.add(settings);
 
         Item health = new Item();
         health.type = TYPE_HEALTH;
-        health.label = "TV Health";
+        health.label = c.getString(R.string.set_health);
         d = fire ? fireOsIcon(c, AMAZON_SETTINGS, "icon_device_margo") : null;
         health.icon = toBitmap(c, d != null ? d : drawable(c, android.R.drawable.ic_menu_info_details), ICON_PX, ICON_PX, false);
         ITEMS.add(health);
@@ -531,7 +531,7 @@ public final class AppModel {
                 it.inputId = info.getId();
                 CharSequence lb = null;
                 try { lb = info.loadLabel(c); } catch (Throwable t) { }
-                it.label = (lb == null || lb.length() == 0) ? "Input" : lb.toString();
+                it.label = (lb == null || lb.length() == 0) ? c.getString(R.string.home_input) : lb.toString();
                 it.glyph = it.label.toUpperCase(Locale.US).startsWith("HDMI")
                         ? R.drawable.ic_in_hdmi : R.drawable.ic_in_composite;
                 it.connected = inputConnected(tim, it.inputId);

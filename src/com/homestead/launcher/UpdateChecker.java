@@ -110,17 +110,17 @@ public final class UpdateChecker {
                     int code = conn.getResponseCode();
                     Prefs.setLastUpdateCheck(app, System.currentTimeMillis());
                     if (code == 404 || code == 401) {
-                        err = "No release is available yet.";
+                        err = app.getString(R.string.upd_no_release);
                     } else if (code == 403) {
-                        err = "GitHub rate limit reached. Try again later.";
+                        err = app.getString(R.string.upd_rate_limit);
                     } else if (code != 200) {
-                        err = "GitHub returned HTTP " + code + ".";
+                        err = app.getString(R.string.upd_http, code);
                     } else {
                         u = parse(app, read(conn.getInputStream()));
                     }
                 } catch (Throwable t) {
                     Log.w(TAG, "update check failed: " + t);
-                    err = friendly(t);
+                    err = friendly(app, t);
                 } finally {
                     if (conn != null) try { conn.disconnect(); } catch (Throwable ignored) { }
                 }
@@ -224,11 +224,11 @@ public final class UpdateChecker {
         return sb.toString();
     }
 
-    private static String friendly(Throwable t) {
+    private static String friendly(Context c, Throwable t) {
         String m = String.valueOf(t.getMessage());
-        if (t instanceof java.net.UnknownHostException) return "No internet connection.";
-        if (t instanceof java.net.SocketTimeoutException) return "The update check timed out.";
-        return "Update check failed: " + m;
+        if (t instanceof java.net.UnknownHostException) return c.getString(R.string.upd_no_internet);
+        if (t instanceof java.net.SocketTimeoutException) return c.getString(R.string.upd_check_timeout);
+        return c.getString(R.string.upd_check_failed, m);
     }
 
     private static void post(final Callback cb, final Update u, final String err) {

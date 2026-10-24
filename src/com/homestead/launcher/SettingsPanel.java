@@ -37,20 +37,23 @@ public final class SettingsPanel {
 
     private SettingsPanel() { }
 
+    /** Set just before the hub is redrawn for a new language, to land back on that row. */
+    private static boolean focusLanguage;
+
     /**
      * The hub: a sheet over the home screen with the two pages of home-screen options, then
      * Simple mode and the system pages. Changes show on the grid behind it straight away.
      */
     public static View build(final Context c, final Host host) {
-        final Panel p = new Panel(c, "Settings",
+        final Panel p = new Panel(c, c.getString(R.string.set_title),
                 "Homestead " + UpdateChecker.installedVersionName(c), Panel.SHEET);
 
-        final Panel.Row home = p.addRow("Home screen", homeSummary(c), null).opens();
+        final Panel.Row home = p.addRow(c.getString(R.string.set_home), homeSummary(c), null).opens();
         home.setValueColor(0xFF8FA3B8);
-        home.setHelp("Hidden tiles, sorting, grid columns, the clock, and the rows and their order.");
-        final Panel.Row look = p.addRow("Background", Backgrounds.label(c), null).opens();
+        home.setHelp(c.getString(R.string.set_home_help));
+        final Panel.Row look = p.addRow(c.getString(R.string.set_bg), Backgrounds.label(c), null).opens();
         look.setValueColor(0xFF8FA3B8);
-        look.setHelp("The colour or photo behind the home screen.");
+        look.setHelp(c.getString(R.string.set_bg_help));
         // Summaries catch up when a sub-page changes something.
         final Runnable summaries = new Runnable() {
             public void run() {
@@ -65,7 +68,31 @@ public final class SettingsPanel {
             public void onClick(View v) { host.showPanel(buildLook(c, host, summaries)); }
         });
 
-        final Panel.Row simple = p.addRow("Simple mode", onOff(Prefs.simpleMode(c)), null).asSwitch();
+        final Panel.Row lang = p.addRow(c.getString(R.string.set_lang), Lang.label(c), null);
+        lang.setValueColor(0xFF8FA3B8);
+        lang.setHelp(c.getString(R.string.set_lang_help));
+        lang.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Prefs.setLanguage(c, Lang.next(c));
+                HomeRedirectService.languageChanged(c);
+                // This page was drawn in the old language; draw it again in the new one, back
+                // on this row.
+                host.closePanel();
+                focusLanguage = true;
+                host.showPanel(build(c, host));
+            }
+        });
+        if (focusLanguage) {
+            focusLanguage = false;
+            // showPanel focuses the first row once the page is up, so this goes one step after.
+            p.root.post(new Runnable() {
+                public void run() {
+                    p.root.post(new Runnable() { public void run() { lang.cell.requestFocus(); } });
+                }
+            });
+        }
+
+        final Panel.Row simple = p.addRow(c.getString(R.string.set_simple), onOff(Prefs.simpleMode(c)), null).asSwitch();
         simple.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 boolean n = !Prefs.simpleMode(c);
@@ -74,54 +101,50 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        p.addNote("For a TV set up for someone else: the Settings and TV Health tiles are "
-                + "hidden (press MENU five times on the home screen to open Settings), MENU and "
-                + "long-press no longer hide tiles, and there are no update pop-ups; check for "
-                + "updates below. It does not change Debloat.");
+        p.addNote(c.getString(R.string.set_simple_note));
 
-        p.addHeader("System");
+        p.addHeader(c.getString(R.string.set_system));
 
         boolean ready = SetupPanel.homeWorks(c);
-        final Panel.Row setup = p.addRow("Setup", ready ? "done"
-                : Prefs.homeOffByUser(c) ? "Home button off" : "not finished", null).opens();
+        final Panel.Row setup = p.addRow(c.getString(R.string.set_setup),
+                c.getString(ready ? R.string.set_setup_done
+                        : Prefs.homeOffByUser(c) ? R.string.set_setup_off : R.string.set_setup_todo),
+                null).opens();
         setup.setValueColor(ready ? 0xFFA7D28F : 0xFFE8C468);
-        setup.setHelp("What this launcher needs, and how to switch it on.");
+        setup.setHelp(c.getString(R.string.set_setup_help));
         setup.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { host.showPanel(SetupPanel.build(c, host)); }
         });
 
         SetupPanel.addTurnOffRow(c, p, new Runnable() {
             public void run() {
-                setup.setValue("Home button off");
+                setup.setValue(c.getString(R.string.set_setup_off));
                 setup.setValueColor(0xFFE8C468);
             }
         });
         p.addNote(SetupPanel.turnOffHelp(c));
 
-        p.addRow("TV Health", "check", new Runnable() {
+        p.addRow(c.getString(R.string.set_health), c.getString(R.string.set_health_value), new Runnable() {
             public void run() { host.showPanel(HealthPanel.build(c, host)); }
-        }).opens().setHelp("This TV's speed and privacy settings and Amazon's advertising "
-                + "packages, with a fix for each one it flags.");
+        }).opens().setHelp(c.getString(R.string.set_health_help));
 
-        p.addRow("Debloat", Prefs.disabledByUs(c).size() + " off", new Runnable() {
+        p.addRow(c.getString(R.string.set_debloat),
+                c.getString(R.string.set_debloat_value, Prefs.disabledByUs(c).size()), new Runnable() {
             public void run() { host.showPanel(DebloatPanel.build(c, host)); }
-        }).opens().setHelp("Switch Amazon's packages off, and back on again. Nothing is "
-                + "ever uninstalled.");
+        }).opens().setHelp(c.getString(R.string.set_debloat_help));
 
-        p.addRow("Fire TV settings", "", new Runnable() {
+        p.addRow(c.getString(R.string.home_sec_settings), "", new Runnable() {
             public void run() { host.showPanel(FireTvSettingsPanel.build(c, host)); }
-        }).opens().setHelp("Amazon's settings screens that open from here, such as network, "
-                + "Bluetooth and applications, its full settings menu, and settings shortcuts "
-                + "for the home screen.");
+        }).opens().setHelp(c.getString(R.string.set_firetv_help));
 
-        final Panel.Row updates = p.addRow("Check for updates",
+        final Panel.Row updates = p.addRow(c.getString(R.string.set_updates),
                 "v" + UpdateChecker.installedVersionName(c), null);
         updates.setValueColor(0xFF8FA3B8);
         updates.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { UpdatePanel.checkNow(c, host, updates); }
         });
 
-        p.addRow("Close", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_close), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
@@ -135,38 +158,29 @@ public final class SettingsPanel {
      * up to date, not a promise about every TV.
      */
     static View buildLauncherOff(final Context c, final Host host) {
-        final Panel p = new Panel(c, "Amazon's launcher is off", null, Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.lo_title), null, Panel.SHEET);
 
-        p.addHeader("Only Amazon's launcher had these");
-        p.addRow("Inputs screen", "use the input tiles", null)
-                .setHelp("com.amazon.tv.action.NAVIGATE_TO_INPUTS. Each input is a tile on the "
-                        + "home screen and opens directly.");
-        p.addRow("Recents", "use the home screen", null)
-                .setHelp("com.amazon.tv.action.NAVIGATE_TO_RECENTS. Apps are ordered by last "
-                        + "use on the home screen.");
-        p.addRow("All apps", "use the home screen", null)
-                .setHelp("android.intent.action.ALL_APPS. The home screen lists every app.");
-        p.addRow("Games", "nothing", null)
-                .setHelp("com.amazon.tv.action.NAVIGATE_TO_GAMES. Games are ordinary tiles.");
-        p.addRow("Network details", "Network in Fire TV settings", null)
-                .setHelp("amazon.net.UNIFIED_NETWORK. The Network screen opens from Settings > "
-                        + "System > Fire TV settings.");
-        p.addRow("Language, Accessibility", "All settings", null)
-                .setHelp("Amazon's settings app opens these only for Amazon's own launcher. "
-                        + "\"All Amazon settings\" in Fire TV settings switches the launcher on "
-                        + "for a moment to reach them.");
-        p.addRow("Remote's Settings button", "account, apps, picture, sound", null)
-                .setHelp("It opens Amazon's quick settings. Language and Accessibility are not "
-                        + "in it.");
+        p.addHeader(c.getString(R.string.lo_only));
+        p.addRow(c.getString(R.string.lo_inputs), c.getString(R.string.lo_inputs_v), null)
+                .setHelp(c.getString(R.string.lo_inputs_help));
+        p.addRow(c.getString(R.string.lo_recents), c.getString(R.string.lo_use_home), null)
+                .setHelp(c.getString(R.string.lo_recents_help));
+        p.addRow(c.getString(R.string.lo_allapps), c.getString(R.string.lo_use_home), null)
+                .setHelp(c.getString(R.string.lo_allapps_help));
+        p.addRow(c.getString(R.string.lo_games), c.getString(R.string.lo_nothing), null)
+                .setHelp(c.getString(R.string.lo_games_help));
+        p.addRow(c.getString(R.string.lo_network), c.getString(R.string.lo_network_v), null)
+                .setHelp(c.getString(R.string.lo_network_help));
+        p.addRow(c.getString(R.string.lo_lang), c.getString(R.string.lo_lang_v), null)
+                .setHelp(c.getString(R.string.lo_lang_help));
+        p.addRow(c.getString(R.string.lo_remote), c.getString(R.string.lo_remote_v), null)
+                .setHelp(c.getString(R.string.lo_remote_help));
 
-        p.addHeader("Still works");
-        p.addNote("Amazon's Settings app (com.amazon.tv.settings.v2) is a separate package and "
-                + "keeps working. Settings > System > Fire TV settings opens each of its "
-                + "screens directly.");
-        p.addNote("To switch Amazon's launcher back on: Debloat, \"Amazon's launcher\", or "
-                + "adb shell pm enable --user 0 com.amazon.tv.launcher");
+        p.addHeader(c.getString(R.string.lo_still));
+        p.addNote(c.getString(R.string.lo_still_note));
+        p.addNote(c.getString(R.string.lo_back_on));
 
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
@@ -175,9 +189,9 @@ public final class SettingsPanel {
     // ---------------------------------------------------------------- home screen
 
     private static View buildHome(final Context c, final Host host, final Runnable changed) {
-        final Panel p = new Panel(c, "Home screen", null, Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.set_home), null, Panel.SHEET);
 
-        final Panel.Row hidden = p.addRow("Hidden tiles",
+        final Panel.Row hidden = p.addRow(c.getString(R.string.set_hidden),
                 String.valueOf(Prefs.hiddenCount(c)), null).opens();
         hidden.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { host.showPanel(buildHiddenList(c, host)); }
@@ -188,11 +202,9 @@ public final class SettingsPanel {
                     public void run() { hidden.setValue(String.valueOf(Prefs.hiddenCount(c))); }
                 }));
 
-        p.addNote("Press the MENU button on any tile to hide it (long-press works too; not "
-                + "in Simple mode). Hiding only changes what this launcher draws - nothing is "
-                + "disabled or uninstalled, and the app still works everywhere else.");
+        p.addNote(c.getString(R.string.set_hidden_note));
 
-        final Panel.Row sort = p.addRow("Sort apps by", sortLabel(c), null);
+        final Panel.Row sort = p.addRow(c.getString(R.string.set_sort), sortLabel(c), null);
         sort.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Prefs.setSort(c, Prefs.sort(c) == Prefs.SORT_LAST_USED
@@ -203,7 +215,7 @@ public final class SettingsPanel {
             }
         });
 
-        final Panel.Row cols = p.addRow("Grid columns", String.valueOf(Prefs.columns(c)), null);
+        final Panel.Row cols = p.addRow(c.getString(R.string.set_cols), String.valueOf(Prefs.columns(c)), null);
         cols.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 int n = Prefs.columns(c) + 1;
@@ -216,7 +228,7 @@ public final class SettingsPanel {
             }
         });
 
-        final Panel.Row clock = p.addRow("Clock", clockLabel(c), null);
+        final Panel.Row clock = p.addRow(c.getString(R.string.set_clock), clockLabel(c), null);
         clock.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 int n = Prefs.clockMode(c) + 1;
@@ -227,7 +239,7 @@ public final class SettingsPanel {
             }
         });
 
-        final Panel.Row greet = p.addRow("Greeting", onOff(Prefs.greeting(c)), null).asSwitch();
+        final Panel.Row greet = p.addRow(c.getString(R.string.opt_greeting), onOff(Prefs.greeting(c)), null).asSwitch();
         greet.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 boolean n = !Prefs.greeting(c);
@@ -236,16 +248,15 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        greet.setHelp("\"Good morning\", \"Good afternoon\" or \"Good evening\" at the top left. "
-                + "Not shown while the shortcuts bar is on.");
+        greet.setHelp(c.getString(R.string.opt_greeting_help));
         if (Prefs.shortcutsPlace(c) == Prefs.SHORTCUTS_BAR && !Prefs.simpleMode(c)) {
             // The bar takes the corner, so there is nothing for this switch to turn on.
-            greet.setValue("not with the shortcuts bar");
+            greet.setValue(c.getString(R.string.opt_greeting_bar));
             greet.setValueColor(0xFF7F8FA0);
             greet.cell.setEnabled(false);
         }
 
-        final Panel.Row date = p.addRow("Date", dateLabel(c), null);
+        final Panel.Row date = p.addRow(c.getString(R.string.opt_date), dateLabel(c), null);
         date.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 int n = Prefs.dateFormat(c) + 1;
@@ -255,10 +266,9 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        date.setHelp("Under the greeting, or next to the clock when the shortcuts bar is on. "
-                + "Both formats follow the TV's language.");
+        date.setHelp(c.getString(R.string.opt_date_help));
 
-        final Panel.Row wide = p.addRow("Non-TV apps as wide tiles", onOff(Prefs.nonTvWide(c)), null).asSwitch();
+        final Panel.Row wide = p.addRow(c.getString(R.string.opt_wide), onOff(Prefs.nonTvWide(c)), null).asSwitch();
         wide.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 boolean n = !Prefs.nonTvWide(c);
@@ -268,10 +278,9 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        wide.setHelp("Like Fire TV's own home: each app's icon on a banner-sized tile, in a grid "
-                + "like the TV apps.");
+        wide.setHelp(c.getString(R.string.opt_wide_help));
 
-        final Panel.Row fire = p.addRow("Fire TV system icons", onOff(Prefs.fireOsIcons(c)), null).asSwitch();
+        final Panel.Row fire = p.addRow(c.getString(R.string.opt_fire), onOff(Prefs.fireOsIcons(c)), null).asSwitch();
         fire.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 boolean n = !Prefs.fireOsIcons(c);
@@ -281,16 +290,15 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        fire.setHelp("Amazon Home, Settings and TV Health use the icons of Fire OS's own home and "
-                + "Settings, read from this TV. Where one is missing, the usual icon stays.");
+        fire.setHelp(c.getString(R.string.opt_fire_help));
 
-        p.addHeader("Rows");
+        p.addHeader(c.getString(R.string.set_rows));
 
-        final Panel.Row order = p.addRow("Row order", orderSummary(c), null).opens();
+        final Panel.Row order = p.addRow(c.getString(R.string.set_row_order), orderSummary(c), null).opens();
         order.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { host.showPanel(buildRowOrder(c, host)); }
         });
-        order.setHelp("Which row comes first on the home screen, and the order of the rest.");
+        order.setHelp(c.getString(R.string.set_row_order_help));
         // The order changes on the page this row opens; repaint it on the way back.
         order.cell.setOnFocusChangeListener(chain(order.cell.getOnFocusChangeListener(),
                 new Runnable() {
@@ -299,7 +307,7 @@ public final class SettingsPanel {
 
         // Only offered on a TV that has the Live TV tile.
         if (AppModel.hasLiveTv()) {
-            final Panel.Row tvFirst = p.addRow("Live TV first", onOff(Prefs.liveTvFirst(c)), null).asSwitch();
+            final Panel.Row tvFirst = p.addRow(c.getString(R.string.set_tvfirst), onOff(Prefs.liveTvFirst(c)), null).asSwitch();
             tvFirst.cell.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
                     boolean n = !Prefs.liveTvFirst(c);
@@ -308,11 +316,11 @@ public final class SettingsPanel {
                     host.rebuildGrid();
                 }
             });
-            tvFirst.setHelp("A large Live TV tile above all the rows, and Home always lands on "
-                    + "it. The rows below follow Row order.");
+            tvFirst.setHelp(c.getString(R.string.set_tvfirst_help));
         }
 
-        final Panel.Row secIn = p.addRow("Show \"Inputs & System\"", onOff(Prefs.showInputs(c)), null).asSwitch();
+        final Panel.Row secIn = p.addRow(c.getString(R.string.set_show_section,
+                c.getString(R.string.home_sec_inputs)), onOff(Prefs.showInputs(c)), null).asSwitch();
         secIn.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 boolean n = !Prefs.showInputs(c);
@@ -322,7 +330,8 @@ public final class SettingsPanel {
             }
         });
 
-        final Panel.Row secNon = p.addRow("Show \"Non-TV Applications\"", onOff(Prefs.showNonTv(c)), null).asSwitch();
+        final Panel.Row secNon = p.addRow(c.getString(R.string.set_show_section,
+                c.getString(R.string.home_sec_nontv)), onOff(Prefs.showNonTv(c)), null).asSwitch();
         secNon.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 boolean n = !Prefs.showNonTv(c);
@@ -332,19 +341,17 @@ public final class SettingsPanel {
             }
         });
 
-        p.addSectionHelp("Settings and TV Health always stay reachable, even with "
-                + "\"Inputs & System\" switched off. Simple mode hides them; press MENU five "
-                + "times on the home screen to come back here.");
+        p.addSectionHelp(c.getString(R.string.set_sections_help, c.getString(R.string.home_sec_inputs)));
 
-        p.addHeader("Apps");
-        p.addRow("Reload apps now", "", new Runnable() {
+        p.addHeader(c.getString(R.string.set_apps));
+        p.addRow(c.getString(R.string.set_reload), "", new Runnable() {
             public void run() {
                 AppModel.reload(c);
                 host.rebuildGrid();
             }
-        }).setHelp("Reads the installed apps and the TV's inputs again.");
+        }).setHelp(c.getString(R.string.set_reload_help));
 
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
@@ -357,7 +364,7 @@ public final class SettingsPanel {
      * or Back puts it down. The grid behind the sheet follows each move.
      */
     private static View buildRowOrder(final Context c, final Host host) {
-        final Panel p = new Panel(c, "Row order", null, Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.set_row_order), null, Panel.SHEET);
         final List<String> order = Prefs.rowOrder(c);
         final Panel.Row[] slots = new Panel.Row[order.size()];
         final int[] lifted = { -1 };
@@ -370,14 +377,11 @@ public final class SettingsPanel {
                     boolean up = i == lifted[0];
                     slots[i].setLabel(rowName(c, row));
                     String off = rowOff(c, row);
-                    slots[i].setValue(up ? "moving" : off);
+                    slots[i].setValue(up ? c.getString(R.string.ro_moving) : off);
                     slots[i].setValueColor(up ? LIFT_VALUE : off.length() > 0 ? MUTED : OK);
                     slots[i].setLifted(up);
-                    slots[i].setHelp(up ? "Up and Down move it. OK or Back puts it down."
-                            : "Press OK to pick this row up, then move it with Up and Down. "
-                            + "The home screen changes as you go."
-                            + (off.length() > 0 ? " Rows that are not shown keep their place "
-                            + "for when they come back." : ""));
+                    slots[i].setHelp(up ? c.getString(R.string.ro_help_up)
+                            : c.getString(R.string.ro_help) + (off.length() > 0 ? " " + c.getString(R.string.ro_help_off) : ""));
                 }
             }
         };
@@ -388,7 +392,7 @@ public final class SettingsPanel {
             }
         };
 
-        p.addHeader("Top to bottom");
+        p.addHeader(c.getString(R.string.ro_top));
         for (int i = 0; i < slots.length; i++) {
             final int at = i;
             slots[i] = p.addRow(rowName(c, order.get(i)), "", null);
@@ -426,7 +430,7 @@ public final class SettingsPanel {
         }
         paint.run();
 
-        p.addRow("Reset to Default", "", new Runnable() {
+        p.addRow(c.getString(R.string.ro_reset), "", new Runnable() {
             public void run() {
                 order.clear();
                 order.addAll(Prefs.usualRowOrder());
@@ -435,9 +439,8 @@ public final class SettingsPanel {
                 host.rebuildGrid();
                 host.showRow(order.get(0));
             }
-        }).setHelp("Fire TV settings shortcuts, Inputs & System, Non-TV Applications, then "
-                + "TV Applications.");
-        p.addRow("Back", "", new Runnable() {
+        }).setHelp(c.getString(R.string.ro_reset_help));
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
 
@@ -466,11 +469,11 @@ public final class SettingsPanel {
     private static String rowOff(Context c, String row) {
         if (row.equals(Prefs.ROW_SHORTCUTS)) {
             int place = Prefs.shortcutsPlace(c);
-            return place == Prefs.SHORTCUTS_BAR ? "in the top bar"
-                    : place == Prefs.SHORTCUTS_OFF ? "off" : "";
+            return place == Prefs.SHORTCUTS_BAR ? c.getString(R.string.ro_in_bar)
+                    : place == Prefs.SHORTCUTS_OFF ? c.getString(R.string.v_off) : "";
         }
-        if (row.equals(Prefs.ROW_INPUTS)) return Prefs.showInputs(c) ? "" : "hidden";
-        if (row.equals(Prefs.ROW_NONTV)) return Prefs.showNonTv(c) ? "" : "hidden";
+        if (row.equals(Prefs.ROW_INPUTS)) return Prefs.showInputs(c) ? "" : c.getString(R.string.ro_hidden);
+        if (row.equals(Prefs.ROW_NONTV)) return Prefs.showNonTv(c) ? "" : c.getString(R.string.ro_hidden);
         return "";
     }
 
@@ -478,20 +481,20 @@ public final class SettingsPanel {
     private static String orderSummary(Context c) {
         List<String> order = Prefs.rowOrder(c);
         for (int i = 0; i < order.size(); i++) {
-            if (rowOff(c, order.get(i)).length() == 0) return shortName(order.get(i)) + " first";
+            if (rowOff(c, order.get(i)).length() == 0) return c.getString(R.string.ro_first, shortName(c, order.get(i)));
         }
         return "";
     }
 
-    private static String shortName(String row) {
-        if (row.equals(Prefs.ROW_SHORTCUTS)) return "Shortcuts";
-        if (row.equals(Prefs.ROW_INPUTS)) return "Inputs";
-        if (row.equals(Prefs.ROW_NONTV)) return "Non-TV apps";
-        return "TV apps";
+    private static String shortName(Context c, String row) {
+        if (row.equals(Prefs.ROW_SHORTCUTS)) return c.getString(R.string.ro_s_shortcuts);
+        if (row.equals(Prefs.ROW_INPUTS)) return c.getString(R.string.ro_s_inputs);
+        if (row.equals(Prefs.ROW_NONTV)) return c.getString(R.string.ro_s_nontv);
+        return c.getString(R.string.ro_s_tv);
     }
 
     private static String homeSummary(Context c) {
-        return Prefs.columns(c) + " columns";
+        return c.getString(R.string.set_columns_n, Prefs.columns(c));
     }
 
     /** Runs extra work after a row's own focus handling, when it gains focus. */
@@ -508,12 +511,11 @@ public final class SettingsPanel {
     // ---------------------------------------------------------------- background
 
     private static View buildLook(final Context c, final Host host, final Runnable changed) {
-        final Panel p = new Panel(c, "Background", null, Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.set_bg), null, Panel.SHEET);
 
         // One row per look, the one in use marked. Selecting one applies it at once, and the
         // home screen beside the page shows it.
-        p.addSectionHelp("Select one to use it. The home screen beside this page changes "
-                + "straight away.");
+        p.addSectionHelp(c.getString(R.string.bg_list_help));
         final List<Panel.Row> rows = new ArrayList<Panel.Row>();
         final List<String> ids = new ArrayList<String>();
         final Runnable mark = new Runnable() {
@@ -522,9 +524,9 @@ public final class SettingsPanel {
                 boolean noFile = Backgrounds.photoFile(c) == null;
                 for (int i = 0; i < rows.size(); i++) {
                     boolean on = ids.get(i).equals(now);
-                    String v = on ? "in use" : "";
+                    String v = on ? c.getString(R.string.bg_in_use) : "";
                     if (noFile && ids.get(i).equals(Backgrounds.PHOTO_ID)) {
-                        v = on ? "in use, no file yet" : "no file yet";
+                        v = c.getString(on ? R.string.bg_in_use_no_file : R.string.bg_no_file);
                     }
                     rows.get(i).setValue(v);
                     rows.get(i).setValueColor(on ? IN_USE : 0xFF8FA3B8);
@@ -534,7 +536,7 @@ public final class SettingsPanel {
         for (int i = 0; i <= Backgrounds.PRESETS.length; i++) {
             boolean photo = i == Backgrounds.PRESETS.length;
             final Backgrounds.Preset look = photo ? Backgrounds.PHOTO_LOOK : Backgrounds.PRESETS[i];
-            final Panel.Row r = p.addRow(look.name, "", null);
+            final Panel.Row r = p.addRow(Backgrounds.name(c, look), "", null);
             android.graphics.Bitmap shot = photo ? Backgrounds.lastPhoto() : null;
             r.setSwatch(shot != null
                     ? new android.graphics.drawable.BitmapDrawable(c.getResources(), shot)
@@ -550,16 +552,15 @@ public final class SettingsPanel {
             rows.add(r);
             ids.add(look.id);
         }
-        rows.get(ids.indexOf("black")).setHelp("Black is for OLED screens and night viewing.");
-        rows.get(rows.size() - 1).setHelp("Choose a picture saved on the TV below (needs the "
-                + "on-device tunnel), or send a JPEG or PNG from a computer:\n\n"
+        rows.get(ids.indexOf("black")).setHelp(c.getString(R.string.bg_black_help));
+        rows.get(rows.size() - 1).setHelp(c.getString(R.string.bg_photo_help) + "\n\n"
                 + "adb push background.jpg /sdcard/Download/\n"
                 + "adb shell \"content write --uri content://" + BackgroundProvider.AUTHORITY
                 + "/photo < /sdcard/Download/background.jpg\"");
         mark.run();
 
-        p.addHeader("Photo");
-        final Panel.Row dim = p.addRow("Photo dimming", Backgrounds.dimLabel(c), null);
+        p.addHeader(c.getString(R.string.bg_photo));
+        final Panel.Row dim = p.addRow(c.getString(R.string.set_bg_dim), Backgrounds.dimLabel(c), null);
         dim.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Prefs.setPhotoDim(c, (Prefs.photoDim(c) + 1) % Backgrounds.DIM_NAMES.length);
@@ -567,14 +568,13 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        dim.setHelp("Dimming darkens the photo so the labels stay readable.");
+        dim.setHelp(c.getString(R.string.set_bg_dim_help));
 
-        p.addRow("Choose a photo on this TV", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_photo_pick), "", new Runnable() {
             public void run() { host.showPanel(PhotoPanel.build(c, host)); }
-        }).opens().setHelp("Lists the pictures in the TV's Download folder. Needs the "
-                + "on-device tunnel.");
+        }).opens().setHelp(c.getString(R.string.set_photo_pick_help));
 
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
 
@@ -602,12 +602,12 @@ public final class SettingsPanel {
     // ---------------------------------------------------------------- hidden list
 
     private static View buildHiddenList(final Context c, final Host host) {
-        final Panel p = new Panel(c, "Hidden tiles",
-                "Select one to show it on the home screen again", Panel.SHEET);
+        final Panel p = new Panel(c, c.getString(R.string.set_hidden),
+                c.getString(R.string.set_hidden_sub), Panel.SHEET);
 
         Set<String> keys = Prefs.hidden(c);
         if (keys.isEmpty()) {
-            p.addNote("Nothing is hidden. Press MENU on a tile (or long-press it) to hide it.");
+            p.addNote(c.getString(R.string.set_hidden_none));
         } else {
             // Resolve keys to human labels through the full model, not the visible list.
             List<AppModel.Item> all = AppModel.allItems();
@@ -634,17 +634,17 @@ public final class SettingsPanel {
             }
             for (int i = 0; i < rows.size(); i++) {
                 final String key = rowKeys.get(i);
-                final Panel.Row r = p.addRow(rows.get(i), "hidden", null);
+                final Panel.Row r = p.addRow(rows.get(i), c.getString(R.string.set_hidden_value), null);
                 r.cell.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
                         Prefs.setHidden(c, key, false);
-                        r.setValue("shown");
+                        r.setValue(c.getString(R.string.set_shown_value));
                         r.cell.setEnabled(false);
                         host.rebuildGrid();
                     }
                 });
             }
-            p.addRow("Show all hidden tiles", "", new Runnable() {
+            p.addRow(c.getString(R.string.set_show_all), "", new Runnable() {
                 public void run() {
                     Prefs.clearHidden(c);
                     host.rebuildGrid();
@@ -652,7 +652,7 @@ public final class SettingsPanel {
                 }
             });
         }
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;
@@ -660,25 +660,26 @@ public final class SettingsPanel {
 
     // ---------------------------------------------------------------- labels
 
+    /** Read by Panel's switches, which draw a toggle instead of showing this text. */
     private static String onOff(boolean b) { return b ? "On" : "Off"; }
 
     private static String sortLabel(Context c) {
-        return Prefs.sort(c) == Prefs.SORT_ALPHA ? "A – Z" : "Last used";
+        return c.getString(Prefs.sort(c) == Prefs.SORT_ALPHA ? R.string.set_sort_az : R.string.set_sort_last);
     }
 
     private static String clockLabel(Context c) {
         switch (Prefs.clockMode(c)) {
-            case Prefs.CLOCK_12H: return "12-hour";
-            case Prefs.CLOCK_OFF: return "Off";
-            default: return "24-hour";
+            case Prefs.CLOCK_12H: return c.getString(R.string.set_clock_12);
+            case Prefs.CLOCK_OFF: return c.getString(R.string.set_off);
+            default: return c.getString(R.string.set_clock_24);
         }
     }
 
     private static String dateLabel(Context c) {
         switch (Prefs.dateFormat(c)) {
-            case Prefs.DATE_LONG: return "Weekday and month";
-            case Prefs.DATE_SHORT: return "Numbers";
-            default: return "Off";
+            case Prefs.DATE_LONG: return c.getString(R.string.opt_date_long);
+            case Prefs.DATE_SHORT: return c.getString(R.string.opt_date_short);
+            default: return c.getString(R.string.set_off);
         }
     }
 }

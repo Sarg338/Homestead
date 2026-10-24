@@ -146,10 +146,23 @@ final class Backgrounds {
         Prefs.setBackground(c, id, old);
     }
 
+    /** A look's name in the app's language: string bg_<id>, else its English name. */
+    static String name(Context c, Preset p) {
+        String n = displayName(c, p.id);
+        return n.equals(p.id) ? p.name : n;
+    }
+
+    /** String bg_<key> in the app's language, or the key itself when there is none. */
+    private static String displayName(Context c, String key) {
+        int id = c.getResources().getIdentifier("bg_" + key.toLowerCase(java.util.Locale.US),
+                "string", c.getPackageName());
+        return id == 0 ? key : c.getString(id);
+    }
+
     /** The value shown on the Settings row. */
     static String label(Context c) {
-        if (!photoChosen(c)) return current(c).name;
-        return photoFile(c) != null ? "Photo" : "Photo (no file yet)";
+        if (!photoChosen(c)) return name(c, current(c));
+        return c.getString(photoFile(c) != null ? R.string.bg_photo : R.string.bg_photo_none);
     }
 
     static int dimAlpha(Context c) {
@@ -159,7 +172,7 @@ final class Backgrounds {
 
     static String dimLabel(Context c) {
         int d = Prefs.photoDim(c);
-        return DIM_NAMES[(d < 0 || d >= DIM.length) ? 1 : d];
+        return displayName(c, "dim_" + DIM_NAMES[(d < 0 || d >= DIM.length) ? 1 : d]);
     }
 
     /** The photo received through BackgroundProvider, or null. Private storage only. */

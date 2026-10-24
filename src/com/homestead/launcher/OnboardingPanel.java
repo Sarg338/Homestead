@@ -225,76 +225,73 @@ public final class OnboardingPanel {
         brand.addView(mark, mlp);
         content.addView(brand, wrap());
 
-        content.addView(margin(title("A home screen that stays out of your way."), dp(26), dp(10)));
-        content.addView(body("No ad banners, no auto-playing trailers, no sponsored rows - just your "
-                + "apps and inputs. And, if you want, a one-tap way to switch off Amazon's "
-                + "advertising and telemetry."));
+        content.addView(margin(title(s(R.string.onb_welcome_title)), dp(26), dp(10)));
+        content.addView(body(s(R.string.onb_welcome_body)));
 
-        View start = button("Get started", true, new Runnable() { public void run() { next(); } });
+        View start = button(s(R.string.onb_start), true, new Runnable() { public void run() { next(); } });
         actions.addView(start);
         actions.addView(gap());
-        actions.addView(button("Skip setup", false, new Runnable() { public void run() { finish(); } }));
+        // Language first, so the rest of the wizard reads in it; the page is drawn again.
+        actions.addView(button(s(R.string.onb_language, Lang.label(c)), false, new Runnable() {
+            public void run() {
+                Prefs.setLanguage(c, Lang.next(c));
+                HomeRedirectService.languageChanged(c);
+                render();
+            }
+        }));
+        actions.addView(space(dp(10)));
+        actions.addView(button(s(R.string.onb_skip), false, new Runnable() { public void run() { finish(); } }));
         focusTarget = start;
     }
 
     private void buildChoose() {
-        content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
-        content.addView(margin(title("What should we set up?"), dp(6), dp(6)));
-        content.addView(body("Turn on what you want now - you can change any of them later from Settings."));
+        content.addView(tag(s(R.string.onb_step, stepNo(), stepTotal())));
+        content.addView(margin(title(s(R.string.onb_choose_title)), dp(6), dp(6)));
+        content.addView(body(s(R.string.onb_choose_body)));
 
-        content.addView(featureCard("⌂", "Replace the home screen",
-                "The Home button opens this launcher instead of Amazon's.", null,
+        content.addView(featureCard("⌂", s(R.string.onb_card_home),
+                s(R.string.onb_card_home_desc), null,
                 CARD_HOME));
-        content.addView(featureCard("✦", "Clean up my TV",
-                "Switch off Amazon's ads and telemetry, and turn off the animations.", "Advanced",
+        content.addView(featureCard("✦", s(R.string.onb_card_clean),
+                s(R.string.onb_card_clean_desc), s(R.string.onb_card_clean_pill),
                 CARD_CLEAN));
-        content.addView(featureCard("★", "Simple mode",
-                "For someone who just wants to watch TV: Settings hidden, no update pop-ups, "
-                        + "Amazon's ads and telemetry switched off.", "For someone else",
+        content.addView(featureCard("★", s(R.string.set_simple),
+                s(R.string.onb_card_simple_desc), s(R.string.onb_card_simple_pill),
                 CARD_SIMPLE));
 
-        View cont = button("Continue", true, new Runnable() { public void run() { next(); } });
-        actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
+        View cont = button(s(R.string.onb_continue), true, new Runnable() { public void run() { next(); } });
+        actions.addView(button(s(R.string.set_back), false, new Runnable() { public void run() { back(); } }));
         actions.addView(gap());
         actions.addView(cont);
         focusTarget = cont;
     }
 
     private void buildHome() {
-        content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
-        content.addView(margin(title("Turn on the home screen"), dp(6), dp(6)));
-        content.addView(body("Fire OS doesn't list Homestead in its Accessibility menu, so the "
-                + "app switches it on itself, through the TV's own debugging service. No "
-                + "computer needed."));
+        content.addView(tag(s(R.string.onb_step, stepNo(), stepTotal())));
+        content.addView(margin(title(s(R.string.onb_home_title)), dp(6), dp(6)));
+        content.addView(body(s(R.string.onb_home_body)));
 
-        content.addView(miniStep("1", "Turn on ADB debugging: Settings, My Fire TV, "
-                + "Developer options"));
-        content.addView(miniStep("2", "Press Set it up and approve two prompts: a VPN "
-                + "notice, then the TV's key prompt. Tick \"Always allow\" on the second"));
+        content.addView(miniStep("1", s(R.string.onb_home_step1)));
+        content.addView(miniStep("2", s(R.string.onb_home_step2)));
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
-        content.addView(note("Android's VPN notice says the app could monitor network traffic; "
-                + "Homestead's only carries the TV's own debugging connection, and nothing "
-                + "leaves the TV. In each prompt, press Down to reach OK. No Developer options? "
-                + "Open My Fire TV, then About, and press Select on the device name seven "
-                + "times. To do this later, press Continue; you can still open Homestead "
-                + "from Amazon's app row."));
+        content.addView(note(s(R.string.onb_home_note)));
         updateChip();
 
-        View open = button("Open My Fire TV", !adbDebuggingOn(), new Runnable() {
+        View open = button(s(R.string.onb_open_mft), !adbDebuggingOn(), new Runnable() {
             public void run() { SetupPanel.openDeviceSettings(c); }
         });
-        View setup = button("Set it up", adbDebuggingOn(), new Runnable() {
+        View setup = button(s(R.string.onb_set_up), adbDebuggingOn(), new Runnable() {
             public void run() { setUpHome(); }
         });
-        actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
+        actions.addView(button(s(R.string.set_back), false, new Runnable() { public void run() { back(); } }));
         actions.addView(gap());
         actions.addView(open);
         actions.addView(space(dp(10)));
         actions.addView(setup);
         actions.addView(space(dp(10)));
-        homeContinue = button("Continue", false, new Runnable() { public void run() { next(); } });
+        homeContinue = button(s(R.string.onb_continue), false, new Runnable() { public void run() { next(); } });
         actions.addView(homeContinue);
         focusTarget = SetupPanel.serviceEnabled(c) ? homeContinue
                 : adbDebuggingOn() ? setup : open;
@@ -329,40 +326,35 @@ public final class OnboardingPanel {
     }
 
     private void buildAdb() {
-        content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
-        content.addView(margin(title("Let the app clean up your TV"), dp(6), dp(6)));
-        content.addView(body("To switch Amazon's packages off, the app needs the access a computer "
-                + "has over ADB - so it makes a private connection to the TV's own service. No "
-                + "computer, no account, and nothing ever leaves the TV."));
-        content.addView(miniStep("!", "You approve two quick prompts: a VPN notice, then the TV's "
-                + "key prompt. Tick \"Always allow\" on the second"));
+        content.addView(tag(s(R.string.onb_step, stepNo(), stepTotal())));
+        content.addView(margin(title(s(R.string.onb_adb_title)), dp(6), dp(6)));
+        content.addView(body(s(R.string.onb_adb_body)));
+        content.addView(miniStep("!", s(R.string.onb_adb_step)));
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
-        content.addView(note("Android's VPN notice says the app could monitor network traffic; "
-                + "Homestead's only carries the TV's own debugging connection. It only runs "
-                + "while cleaning up, then switches itself off."));
+        content.addView(note(s(R.string.onb_adb_note)));
         updateChip();
 
-        View setup = button("Set it up", true, new Runnable() {
+        View setup = button(s(R.string.onb_set_up), true, new Runnable() {
             public void run() { SetupPanel.startTunnel(c); }
         });
-        actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
+        actions.addView(button(s(R.string.set_back), false, new Runnable() { public void run() { back(); } }));
         actions.addView(gap());
         actions.addView(setup);
         actions.addView(space(dp(10)));
-        View cont = button("Continue", true, new Runnable() { public void run() { next(); } });
+        View cont = button(s(R.string.onb_continue), true, new Runnable() { public void run() { next(); } });
         actions.addView(cont);
         // Already connected on the Home step: nothing more to do here.
         focusTarget = (Prefs.tunnelEnabled(c) && AdbCrypto.hasKey(c)) ? cont : setup;
     }
 
     private void buildSimple() {
-        content.addView(tag("Step " + stepNo() + " of " + stepTotal()));
-        content.addView(margin(title("Simple mode"), dp(6), dp(4)));
-        content.addView(checkItem(true, "Settings and TV Health are hidden. Press Menu five times for Settings."));
-        content.addView(checkItem(true, "Menu and holding Select no longer hide tiles."));
-        content.addView(checkItem(true, "No update pop-ups. Check for updates from Settings instead."));
+        content.addView(tag(s(R.string.onb_step, stepNo(), stepTotal())));
+        content.addView(margin(title(s(R.string.set_simple)), dp(6), dp(4)));
+        content.addView(checkItem(true, s(R.string.onb_simple_1)));
+        content.addView(checkItem(true, s(R.string.onb_simple_2)));
+        content.addView(checkItem(true, s(R.string.onb_simple_3)));
 
         chip = pill();
         content.addView(wrapMargin(chip, dp(14), dp(4)));
@@ -374,15 +366,15 @@ public final class OnboardingPanel {
         if (cleanState == CLEAN_IDLE || cleanState == CLEAN_NO_LINK) startClean();
         paintClean();
 
-        actions.addView(button("Back", false, new Runnable() { public void run() { back(); } }));
+        actions.addView(button(s(R.string.set_back), false, new Runnable() { public void run() { back(); } }));
         actions.addView(gap());
         if (cleanState == CLEAN_FAILED) {
-            actions.addView(button("Try again", false, new Runnable() {
+            actions.addView(button(s(R.string.onb_try_again), false, new Runnable() {
                 public void run() { startClean(); render(); }
             }));
             actions.addView(space(dp(10)));
         }
-        View cont = button("Continue", true, new Runnable() { public void run() { next(); } });
+        View cont = button(s(R.string.onb_continue), true, new Runnable() { public void run() { next(); } });
         actions.addView(cont);
         focusTarget = cont;
     }
@@ -407,51 +399,44 @@ public final class OnboardingPanel {
     private void paintClean() {
         if (chip == null) return;
         if (cleanState == CLEAN_RUNNING) {
-            setChip(WARN, "Switching off Debloat's safe list: ads, telemetry, unused extras…");
+            setChip(WARN, s(R.string.onb_clean_running));
         } else if (cleanState == CLEAN_DONE && cleanTotal == 0) {
-            setChip(OK, "Debloat's safe list - already off");
+            setChip(OK, s(R.string.onb_clean_already));
         } else if (cleanState == CLEAN_DONE && cleanDone == cleanTotal) {
-            setChip(OK, "Debloat's safe list - " + cleanDone + " switched off. Alexa and Amazon Photos left on");
+            setChip(OK, s(R.string.onb_clean_done, cleanDone));
         } else if (cleanState == CLEAN_DONE) {
-            setChip(WARN, "Debloat's safe list - " + cleanDone + " of " + cleanTotal
-                    + " switched off; Fire OS protects the rest");
+            setChip(WARN, s(R.string.onb_clean_partial, cleanDone, cleanTotal));
         } else if (cleanState == CLEAN_FAILED) {
-            setChip(BAD, "Could not connect to run Debloat's safe list - try again");
+            setChip(BAD, s(R.string.onb_clean_failed));
         } else {
-            setChip(WARN, "Safe list not run: it needs the connection from Set it up");
+            setChip(WARN, s(R.string.onb_clean_no_link));
         }
     }
 
     private void paintMenuHint() {
         if (menuHint == null) return;
-        menuHint.setText(menuTried
-                ? "✓ That's it - on the home screen, five Menu presses open Settings."
-                : "Try it now: press Menu (the three-line button) five times.");
+        menuHint.setText(s(menuTried ? R.string.onb_menu_done : R.string.onb_menu_try));
         menuHint.setTextColor(menuTried ? OK : MUTE);
     }
 
     private void buildDone() {
-        content.addView(tag("All set"));
-        content.addView(margin(title("You're ready."), dp(6), dp(14)));
+        content.addView(tag(s(R.string.onb_all_set)));
+        content.addView(margin(title(s(R.string.onb_ready)), dp(6), dp(14)));
 
         boolean svc = SetupPanel.serviceEnabled(c);
         boolean tun = Prefs.tunnelEnabled(c) || AdbBridge.isConnected();
-        if (wantHome) content.addView(checkItem(svc, svc ? "Home screen - on" : "Home screen - skipped for now"));
-        if (wantClean) content.addView(checkItem(tun, tun ? "TV cleanup - ready; choose what to switch off in Debloat" : "TV cleanup - skipped for now"));
+        if (wantHome) content.addView(checkItem(svc, s(svc ? R.string.onb_done_home_on : R.string.onb_done_home_skip)));
+        if (wantClean) content.addView(checkItem(tun, s(tun ? R.string.onb_done_clean_on : R.string.onb_done_clean_skip)));
         if (wantSimple) {
-            content.addView(checkItem(true, "Simple mode - on"));
+            content.addView(checkItem(true, s(R.string.onb_done_simple)));
             boolean off = cleanState == CLEAN_DONE;
-            content.addView(checkItem(off, off ? "Debloat's safe list - switched off"
-                    : "Debloat's safe list - not yet; use its button in Debloat"));
+            content.addView(checkItem(off, s(off ? R.string.onb_done_safe_off : R.string.onb_done_safe_not)));
         }
 
-        content.addView(margin(body(wantSimple
-                ? "To open Settings, press Menu five times on the home screen. Everything "
-                        + "is there - hidden apps, TV Health, Debloat, updates and Simple mode itself."
-                : "Find all of it again from the Settings tile on your home "
-                        + "screen - hidden apps, sorting, TV Health and Debloat."), dp(14), dp(4)));
+        content.addView(margin(body(s(wantSimple ? R.string.onb_done_simple_body : R.string.onb_done_body)),
+                dp(14), dp(4)));
 
-        View fin = button("Finish", true, new Runnable() { public void run() { finish(); } });
+        View fin = button(s(R.string.onb_finish), true, new Runnable() { public void run() { finish(); } });
         actions.addView(fin);
         focusTarget = fin;
     }
@@ -471,23 +456,23 @@ public final class OnboardingPanel {
         if (chip == null) return;
         int id = current();
         if (id == HOME && SetupPanel.serviceEnabled(c)) {
-            setChip(OK, "On - press Home to try it");
+            setChip(OK, s(R.string.onb_chip_on));
             if (!homeWasOn && homeContinue != null) homeContinue.requestFocus();
             homeWasOn = true;
         } else if (id == HOME || id == ADB) {
             int st = AdbBridge.state();
             String fp = AdbBridge.fingerprint();
             if (st == AdbBridge.CONNECTED) {
-                setChip(OK, id == HOME ? "Connected - switching it on…" : "Connected - ready to clean up");
+                setChip(OK, s(id == HOME ? R.string.onb_chip_switching : R.string.onb_chip_ready));
             } else if (id == ADB && Prefs.tunnelEnabled(c) && AdbCrypto.hasKey(c)) {
-                setChip(OK, "Set up - ready to clean up");
+                setChip(OK, s(R.string.onb_chip_set_up));
             } else if (st == AdbBridge.AWAITING_APPROVAL) {
-                setChip(WARN, fp == null ? "Approve the key on screen"
-                        : "Approve the key on screen - it starts " + SetupPanel.shortFingerprint(fp));
-            } else if (st == AdbBridge.CONNECTING) setChip(WARN, "Connecting…");
-            else if (st == AdbBridge.SELF_REFUSED) setChip(BAD, "This TV blocked it - see Commands for a computer");
-            else if (st == AdbBridge.NO_DAEMON) setChip(BAD, "Turn on ADB debugging first");
-            else setChip(MUTE, "Not set up yet");
+                setChip(WARN, fp == null ? s(R.string.onb_chip_approve)
+                        : s(R.string.onb_chip_approve_fp, SetupPanel.shortFingerprint(fp)));
+            } else if (st == AdbBridge.CONNECTING) setChip(WARN, s(R.string.setup_c_connecting));
+            else if (st == AdbBridge.SELF_REFUSED) setChip(BAD, s(R.string.onb_chip_blocked));
+            else if (st == AdbBridge.NO_DAEMON) setChip(BAD, s(R.string.onb_chip_no_daemon));
+            else setChip(MUTE, s(R.string.onb_chip_not_yet));
         }
     }
 
@@ -719,6 +704,8 @@ public final class OnboardingPanel {
     }
 
     // ---------------------------------------------------------------- text helpers
+
+    private String s(int id, Object... args) { return c.getString(id, args); }
 
     private TextView title(String s) {
         TextView t = text(s, 30, WHITE, Typeface.NORMAL);

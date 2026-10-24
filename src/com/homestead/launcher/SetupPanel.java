@@ -31,104 +31,51 @@ public final class SetupPanel {
     private static final int WARN = 0xFFE8C468;
     private static final int BAD = 0xFFE89A8A;
 
-    /** Shown with "Turn off the Home button" here and in Settings. */
-    static final String TURN_OFF_HELP = "Turning it off sends Home back to Amazon's home "
-            + "screen straight away, and \"Re-apply after reboot\" stops while it is off. To "
-            + "turn it back on, run \"Finish setup automatically\" in Setup (ADB debugging "
-            + "must still be on), or use \"Commands for a computer\". Press twice to confirm.";
-
-    /** The same on Fire OS 6, where Home works through the log watcher instead. */
-    static final String TURN_OFF_HELP_FO6 = "Turning it off sends Home back to Amazon's home "
-            + "screen straight away. To turn it back on, select \"Home-button redirect\" at "
-            + "the top of Setup; no computer is needed. Press twice to confirm.";
-
+    /** Shown with "Turn off the Home button" here and in Settings; Fire OS 6 has its own. */
     static String turnOffHelp(Context c) {
-        return HomeWatchService.available(c) ? TURN_OFF_HELP_FO6 : TURN_OFF_HELP;
+        return c.getString(HomeWatchService.available(c)
+                ? R.string.setup_turn_off_help_fo6 : R.string.setup_turn_off_help);
     }
 
     private SetupPanel() { }
 
     public static View build(final Context c, final SettingsPanel.Host host) {
-        final Panel p = new Panel(c, "Setup", "What this launcher needs, and how to switch it on");
+        final Panel p = new Panel(c, c.getString(R.string.set_setup), c.getString(R.string.setup_sub));
 
         AdbBridge.init(c);
 
         // ------------------------------------------------------------------ status
-        p.addHeader("Status");
+        p.addHeader(c.getString(R.string.setup_status));
 
-        final Panel.Row svcRow = p.addRow("Home-button redirect", "", null);
-        svcRow.setHelp("Fire OS does not list Homestead under Settings, Accessibility, so the "
-                + "redirect is switched on over the TV's debugging connection: from this TV "
-                + "with \"Finish setup automatically\" below, or from a computer with "
-                + "\"Commands for a computer\".\n\n"
-                + "Without it, Homestead still works as an app you open yourself; only the "
-                + "Home button needs it.\n\n"
-                + "If the Home button ever goes back to Amazon's home screen, for example "
-                + "after an update, run \"Finish setup automatically\" again.");
-        if (HomeWatchService.available(c)) {
-            svcRow.setHelp("Fire OS 6 does not let Homestead redirect the Home button, so "
-                    + "Homestead watches for the Home press instead and opens itself. Fire OS "
-                    + "holds back other apps for a few seconds after Home, so Amazon's home "
-                    + "screen shows first.\n\n"
-                    + "This needs the READ_LOGS permission, given from a computer with "
-                    + "\"Commands for a computer\". If you turned the Home button off, select "
-                    + "this row to turn it back on; no computer is needed.");
-        }
-        final Panel.Row ovlRow = p.addRow("Instant home screen", "", null);
-        final Panel.Row useRow = p.addRow("App ordering", "", null);
-        final Panel.Row adbRow = p.addRow("Configure this TV", "", null);
+        final Panel.Row svcRow = p.addRow(c.getString(R.string.setup_svc), "", null);
+        svcRow.setHelp(c.getString(HomeWatchService.available(c)
+                ? R.string.setup_svc_help_fo6 : R.string.setup_svc_help));
+        final Panel.Row ovlRow = p.addRow(c.getString(R.string.setup_ovl), "", null);
+        final Panel.Row useRow = p.addRow(c.getString(R.string.setup_use), "", null);
+        final Panel.Row adbRow = p.addRow(c.getString(R.string.setup_adb), "", null);
 
         // ------------------------------------------------------------------ configure
-        p.addHeader("Let this app configure the TV");
+        p.addHeader(c.getString(R.string.setup_configure));
 
-        p.addSectionHelp("This switches on the Home button redirect. It also lets the app switch "
-                + "off Amazon's advertising and telemetry packages and turn off the "
-                + "animations, if you choose to.\n\n"
-                + "Fire OS runs its debugging service on the television itself, so with "
-                + "your permission this app can connect to it and gain the same access a "
-                + "computer would have. The connection never leaves the TV. The TELEVISION, "
-                + "not this app, asks you to approve a key - check that the fingerprint it "
-                + "shows matches the one here, and tick \"Always allow\" so it is not asked "
-                + "again.\n\n"
-                + "A direct connection will be refused, and not because anything is wrong: "
-                + "recent Fire OS builds drop any ADB connection that starts on the TV "
-                + "itself. \"On-device tunnel\" gets around that block from inside the app - "
-                + "no computer needed. If you would rather not, \"Commands for a computer\" "
-                + "lists exactly what to run instead.");
+        p.addSectionHelp(c.getString(R.string.setup_configure_help));
 
-        p.addRow("Open \"My Fire TV\" (ADB debugging lives here)", "", new Runnable() {
+        p.addRow(c.getString(R.string.setup_open_mft), "", new Runnable() {
             public void run() { openDeviceSettings(c); }
         }).opens();
 
-        final Panel.Row connectRow = p.addRow("ADB link", "", null);
-        final Panel.Row fpRow = p.addRow("Key fingerprint", "", null);
-        final Panel.Row applyRow = p.addRow("Finish setup automatically", "", null);
-        final Panel.Row bootRow = p.addRow("Re-apply after reboot",
+        final Panel.Row connectRow = p.addRow(c.getString(R.string.setup_link), "", null);
+        final Panel.Row fpRow = p.addRow(c.getString(R.string.setup_fp), "", null);
+        final Panel.Row applyRow = p.addRow(c.getString(R.string.setup_apply), "", null);
+        final Panel.Row bootRow = p.addRow(c.getString(R.string.setup_boot),
                 Prefs.reapplyOnBoot(c) ? "on" : "off", null).asSwitch();
-        final Panel.Row forgetRow = p.addRow("Forget our key", "", null);
-        forgetRow.setHelp("Deleting our key here stops this app using the link. The TV keeps its "
-                + "own copy until you use \"Revoke ADB authorisations\" under My Fire TV, "
-                + "Developer options.");
-        final Panel.Row tunnelRow = p.addRow("On-device tunnel (advanced)", "", null);
-        tunnelRow.setHelp("Fire OS refuses ADB connections that start "
-                + "on the TV, so the app reaches its own debugging service the way a "
-                + "computer would - through a local VPN that presents an outside-looking "
-                + "address. It routes only its own private subnet, stays entirely on this "
-                + "TV, and makes no internet connection. Turning it on shows the system's "
-                + "VPN prompt once and a key icon in the status bar; the first connect asks "
-                + "you to approve the key on the TV.\n\n"
-                + "It only comes up while the app is actively configuring the TV and shuts "
-                + "off again within seconds of finishing (\"ready\" means enabled but down, "
-                + "\"active\" means up right now). While it is up, the TV's own ADB is "
-                + "reachable to apps on this device again - they would still each need you "
-                + "to approve their key on screen, so approve ONLY prompts you expected. "
-                + "Needs \"ADB debugging\" left on under My Fire TV; turn that off when you "
-                + "are done for the tightest setup. Reversible any time, and Amazon may "
-                + "re-block it in a future update.");
-        final Panel.Row logRow = p.addStatus("Last result");
+        final Panel.Row forgetRow = p.addRow(c.getString(R.string.setup_forget), "", null);
+        forgetRow.setHelp(c.getString(R.string.setup_forget_help));
+        final Panel.Row tunnelRow = p.addRow(c.getString(R.string.setup_tunnel), "", null);
+        tunnelRow.setHelp(c.getString(R.string.setup_tunnel_help));
+        final Panel.Row logRow = p.addStatus(c.getString(R.string.setup_last));
 
         // ------------------------------------------------------------------ home button
-        p.addHeader("Home button");
+        p.addHeader(c.getString(R.string.setup_home_button));
 
         // Set once refresh exists, just below.
         final Runnable[] refreshRef = new Runnable[1];
@@ -145,19 +92,19 @@ public final class SetupPanel {
                 if (HomeWatchService.available(c)) {
                     // Fire OS 6: no redirect, the log watcher brings Homestead up instead.
                     boolean watch = HomeWatchService.shouldRun(c);
-                    svcRow.setValue(watch ? "on (Fire OS 6)" : "off - select to turn on");
+                    svcRow.setValue(c.getString(watch ? R.string.setup_on_fo6 : R.string.setup_off_select));
                     svcRow.setValueColor(watch ? OK : WARN);
                 } else {
-                    svcRow.setValue(svc ? "on" : "off");
+                    svcRow.setValue(c.getString(svc ? R.string.v_on : R.string.v_off));
                     svcRow.setValueColor(svc ? OK : BAD);
                 }
 
                 String type = HomeRedirectService.overlayTypeLabel();
                 if (!svc) {
-                    ovlRow.setValue("waiting");
+                    ovlRow.setValue(c.getString(R.string.setup_waiting));
                     ovlRow.setValueColor(WARN);
                 } else if (type == null) {
-                    ovlRow.setValue("ready");
+                    ovlRow.setValue(c.getString(R.string.setup_ready));
                     ovlRow.setValueColor(OK);
                 } else {
                     ovlRow.setValue(type);
@@ -165,7 +112,7 @@ public final class SetupPanel {
                 }
 
                 int seen = UsageTracker.size(c);
-                useRow.setValue(seen == 0 ? "learning" : seen + " apps tracked");
+                useRow.setValue(seen == 0 ? c.getString(R.string.setup_learning) : c.getString(R.string.setup_tracked, seen));
                 useRow.setValueColor(OK);
 
                 int st = AdbBridge.state();
@@ -176,29 +123,29 @@ public final class SetupPanel {
                 adbRow.setValueColor(ready ? OK
                         : (st == AdbBridge.BLOCKED || st == AdbBridge.DENIED) ? BAD : WARN);
 
-                connectRow.setLabel(connectLabel(st, on));
+                connectRow.setLabel(connectLabel(c, st, on));
                 connectRow.setValue(label);
                 connectRow.setValueColor(ready ? OK : WARN);
 
                 String fp = AdbBridge.fingerprint();
                 // The fingerprint is read when connecting; a saved key may not be loaded yet.
                 fpRow.setValue(fp != null ? shortFingerprint(fp)
-                        : AdbCrypto.hasKey(c) ? "saved" : "not generated yet");
+                        : c.getString(AdbCrypto.hasKey(c) ? R.string.setup_fp_saved : R.string.setup_fp_none));
                 offPaint.run();
 
                 // Also actionable when the tunnel is enabled but down: it re-opens on demand.
                 boolean usable = (st == AdbBridge.CONNECTED) || Prefs.tunnelEnabled(c);
-                applyRow.setValue(usable ? (svc ? "re-run" : "run it") : "needs the link");
+                applyRow.setValue(c.getString(usable ? (svc ? R.string.setup_rerun : R.string.setup_run) : R.string.setup_needs_link));
                 applyRow.setValueColor(usable ? OK : WARN);
                 applyRow.cell.setEnabled(usable);
 
                 bootRow.setValue(Prefs.reapplyOnBoot(c) ? "on" : "off");
-                forgetRow.setValue(AdbCrypto.hasKey(c) ? "delete" : "none stored");
+                forgetRow.setValue(c.getString(AdbCrypto.hasKey(c) ? R.string.setup_delete : R.string.setup_none_stored));
 
                 // "ready" = enabled but down, "active" = up right now.
                 boolean pref = Prefs.tunnelEnabled(c);
                 boolean tun = TunnelVpnService.isActive();
-                tunnelRow.setValue(!pref ? "off" : (tun ? "active" : "ready"));
+                tunnelRow.setValue(c.getString(!pref ? R.string.v_off : (tun ? R.string.setup_active : R.string.setup_ready)));
                 tunnelRow.setValueColor(!pref ? WARN : OK);
             }
         };
@@ -211,11 +158,11 @@ public final class SetupPanel {
                     Prefs.setAdbEnabled(c, true);
                     if (Prefs.tunnelEnabled(c) && !TunnelVpnService.isActive()) {
                         // Tunnel preferred but down: start it; it connects once up.
-                        logRow.setValue("starting tunnel...");
+                        logRow.setValue(c.getString(R.string.setup_log_starting));
                         startTunnel(c);
                     } else {
                         // Direct, or through an already-active tunnel (override is set).
-                        logRow.setValue("connecting...");
+                        logRow.setValue(c.getString(R.string.setup_log_connecting));
                         AdbBridge.connect();
                     }
                 }
@@ -228,10 +175,10 @@ public final class SetupPanel {
                 if (TunnelVpnService.isActive()) {
                     Prefs.setTunnelEnabled(c, false);
                     TunnelVpnService.stop(c);
-                    logRow.setValue("tunnel off");
+                    logRow.setValue(c.getString(R.string.setup_log_tunnel_off));
                     logRow.setValueColor(WARN);
                 } else {
-                    logRow.setValue("approve the VPN prompt on screen");
+                    logRow.setValue(c.getString(R.string.setup_log_vpn));
                     logRow.setValueColor(WARN);
                     startTunnel(c);
                 }
@@ -243,7 +190,7 @@ public final class SetupPanel {
             public void onClick(View v) {
                 // run() brings the tunnel up on demand if it is enabled but down.
                 if (!AdbBridge.isConnected() && !Prefs.tunnelEnabled(c)) return;
-                logRow.setValue("working...");
+                logRow.setValue(c.getString(R.string.setup_log_working));
                 String current = null;
                 try {
                     current = Settings.Secure.getString(c.getContentResolver(),
@@ -252,7 +199,7 @@ public final class SetupPanel {
                 AdbBridge.run(AdbBridge.selfSetupCommands(c, current), new AdbBridge.Callback() {
                     public void onDone(boolean ok, String out) {
                         HomeRedirectService.startHomeKeyWatch();
-                        logRow.setValue(ok ? "done" : "partly failed");
+                        logRow.setValue(c.getString(ok ? R.string.setup_log_done : R.string.setup_log_partly));
                         logRow.setValueColor(ok ? OK : WARN);
                         refresh.run();
                     }
@@ -271,19 +218,17 @@ public final class SetupPanel {
             public void onClick(View v) {
                 AdbBridge.forgetKey();
                 Prefs.setAdbEnabled(c, false);
-                logRow.setValue("key deleted - revoke it on the TV under "
-                        + "My Fire TV, Developer options");
+                logRow.setValue(c.getString(R.string.setup_log_key_deleted));
                 refresh.run();
             }
         });
 
-        p.addHeader("More");
-        p.addRow("Commands for a computer", "", new Runnable() {
+        p.addHeader(c.getString(R.string.setup_more));
+        p.addRow(c.getString(R.string.setup_commands), "", new Runnable() {
             public void run() { host.showPanel(CommandsPanel.build(c, host)); }
-        }).opens().setHelp("The same steps as commands to run from a computer, filtered "
-                + "down to what this TV still needs.");
+        }).opens().setHelp(c.getString(R.string.setup_commands_help));
 
-        p.addRow("Close", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_close), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
 
@@ -292,24 +237,24 @@ public final class SetupPanel {
             public void onAdbState(int state, String detail) {
                 refresh.run();
                 if (state == AdbBridge.AWAITING_APPROVAL) {
-                    logRow.setValue("approve it on screen");
+                    logRow.setValue(c.getString(R.string.setup_log_approve));
                     logRow.setValueColor(WARN);
                 } else if (state == AdbBridge.NO_DAEMON) {
-                    logRow.setValue("turn on ADB debugging first");
+                    logRow.setValue(c.getString(R.string.setup_log_no_daemon));
                     logRow.setValueColor(BAD);
                 } else if (state == AdbBridge.BLOCKED) {
-                    logRow.setValue("this TV will not allow it");
+                    logRow.setValue(c.getString(R.string.setup_log_blocked));
                     logRow.setValueColor(BAD);
                 } else if (state == AdbBridge.SELF_REFUSED) {
                     logRow.setValue(TunnelVpnService.isActive()
-                            ? "tunnel could not reach adbd"
-                            : "blocked - turn on the on-device tunnel below");
+                            ? c.getString(R.string.setup_log_tunnel_fail)
+                            : c.getString(R.string.setup_log_self_refused));
                     logRow.setValueColor(WARN);
                 } else if (state == AdbBridge.DENIED) {
-                    logRow.setValue("the TV did not accept our key");
+                    logRow.setValue(c.getString(R.string.setup_log_denied));
                     logRow.setValueColor(BAD);
                 } else if (state == AdbBridge.CONNECTED) {
-                    logRow.setValue("connected");
+                    logRow.setValue(c.getString(R.string.setup_log_connected));
                     logRow.setValueColor(OK);
                 }
             }
@@ -337,13 +282,13 @@ public final class SetupPanel {
 
     // ---------------------------------------------------------------- helpers
 
-    private static String connectLabel(int state, boolean enabled) {
-        if (state == AdbBridge.CONNECTED) return "Disconnect the ADB link";
-        if (state == AdbBridge.AWAITING_APPROVAL) return "Waiting for you to approve it";
-        if (state == AdbBridge.CONNECTING) return "Connecting...";
-        if (state == AdbBridge.SELF_REFUSED) return "Refused - use the on-device tunnel below";
-        if (state == AdbBridge.NO_DAEMON) return "Turn on ADB debugging, then try again";
-        return enabled ? "Try connecting again" : "Turn on the ADB link";
+    private static String connectLabel(Context c, int state, boolean enabled) {
+        if (state == AdbBridge.CONNECTED) return c.getString(R.string.setup_c_disconnect);
+        if (state == AdbBridge.AWAITING_APPROVAL) return c.getString(R.string.setup_c_waiting);
+        if (state == AdbBridge.CONNECTING) return c.getString(R.string.setup_c_connecting);
+        if (state == AdbBridge.SELF_REFUSED) return c.getString(R.string.setup_c_refused);
+        if (state == AdbBridge.NO_DAEMON) return c.getString(R.string.setup_c_no_daemon);
+        return c.getString(enabled ? R.string.setup_c_retry : R.string.setup_c_on);
     }
 
     /**
@@ -386,7 +331,7 @@ public final class SetupPanel {
      * back on needs ADB. after runs once it is off. @return a Runnable that repaints the row.
      */
     static Runnable addTurnOffRow(final Context c, Panel p, final Runnable after) {
-        final Panel.Row row = p.addRow("Turn off the Home button", "", null);
+        final Panel.Row row = p.addRow(c.getString(R.string.setup_turn_off), "", null);
         final boolean[] armed = { false };
         final Runnable paint = new Runnable() {
             public void run() {
@@ -394,16 +339,17 @@ public final class SetupPanel {
                 if (HomeWatchService.available(c)) {
                     // Fire OS 6: the log watcher, which this app can turn off and on itself.
                     boolean off = Prefs.homeOffByUser(c);
-                    row.setValue(off ? "off" : armed[0] ? "press again to turn it off" : "");
+                    row.setValue(off ? c.getString(R.string.v_off)
+                            : armed[0] ? c.getString(R.string.setup_press_again) : "");
                     row.cell.setEnabled(!off);
                 } else if (!serviceEnabled(c)) {
-                    row.setValue("off");
+                    row.setValue(c.getString(R.string.v_off));
                     row.cell.setEnabled(false);
                 } else if (!HomeRedirectService.canTurnOff()) {
-                    row.setValue("needs a computer");
+                    row.setValue(c.getString(R.string.setup_needs_computer));
                     row.cell.setEnabled(false);
                 } else {
-                    row.setValue(armed[0] ? "press again to turn it off" : "");
+                    row.setValue(armed[0] ? c.getString(R.string.setup_press_again) : "");
                     row.cell.setEnabled(true);
                 }
             }
@@ -425,11 +371,11 @@ public final class SetupPanel {
                 if (HomeWatchService.available(c)) {
                     HomeWatchService.turnOff(c);
                 } else if (!HomeRedirectService.turnOff(c)) {
-                    row.setValue("could not - try again");
+                    row.setValue(c.getString(R.string.setup_could_not));
                     return;
                 }
                 // The setting is written asynchronously, so show the result directly.
-                row.setValue("off");
+                row.setValue(c.getString(R.string.v_off));
                 row.cell.setEnabled(false);
                 // Turning Home off means going back to Amazon's home screen, so its launcher
                 // comes back on if Debloat switched it off.
@@ -442,8 +388,8 @@ public final class SetupPanel {
                                     boolean on = Debloat.stateOf(c, AppModel.AMAZON_LAUNCHER)
                                             == Debloat.ENABLED;
                                     if (on) Prefs.noteDisabled(c, AppModel.AMAZON_LAUNCHER, false);
-                                    row.setValue(on ? "off, Amazon's home is back"
-                                            : "off - switch Amazon's launcher on in Debloat");
+                                    row.setValue(c.getString(on ? R.string.setup_off_amazon_back
+                                            : R.string.setup_off_need_launcher));
                                 }
                             });
                 }

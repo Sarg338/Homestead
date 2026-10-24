@@ -34,22 +34,18 @@ public final class DebloatPanel {
     private static final int BAD = 0xFFE89A8A;
     private static final int MUTED = 0xFF7F8FA0;
 
-    /** Shown with every Alexa row. */
-    private static final String ALEXA = "Switching these off removes Alexa: no voice search, "
-            + "no voice timers, and the microphone button on the remote stops doing anything. "
-            + "Everything else keeps working.";
 
     private DebloatPanel() { }
 
     public static View build(final Context c, final SettingsPanel.Host host) {
-        final Panel p = new Panel(c, "Debloat",
-                "Reversible. Nothing is ever uninstalled.");
+        final Panel p = new Panel(c, c.getString(R.string.set_debloat),
+                c.getString(R.string.db_sub));
 
         AdbBridge.init(c);
 
-        p.addHeader("This TV");
+        p.addHeader(c.getString(R.string.db_this_tv));
 
-        final Panel.Row link = p.addRow("ADB link", "", null);
+        final Panel.Row link = p.addRow(c.getString(R.string.setup_link), "", null);
         link.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (AdbBridge.isConnected()) return;
@@ -57,54 +53,45 @@ public final class DebloatPanel {
             }
         });
 
-        p.addSectionHelp("Each item is switched off with \"pm disable-user\", which leaves "
-                + "the app and its data on the TV and is undone with \"pm enable\". Disabling "
-                + "does not free storage; what you get back is memory and processor time.");
+        p.addSectionHelp(c.getString(R.string.db_help));
 
         // The list was checked on one model; say how much of it applies to this TV.
         int absent = 0;
         for (int i = 0; i < Debloat.CATALOGUE.length; i++) {
             if (Debloat.stateOf(c, Debloat.CATALOGUE[i].pkg) == Debloat.ABSENT) absent++;
         }
-        p.addRow("On this TV", (Debloat.CATALOGUE.length - absent) + " of "
-                + Debloat.CATALOGUE.length + " listed packages", null);
+        p.addRow(c.getString(R.string.db_on_tv), c.getString(R.string.db_n_listed,
+                Debloat.CATALOGUE.length - absent, Debloat.CATALOGUE.length), null);
         if (absent > 0) {
-            p.addNote(absent + " listed packages are not on this TV. Models and Fire OS "
-                    + "versions differ, and this list was checked on one model, so some of "
-                    + "this TV's own packages may not be on it. Those are only in \"Browse "
-                    + "every system app\" below, which cannot tell you which are safe.");
+            p.addNote(c.getString(R.string.db_absent_note, absent));
         }
 
         final List<Row> rows = new ArrayList<Row>();
 
         // ------------------------------------------------------------------ bulk actions
-        p.addHeader("All at once");
+        p.addHeader(c.getString(R.string.db_all_at_once));
 
-        final Panel.Row bulkOff = p.addRow("Switch off everything marked safe", "", null);
-        p.addNote("Advertising, telemetry, and the Extras that are marked safe (tutorials, "
-                + "demo content, Amazon Photos and the like). Alexa and everything marked "
-                + "caution are left out here, since each changes how the TV behaves.");
+        final Panel.Row bulkOff = p.addRow(c.getString(R.string.db_bulk_safe), "", null);
+        p.addNote(c.getString(R.string.db_bulk_safe_note));
 
-        final Panel.Row bulkCaution = p.addRow("Switch off everything marked caution", "", null);
-        p.addNote("Alexa and the Extras marked caution: voice search, casting, smart-home "
-                + "and the like. Each removes a feature, so read the rows below before using this.");
+        final Panel.Row bulkCaution = p.addRow(c.getString(R.string.db_bulk_caution), "", null);
+        p.addNote(c.getString(R.string.db_bulk_caution_note));
 
-        final Panel.Row undo = p.addRow("Undo everything this app switched off", "", null);
-        p.addNote("Switches back on exactly the packages this app switched off, and nothing "
-                + "else.");
-        final Panel.Row result = p.addStatus("Last result");
+        final Panel.Row undo = p.addRow(c.getString(R.string.db_undo), "", null);
+        p.addNote(c.getString(R.string.db_undo_note));
+        final Panel.Row result = p.addStatus(c.getString(R.string.setup_last));
 
         final Runnable refreshAll = new Runnable() {
             public void run() {
                 for (int i = 0; i < rows.size(); i++) rows.get(i).refresh(c);
                 boolean live = AdbBridge.canRun(c);
-                link.setLabel(live ? "ADB link" : "ADB link - open Setup to connect");
+                link.setLabel(c.getString(live ? R.string.setup_link : R.string.db_link_open_setup));
                 link.setValue(AdbBridge.statusLabel(c));
                 link.setValueColor(AdbBridge.isReady(c) ? OK : WARN);
                 bulkOff.cell.setEnabled(live);
                 bulkCaution.cell.setEnabled(live);
                 int mine = Prefs.disabledByUs(c).size();
-                undo.setValue(mine == 0 ? "nothing to undo" : mine + " to restore");
+                undo.setValue(mine == 0 ? c.getString(R.string.db_nothing_undo) : c.getString(R.string.db_n_restore, mine));
                 undo.cell.setEnabled(live && mine > 0);
             }
         };
@@ -124,7 +111,7 @@ public final class DebloatPanel {
                 final String[] pkgs = mine.toArray(new String[mine.size()]);
                 String[] cmds = new String[pkgs.length];
                 for (int i = 0; i < pkgs.length; i++) cmds[i] = AdbBridge.enableCommand(pkgs[i]);
-                result.setValue("restoring " + pkgs.length + "...");
+                result.setValue(c.getString(R.string.db_restoring, pkgs.length));
                 AdbBridge.run(cmds, new AdbBridge.Callback() {
                     public void onDone(boolean ok, String out) {
                         int back = 0;
@@ -134,7 +121,7 @@ public final class DebloatPanel {
                                 back++;
                             }
                         }
-                        result.setValue(back + " of " + pkgs.length + " restored");
+                        result.setValue(c.getString(R.string.db_n_restored, back, pkgs.length));
                         result.setValueColor(back == pkgs.length ? OK : WARN);
                         refreshAll.run();
                     }
@@ -148,28 +135,25 @@ public final class DebloatPanel {
             final Debloat.Entry e = Debloat.CATALOGUE[i];
             if (e.group != group) {
                 group = e.group;
-                p.addHeader(Debloat.groupName(group));
+                p.addHeader(Debloat.groupName(c, group));
             }
             Row row = new Row(c, p, e);
             rows.add(row);
         }
 
         // ------------------------------------------------------------------ everything else
-        p.addHeader("Beyond the list");
-        p.addRow("Browse every system app", "", new Runnable() {
+        p.addHeader(c.getString(R.string.db_beyond));
+        p.addRow(c.getString(R.string.db_browse), "", new Runnable() {
             public void run() { host.showPanel(buildBrowser(c, host)); }
         }).opens();
-        p.addNote("The list above has been checked as safe to switch off. The browser "
-                + "shows every other package but cannot tell you which are safe, and "
-                + "anything the system is currently relying on is locked.");
+        p.addNote(c.getString(R.string.db_browse_note));
 
-        p.addRow("Commands for a computer", "", new Runnable() {
+        p.addRow(c.getString(R.string.setup_commands), "", new Runnable() {
             public void run() { host.showPanel(CommandsPanel.build(c, host)); }
         }).opens();
-        p.addNote("To do this from a computer instead: the exact commands, filtered down to "
-                + "what is still switched on on this TV.");
+        p.addNote(c.getString(R.string.db_commands_note));
 
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
 
@@ -196,21 +180,14 @@ public final class DebloatPanel {
         Row(Context c, Panel p, Debloat.Entry e) {
             this.entry = e;
             this.locked = Debloat.protectionReason(c, e.pkg);
-            this.row = p.addRow(e.title, "", null).asSwitch();
-            if (e.risky) row.setBadge("Risky");
-            else if (e.caution) row.setBadge("Caution");
-            String why = e.group == Debloat.GROUP_VOICE ? ALEXA
-                    : e.risky ? "Marked risky: it is never switched off by the one-press buttons "
-                            + "or by Simple mode, and it is offered only on a TV that would then "
-                            + "send Home straight to Homestead (not Fire OS 7, where Amazon's Home "
-                            + "Starter takes Home). Switching it off takes two presses. To switch "
-                            + "it back on, use this row, \"Undo everything this app switched "
-                            + "off\", or from a computer: adb shell pm enable --user 0 " + e.pkg
-                            + "\n\nSwitch it back on before you uninstall Homestead, or the TV is "
-                            + "left with no home screen until a computer switches it on."
-                    : e.caution ? "Marked caution: switching it off changes how the TV behaves."
+            this.row = p.addRow(c.getString(e.title), "", null).asSwitch();
+            if (e.risky) row.setBadge(c.getString(R.string.db_risky));
+            else if (e.caution) row.setBadge(c.getString(R.string.db_caution));
+            String why = e.group == Debloat.GROUP_VOICE ? c.getString(R.string.db_alexa_why)
+                    : e.risky ? c.getString(R.string.db_risky_why, e.pkg)
+                    : e.caution ? c.getString(R.string.db_caution_why)
                     : null;
-            row.setHelp(e.note + (why != null ? "\n\n" + why : "") + "\n\n" + e.pkg);
+            row.setHelp(c.getString(e.note) + (why != null ? "\n\n" + why : "") + "\n\n" + e.pkg);
         }
 
         void bind(final Context c, final Runnable after, final Panel.Row result) {
@@ -228,14 +205,14 @@ public final class DebloatPanel {
                     final boolean turningOff = (was == Debloat.ENABLED);
                     if (turningOff && entry.risky && !armed[0]) {
                         armed[0] = true;
-                        row.setValue("press again to switch off");
+                        row.setValue(c.getString(R.string.db_press_again));
                         row.setValueColor(BAD);
                         row.cell.postDelayed(disarm, 5000L);
                         return;
                     }
                     row.cell.removeCallbacks(disarm);
                     armed[0] = false;
-                    row.setValue("working...");
+                    row.setValue(c.getString(R.string.setup_log_working));
                     String cmd = turningOff
                             ? AdbBridge.disableCommand(entry.pkg)
                             : AdbBridge.enableCommand(entry.pkg);
@@ -248,15 +225,15 @@ public final class DebloatPanel {
                                 Prefs.noteRefused(c, entry.pkg, Debloat.refusedIn(out, entry.pkg));
                             }
                             if (!ran) {
-                                result.setValue("could not connect - try again");
+                                result.setValue(c.getString(R.string.db_could_not_connect));
                                 result.setValueColor(BAD);
                             } else if (now == was) {
                                 // Fire OS refuses disable-user on some Amazon packages.
-                                result.setValue("Fire OS protects " + entry.title);
+                                result.setValue(c.getString(R.string.db_protects, c.getString(entry.title)));
                                 result.setValueColor(BAD);
                             } else {
-                                result.setValue(entry.title + (now == Debloat.DISABLED
-                                        ? " switched off" : " restored"));
+                                result.setValue(c.getString(now == Debloat.DISABLED ? R.string.db_x_off : R.string.db_x_restored,
+                                        c.getString(entry.title)));
                                 result.setValueColor(OK);
                             }
                             after.run();
@@ -275,7 +252,7 @@ public final class DebloatPanel {
                 return;
             }
             if (st == Debloat.ABSENT) {
-                row.setValue("not present");
+                row.setValue(c.getString(R.string.db_not_present));
                 row.setValueColor(MUTED);
                 row.cell.setEnabled(false);
                 return;
@@ -294,21 +271,21 @@ public final class DebloatPanel {
         int n = switchOffGroup(c, cautionGroup, null, new BulkResult() {
             public void onResult(boolean connected, int done, int total) {
                 if (!connected) {
-                    result.setValue("could not connect - try again");
+                    result.setValue(c.getString(R.string.db_could_not_connect));
                     result.setValueColor(BAD);
                 } else {
                     // Fire OS refuses some of these outright, so report a count.
-                    result.setValue(done + " of " + total + " switched off");
+                    result.setValue(c.getString(R.string.db_n_off, done, total));
                     result.setValueColor(done == total ? OK : WARN);
                 }
                 refreshAll.run();
             }
         });
         if (n == 0) {
-            result.setValue("already done");
+            result.setValue(c.getString(R.string.db_already));
             result.setValueColor(OK);
         } else {
-            result.setValue("working on " + n + "...");
+            result.setValue(c.getString(R.string.db_working_on, n));
         }
     }
 
@@ -359,15 +336,12 @@ public final class DebloatPanel {
 
     private static View buildBrowser(final Context c, final SettingsPanel.Host host) {
         final List<Debloat.Installed> all = Debloat.installed(c, true);
-        final Panel p = new Panel(c, "Every system app",
-                all.size() + " packages on this TV");
+        final Panel p = new Panel(c, c.getString(R.string.db_every_app),
+                c.getString(R.string.db_n_packages, all.size()));
 
-        p.addText("Anything the system is currently using as a keyboard, a TV input, "
-                + "a home screen, a device administrator or an accessibility service is locked, "
-                + "and so is a short list of components the TV cannot start without. "
-                + "Everything else is yours to switch off - reversibly.");
+        p.addText(c.getString(R.string.db_browser_text));
 
-        final Panel.Row result = p.addStatus("Last result");
+        final Panel.Row result = p.addStatus(c.getString(R.string.setup_last));
 
         for (int i = 0; i < all.size(); i++) {
             final Debloat.Installed app = all.get(i);
@@ -385,13 +359,13 @@ public final class DebloatPanel {
             row.cell.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
                     if (!AdbBridge.canRun(c)) {
-                        result.setValue("connect the ADB link first");
+                        result.setValue(c.getString(R.string.db_connect_first));
                         result.setValueColor(WARN);
                         return;
                     }
                     final int was = Debloat.stateOf(c, app.pkg);
                     if (was == Debloat.ABSENT) return;
-                    row.setValue("working...");
+                    row.setValue(c.getString(R.string.setup_log_working));
                     AdbBridge.run(was == Debloat.ENABLED
                                     ? AdbBridge.disableCommand(app.pkg)
                                     : AdbBridge.enableCommand(app.pkg),
@@ -402,11 +376,11 @@ public final class DebloatPanel {
                                     row.setValue(now == Debloat.ENABLED ? "on" : "off");
                                     row.setValueColor(now == Debloat.ENABLED ? WARN : OK);
                                     if (now == was) {
-                                        result.setValue("Fire OS protects " + app.pkg);
+                                        result.setValue(c.getString(R.string.db_protects, app.pkg));
                                         result.setValueColor(BAD);
                                     } else {
-                                        result.setValue(app.label + (now == Debloat.DISABLED
-                                                ? " switched off" : " restored"));
+                                        result.setValue(c.getString(now == Debloat.DISABLED ? R.string.db_x_off : R.string.db_x_restored,
+                                                app.label));
                                         result.setValueColor(OK);
                                     }
                                 }
@@ -415,7 +389,7 @@ public final class DebloatPanel {
             });
         }
 
-        p.addRow("Back", "", new Runnable() {
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
         return p.root;

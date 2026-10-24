@@ -61,18 +61,19 @@ final class Debloat {
 
     static final class Entry {
         final String pkg;
-        final String title;
-        final String note;
+        /** String resources, so the rows follow the app's language. */
+        final int title;
+        final int note;
         final int group;
         final boolean caution;
         /** Never part of a bulk switch-off, never offered by the one-press buttons. */
         final boolean risky;
 
-        Entry(int group, String pkg, String title, String note, boolean caution) {
+        Entry(int group, String pkg, int title, int note, boolean caution) {
             this(group, pkg, title, note, caution, false);
         }
 
-        Entry(int group, String pkg, String title, String note, boolean caution, boolean risky) {
+        Entry(int group, String pkg, int title, int note, boolean caution, boolean risky) {
             this.group = group;
             this.pkg = pkg;
             this.title = title;
@@ -82,13 +83,13 @@ final class Debloat {
         }
     }
 
-    static String groupName(int g) {
+    static String groupName(Context c, int g) {
         switch (g) {
-            case GROUP_ADS: return "Advertising & recommendations";
-            case GROUP_TELEMETRY: return "Telemetry & diagnostics";
+            case GROUP_ADS: return c.getString(R.string.db_g_ads);
+            case GROUP_TELEMETRY: return c.getString(R.string.db_g_telemetry);
             case GROUP_VOICE: return "Alexa";
-            case GROUP_HOME: return "Amazon's home screen";
-            default: return "Extras";
+            case GROUP_HOME: return c.getString(R.string.db_g_home);
+            default: return c.getString(R.string.db_g_extras);
         }
     }
 
@@ -98,193 +99,71 @@ final class Debloat {
      */
     static final Entry[] CATALOGUE = {
             // ---------------------------------------------------------- advertising
-            new Entry(GROUP_ADS, "com.amazon.hybridadidservice",
-                    "Advertising ID service",
-                    "Generates the identifier used to target ads at this TV.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.tv.acr",
-                    "Automatic Content Recognition",
-                    "Samples what is on screen, including from HDMI inputs, for ad targeting.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.media.recommendations",
-                    "\"Recommended for you\" engine",
-                    "Builds the recommendation rows on Amazon's home screen.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.sneakpeek",
-                    "Home-screen trailer previews",
-                    "The auto-playing trailer banner at the top of Amazon's home screen.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.recess",
-                    "Sponsored content service",
-                    "Serves the sponsored placements on Amazon's home screen.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.shoptv.client",
-                    "Amazon shopping row",
-                    "The shopping row on Amazon's home screen.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.shoptv.firetv.client",
-                    "Amazon shopping row (Fire TV)",
-                    "Fire TV variant of the same shopping row.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.minitv.android.app",
-                    "Amazon MiniTV",
-                    "Ad-supported free channel that appears as a row and an app.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.ftv.screensaver",
-                    "Amazon ad screensaver",
-                    "Replaces the idle screensaver with sponsored imagery.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.ftvads.deeplinking",
-                    "Advertising deep-link handler",
-                    "Handles taps on Fire TV ads. Fire OS usually refuses to disable this "
-                            + "one; if the row stays enabled, that is why.", SAFE),
+            new Entry(GROUP_ADS, "com.amazon.hybridadidservice", R.string.db_adid_t, R.string.db_adid_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.tv.acr", R.string.db_acr_t, R.string.db_acr_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.media.recommendations", R.string.db_reco_t, R.string.db_reco_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.sneakpeek", R.string.db_sneak_t, R.string.db_sneak_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.recess", R.string.db_recess_t, R.string.db_recess_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.shoptv.client", R.string.db_shop_t, R.string.db_shop_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.shoptv.firetv.client", R.string.db_shop2_t, R.string.db_shop2_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.minitv.android.app", R.string.db_minitv_t, R.string.db_minitv_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.ftv.screensaver", R.string.db_adsaver_t, R.string.db_adsaver_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.ftvads.deeplinking", R.string.db_deeplink_t, R.string.db_deeplink_n, SAFE),
 
-            new Entry(GROUP_ADS, "com.amazon.kso.blackbird",
-                    "Sponsored-content ad sync",
-                    "Fetches and bids on the sponsored banner and rows. The banner itself "
-                            + "still loads, but its ad targeting stops.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.uxnotification",
-                    "Promotional pop-ups",
-                    "On-screen notification pop-ups, mostly Amazon promotions.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.systemnotices",
-                    "System notices",
-                    "Amazon's system notice pop-ups.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.tv.releasenotes",
-                    "\"What's new\" pop-ups",
-                    "Shows Amazon's release-note screens after updates.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.tv.easyupgrade",
-                    "\"Upgrade your Fire TV\" promos",
-                    "Nags to buy a newer Fire TV. This is not the software updater.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.gamehub",
-                    "Games hub",
-                    "Promotes games and Luna cloud gaming on the home screen.", SAFE),
-            new Entry(GROUP_ADS, "com.amazon.tv.developer.dataservice",
-                    "App personalization data",
-                    "Shares content and personalization data with third-party apps.", SAFE),
+            new Entry(GROUP_ADS, "com.amazon.kso.blackbird", R.string.db_blackbird_t, R.string.db_blackbird_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.uxnotification", R.string.db_promo_t, R.string.db_promo_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.systemnotices", R.string.db_notices_t, R.string.db_notices_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.tv.releasenotes", R.string.db_whatsnew_t, R.string.db_whatsnew_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.tv.easyupgrade", R.string.db_upgrade_t, R.string.db_upgrade_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.gamehub", R.string.db_games_t, R.string.db_games_n, SAFE),
+            new Entry(GROUP_ADS, "com.amazon.tv.developer.dataservice", R.string.db_devdata_t, R.string.db_devdata_n, SAFE),
             // ---------------------------------------------------------- telemetry
-            new Entry(GROUP_TELEMETRY, "com.amazon.tv.fw.metrics",
-                    "Framework metrics collector",
-                    "Collects framework-level usage metrics.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.dp.logger",
-                    "Amazon logging framework",
-                    "Shared logging plumbing used by Amazon services.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.wifilocker",
-                    "Wi-Fi password upload",
-                    "Uploads saved Wi-Fi credentials to your Amazon account so other "
-                            + "devices can join automatically. Disabling it does not "
-                            + "affect this TV's own Wi-Fi.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.client.metrics",
-                    "Usage-metrics upload service",
-                    "Runs even when the TV is idle. Usually protected by Fire OS.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.device.metrics",
-                    "Device metrics collector",
-                    "Usually protected by Fire OS.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.minerva.client.api",
-                    "Minerva analytics client",
-                    "Amazon's telemetry pipeline. Usually protected by Fire OS.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.diode",
-                    "Diagnostics uploader",
-                    "Usually protected by Fire OS.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.device.crashmanager",
-                    "Crash-report uploader",
-                    "Usually protected by Fire OS.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.device.logmanager",
-                    "Log upload service",
-                    "Usually protected by Fire OS.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.wirelessmetrics.service",
-                    "Wireless metrics",
-                    "Reports Wi-Fi and network metrics to Amazon.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.perfc",
-                    "Performance collector",
-                    "Collects device performance data.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.perfcollection",
-                    "Performance collector (2)",
-                    "A second performance-data collector.", SAFE),
-            new Entry(GROUP_TELEMETRY, "com.amazon.client.metrics.api",
-                    "Metrics API service",
-                    "The metrics-reporting API used by Amazon apps.", SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.tv.fw.metrics", R.string.db_fwmetrics_t, R.string.db_fwmetrics_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.dp.logger", R.string.db_logger_t, R.string.db_logger_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.wifilocker", R.string.db_wifilocker_t, R.string.db_wifilocker_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.client.metrics", R.string.db_metricsup_t, R.string.db_metricsup_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.device.metrics", R.string.db_devmetrics_t, R.string.db_usually_protected, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.minerva.client.api", R.string.db_minerva_t, R.string.db_minerva_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.diode", R.string.db_diode_t, R.string.db_usually_protected, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.device.crashmanager", R.string.db_crash_t, R.string.db_usually_protected, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.device.logmanager", R.string.db_logup_t, R.string.db_usually_protected, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.wirelessmetrics.service", R.string.db_wireless_t, R.string.db_wireless_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.perfc", R.string.db_perfc_t, R.string.db_perfc_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.perfcollection", R.string.db_perf2_t, R.string.db_perf2_n, SAFE),
+            new Entry(GROUP_TELEMETRY, "com.amazon.client.metrics.api", R.string.db_metricsapi_t, R.string.db_metricsapi_n, SAFE),
             // ---------------------------------------------------------- alexa
-            new Entry(GROUP_VOICE, "com.amazon.vizzini",
-                    "Alexa voice engine",
-                    "The main Alexa process. It switches itself back on after a restart; "
-                            + "keep \"Re-apply after reboot\" on in Setup to keep it off.",
-                    CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.aca",
-                    "Alexa companion agent",
-                    "Reports account and media status to Alexa.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.alexamediaplayer.runtime.ftv",
-                    "Alexa media playback runtime",
-                    "Lets Alexa control playback.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.alexa.datastore.app",
-                    "Alexa datastore", "Local storage for Alexa state.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.alexadirectivebrokerservice",
-                    "Alexa directive broker", "Routes recognised voice commands.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.alexa.externalmediaplayer.fireos",
-                    "Alexa external media bridge", "Bridges Alexa to third-party players.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.tv.alexaalerts",
-                    "Alexa timers and alarms", "Voice timers and alarms stop working.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.tv.alexanotifications",
-                    "Alexa notifications", "Alexa notification delivery.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.vizzini.ftvcds",
-                    "Alexa content discovery", "Voice search across apps stops working.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.ale",
-                    "Alexa Local Engine", "On-device speech handling.", CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.vizzini", R.string.db_vizzini_t, R.string.db_vizzini_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.aca", R.string.db_aca_t, R.string.db_aca_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.alexamediaplayer.runtime.ftv", R.string.db_amp_t, R.string.db_amp_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.alexa.datastore.app", R.string.db_adata_t, R.string.db_adata_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.alexadirectivebrokerservice", R.string.db_broker_t, R.string.db_broker_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.alexa.externalmediaplayer.fireos", R.string.db_extmp_t, R.string.db_extmp_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.tv.alexaalerts", R.string.db_alerts_t, R.string.db_alerts_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.tv.alexanotifications", R.string.db_anotif_t, R.string.db_anotif_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.vizzini.ftvcds", R.string.db_cds_t, R.string.db_cds_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.ale", R.string.db_ale_t, R.string.db_ale_n, CAUTION),
 
-            new Entry(GROUP_VOICE, "com.amazon.audiohome",
-                    "Alexa Home Theater",
-                    "Pairs the TV with Echo speakers as a home-theatre group.", CAUTION),
-            new Entry(GROUP_VOICE, "com.amazon.aiondec",
-                    "Alexa skill connections",
-                    "Connects Alexa skills to the TV.", CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.audiohome", R.string.db_theater_t, R.string.db_theater_n, CAUTION),
+            new Entry(GROUP_VOICE, "com.amazon.aiondec", R.string.db_skills_t, R.string.db_skills_n, CAUTION),
             // ---------------------------------------------------------- extras
-            new Entry(GROUP_EXTRAS, "com.apple.airplay.amazon.airplay",
-                    "AirPlay receiver",
-                    "Screen mirroring from Apple devices.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.firebat",
-                    "Prime Video",
-                    "Amazon's Prime Video app. It starts in the background after boot, so "
-                            + "switching it off frees memory, but Prime Video will not open "
-                            + "until you switch it back on.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.whad",
-                    "Wireless Home Audio daemon",
-                    "Pairing with Echo speakers for TV audio.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.whasettings",
-                    "Wireless Home Audio settings",
-                    "The settings screen for the above.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.tv.ffsprovisioneeclient",
-                    "Frustration-Free Setup client",
-                    "Automatic setup of new Amazon devices from this one.", SAFE),
-            new Entry(GROUP_EXTRAS, AMAZON_PHOTOS,
-                    "Amazon Photos",
-                    "Fed the ad screensaver. Only useful if you browse photos on the TV.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.tv.democontent.provider",
-                    "Retail demo content",
-                    "In-store demo loop. Nothing uses it in a home.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.tmm.tutorial",
-                    "First-run tutorial", "The introductory tour. Already seen.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.storm.lightning.tutorial",
-                    "Remote-app tutorial", "Tutorial for the phone remote app.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.tigris",
-                    "Appstore onboarding", "Appstore first-run experience.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.naatyam",
-                    "Setup redirect handler", "Onboarding launch redirection.", SAFE),
-            new Entry(GROUP_EXTRAS, "com.amazon.hedwig",
-                    "Fire TV Channels",
-                    "The free ad-supported channels row and the Live input.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.tv.livetv",
-                    "Live tab and guide",
-                    "The Live tab, the channel guide and the Live TV player. Switching it off "
-                            + "removes all three, and Homestead's Live TV tile with them.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.tv.mattercohost",
-                    "Matter smart-home hub",
-                    "Lets the TV act as a Matter smart-home controller.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.whisperjoin.middleware.np",
-                    "Frustration-Free Setup provisioning",
-                    "Sets up other Amazon devices from this TV over Wi-Fi.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.tahoe",
-                    "Amazon Kids",
-                    "Amazon Kids (FreeTime) profiles and parental controls.", CAUTION),
-            new Entry(GROUP_EXTRAS, "com.amazon.ods.kindleconnect",
-                    "\"Show on Fire TV\" casting",
-                    "Casts content from an Echo or Fire tablet to this TV.", CAUTION),
-            new Entry(GROUP_HOME, AppModel.AMAZON_LAUNCHER,
-                    "Amazon's launcher",
-                    "Home opens Homestead directly, with no overlay and no flash of Amazon's "
-                            + "screen. Anything that lived only on Amazon's home screen, such as "
-                            + "its Inputs screen, stops working until you switch this back on. "
-                            + "A firmware update can switch it back on by itself.",
-                    CAUTION, true),
+            new Entry(GROUP_EXTRAS, "com.apple.airplay.amazon.airplay", R.string.db_airplay_t, R.string.db_airplay_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.firebat", R.string.db_firebat_t, R.string.db_firebat_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.whad", R.string.db_whad_t, R.string.db_whad_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.whasettings", R.string.db_whaset_t, R.string.db_whaset_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.tv.ffsprovisioneeclient", R.string.db_ffs_t, R.string.db_ffs_n, SAFE),
+            new Entry(GROUP_EXTRAS, AMAZON_PHOTOS, R.string.db_photos_t, R.string.db_photos_n, SAFE),
+            new Entry(GROUP_EXTRAS, "com.amazon.tv.democontent.provider", R.string.db_demo_t, R.string.db_demo_n, SAFE),
+            new Entry(GROUP_EXTRAS, "com.amazon.tmm.tutorial", R.string.db_tour_t, R.string.db_tour_n, SAFE),
+            new Entry(GROUP_EXTRAS, "com.amazon.storm.lightning.tutorial", R.string.db_remotetut_t, R.string.db_remotetut_n, SAFE),
+            new Entry(GROUP_EXTRAS, "com.amazon.tigris", R.string.db_tigris_t, R.string.db_tigris_n, SAFE),
+            new Entry(GROUP_EXTRAS, "com.amazon.naatyam", R.string.db_naatyam_t, R.string.db_naatyam_n, SAFE),
+            new Entry(GROUP_EXTRAS, "com.amazon.hedwig", R.string.db_channels_t, R.string.db_channels_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.tv.livetv", R.string.db_livetab_t, R.string.db_livetab_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.tv.mattercohost", R.string.db_matter_t, R.string.db_matter_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.whisperjoin.middleware.np", R.string.db_ffsprov_t, R.string.db_ffsprov_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.tahoe", R.string.db_kids_t, R.string.db_kids_n, CAUTION),
+            new Entry(GROUP_EXTRAS, "com.amazon.ods.kindleconnect", R.string.db_showon_t, R.string.db_showon_n, CAUTION),
+            new Entry(GROUP_HOME, AppModel.AMAZON_LAUNCHER, R.string.db_launcher_t, R.string.db_launcher_n, CAUTION, true),
     };
 
     /**
@@ -355,15 +234,15 @@ final class Debloat {
 
     /** Null if the package may be toggled, otherwise the reason it may not be. */
     static String protectionReason(Context c, String pkg) {
-        if (pkg == null || pkg.length() == 0) return "no package";
-        if (pkg.equals(c.getPackageName())) return "this launcher";
+        if (pkg == null || pkg.length() == 0) return c.getString(R.string.db_r_nopkg);
+        if (pkg.equals(c.getPackageName())) return c.getString(R.string.db_r_self);
 
         for (int i = 0; i < NEVER.length; i++) {
             if (NEVER[i].equals(pkg)) {
                 if (isRisky(pkg)) break;     // its own row, with a warning, is the way in
                 return "com.amazon.ceviche".equals(pkg)
-                        ? "disabling this crash-loops the home screen"
-                        : "core system component";
+                        ? c.getString(R.string.db_r_ceviche)
+                        : c.getString(R.string.db_r_core);
             }
         }
         // The substring rules guard "Browse every system app". Catalogue entries were
@@ -371,12 +250,12 @@ final class Debloat {
         if (!inCatalogue(pkg)) {
             String lower = pkg.toLowerCase(java.util.Locale.US);
             for (int i = 0; i < NEVER_CONTAINING.length; i++) {
-                if (lower.contains(NEVER_CONTAINING[i])) return "core system component";
+                if (lower.contains(NEVER_CONTAINING[i])) return c.getString(R.string.db_r_core);
             }
         }
         // The launcher is the home screen right now by definition; Homestead also declares
         // Home, so the risky entry is allowed past this check and carries its own warning.
-        if (!isRisky(pkg) && liveCritical(c).contains(pkg)) return "in use by the system right now";
+        if (!isRisky(pkg) && liveCritical(c).contains(pkg)) return c.getString(R.string.db_r_live);
         // Only ever blocks switching it off: once it is off, its row must stay the way back.
         if (AppModel.AMAZON_LAUNCHER.equals(pkg) && stateOf(c, pkg) == ENABLED) {
             return homeWithoutAmazonLauncher(c);
@@ -398,7 +277,7 @@ final class Debloat {
             ris = pm.queryIntentActivities(
                     new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0);
         } catch (Throwable t) {
-            return "could not check what handles Home";
+            return c.getString(R.string.db_r_home_unknown);
         }
         ResolveInfo ours = null, rival = null;
         for (int i = 0; ris != null && i < ris.size(); i++) {
@@ -412,21 +291,21 @@ final class Debloat {
                 rival = ri;
             }
         }
-        if (ours == null) return "could not check what handles Home";
+        if (ours == null) return c.getString(R.string.db_r_home_unknown);
         if (rival == null || rival.priority < ours.priority) return null;
-        if (rival.priority > ours.priority) return "Fire OS would take Home";
+        if (rival.priority > ours.priority) return c.getString(R.string.db_r_home_fireos);
         // Short enough for the row; a package without a label falls back to its name.
         CharSequence label = null;
         try { label = rival.loadLabel(pm); } catch (Throwable ignored) { }
         String name = label == null ? "" : label.toString();
         return name.length() == 0 || name.equals(rival.activityInfo.packageName)
-                ? "another home app is installed" : "Home shared with " + name;
+                ? c.getString(R.string.db_r_home_other) : c.getString(R.string.db_r_home_shared, name);
     }
 
     /** The catalogue's plain-English name for a package, or the package name itself. */
-    static String titleOf(String pkg) {
+    static String titleOf(Context c, String pkg) {
         for (int i = 0; i < CATALOGUE.length; i++) {
-            if (CATALOGUE[i].pkg.equals(pkg)) return CATALOGUE[i].title;
+            if (CATALOGUE[i].pkg.equals(pkg)) return c.getString(CATALOGUE[i].title);
         }
         return pkg;
     }

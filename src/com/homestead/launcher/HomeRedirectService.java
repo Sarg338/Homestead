@@ -158,6 +158,30 @@ public class HomeRedirectService extends AccessibilityService {
         if (liveActivity != null && liveActivity.get() == a) liveActivity = null;
     }
 
+    /** The language was changed from a panel in context c: every window reads its text again. */
+    static void languageChanged(Context c) {
+        Lang.apply(c);
+        // The system tiles' names are set when the model loads, so load it in the new language.
+        AppModel.reload(c);
+        HomeRedirectService s = instance;
+        if (s != null) {
+            Lang.apply(s);
+            if (s.home != null) s.home.rebuild();
+        }
+        MainActivity a = (liveActivity == null) ? null : liveActivity.get();
+        if (a != null) {
+            Lang.apply(a);
+            a.rebuildGrid();
+        }
+    }
+
+    /** A system change (the TV's language, say) resets our resources; keep the user's choice. */
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration conf) {
+        super.onConfigurationChanged(conf);
+        Lang.apply(this);
+    }
+
     /** True only if the pick happened in the same epoch as the activity now resuming. */
     public static boolean consumeUserPicked() {
         boolean mine = (pickedEpoch == epoch);
@@ -405,6 +429,7 @@ public class HomeRedirectService extends AccessibilityService {
         super.onServiceConnected();
         if (home != null) return;               // guard against a second connect
         instance = this;
+        Lang.apply(this);
         Prefs.setHomeOffByUser(this, false);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         // Before the first load, so an input that registers during it is still noticed.

@@ -51,6 +51,7 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Lang.apply(this);
         home = new HomeGrid(this, this);
         setContentView(home.root);
         home.takeStartFocus();

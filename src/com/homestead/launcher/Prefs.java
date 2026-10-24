@@ -230,10 +230,11 @@ public final class Prefs {
     public static final int SHORTCUTS_OFF = 0;
     public static final int SHORTCUTS_TOP = 1;
     public static final int SHORTCUTS_BOTTOM = 2;
+    public static final int SHORTCUTS_BAR = 3;
 
     public static int shortcutsPlace(Context c) {
         int n = sp(c).getInt(K_SHORTCUTS_PLACE, SHORTCUTS_OFF);
-        return (n < SHORTCUTS_OFF || n > SHORTCUTS_BOTTOM) ? SHORTCUTS_OFF : n;
+        return (n < SHORTCUTS_OFF || n > SHORTCUTS_BAR) ? SHORTCUTS_OFF : n;
     }
     public static void setShortcutsPlace(Context c, int v) {
         sp(c).edit().putInt(K_SHORTCUTS_PLACE, v).apply();

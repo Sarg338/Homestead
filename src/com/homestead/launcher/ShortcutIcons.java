@@ -93,6 +93,18 @@ final class ShortcutIcons {
                 float x = s * (0.26f + i * 0.24f);
                 c.drawLine(x, s * 0.86f, x, s * top[i], line);
             }
+        } else if ("more".equals(id)) {
+            for (int i = 0; i < 3; i++) c.drawCircle(s * (0.22f + i * 0.28f), s * 0.5f, s * 0.07f, fill);
+        } else if ("settings".equals(id)) {
+            float cx = s * 0.5f, cy = s * 0.5f;
+            c.drawCircle(cx, cy, s * 0.16f, line);
+            for (int i = 0; i < 8; i++) {
+                double a = Math.toRadians(i * 45);
+                float dx = (float) Math.cos(a), dy = (float) Math.sin(a);
+                c.drawLine(cx + dx * s * 0.28f, cy + dy * s * 0.28f,
+                        cx + dx * s * 0.40f, cy + dy * s * 0.40f, line);
+            }
+            c.drawCircle(cx, cy, s * 0.28f, line);
         } else if ("account".equals(id)) {
             c.drawCircle(s * 0.5f, s * 0.34f, s * 0.14f, line);
             c.drawArc(new RectF(s * 0.2f, s * 0.58f, s * 0.8f, s * 1.1f), 200f, 140f, false, line);

@@ -67,6 +67,9 @@ public final class AppModel {
     /** Item.key() of the Live TV tile; also how it is stored when hidden. */
     static final String LIVETV_KEY = "sys:livetv";
     static final String RESTORE_KEY = "sys:restore";
+    /** Shortcut actions that are not an Amazon settings screen: the top bar's own two pills. */
+    static final String SC_MORE = "homestead:more";
+    static final String SC_SETTINGS = "homestead:settings";
     static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     static final String AMAZON_SETTINGS = "com.amazon.tv.settings.v2";
     static final String AMAZON_HOME_CLS = "com.amazon.tv.launcher.ui.HomeActivity_vNext";

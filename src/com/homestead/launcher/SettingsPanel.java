@@ -233,7 +233,14 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        greet.setHelp("\"Good morning\", \"Good afternoon\" or \"Good evening\" at the top left.");
+        greet.setHelp("\"Good morning\", \"Good afternoon\" or \"Good evening\" at the top left. "
+                + "Not shown while the shortcuts bar is on.");
+        if (Prefs.shortcutsPlace(c) == Prefs.SHORTCUTS_BAR && !Prefs.simpleMode(c)) {
+            // The bar takes the corner, so there is nothing for this switch to turn on.
+            greet.setValue("not with the shortcuts bar");
+            greet.setValueColor(0xFF7F8FA0);
+            greet.cell.setEnabled(false);
+        }
 
         final Panel.Row date = p.addRow("Date", dateLabel(c), null);
         date.cell.setOnClickListener(new View.OnClickListener() {
@@ -245,7 +252,8 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
-        date.setHelp("Under the greeting. Both formats follow the TV's language.");
+        date.setHelp("Under the greeting, or next to the clock when the shortcuts bar is on. "
+                + "Both formats follow the TV's language.");
 
         final Panel.Row wide = p.addRow("Non-TV apps as wide tiles", onOff(Prefs.nonTvWide(c)), null).asSwitch();
         wide.cell.setOnClickListener(new View.OnClickListener() {

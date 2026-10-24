@@ -17,13 +17,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.view.View;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Everything about Amazon's settings and launcher in one place: the settings screens that
- * open from here, and the switch that warns when a system update undoes Debloat.
+ * open from here, the one that needs Amazon's launcher, and what to know with Amazon's
+ * launcher switched off.
  *
  * Every screen is an action that com.amazon.tv.settings.v2 answers, aimed at that package
  * so a second handler (the quick settings overlay also answers some) cannot turn the press
@@ -91,7 +93,8 @@ public final class FireTvSettingsPanel {
 
     public static View build(final Context c, final SettingsPanel.Host host) {
         final Panel p = new Panel(c, "Fire TV settings", null, Panel.SHEET);
-        List<String[]> open = available(c, null);
+        List<String> locked = new ArrayList<String>();
+        List<String[]> open = available(c, locked);
 
         p.addHeader("Open from here");
         for (int i = 0; i < open.size(); i++) {
@@ -100,9 +103,26 @@ public final class FireTvSettingsPanel {
                 public void run() { SetupPanel.start(c, intent); }
             }).opens().setHelp(open.get(i)[HELP]);
         }
+        final Panel.Row all = p.addRow("All Amazon settings",
+                AppModel.amazonLauncherOn(c) ? "" : "needs the launcher", null).opens();
+        all.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { openAll(c, host); }
+        });
+        all.setHelp("Amazon's full settings menu"
+                + (locked.isEmpty() ? "." : ", including " + join(locked) + ".")
+                + (AppModel.amazonLauncherOn(c) ? ""
+                        : " With Amazon's launcher off it is switched on for a moment first."));
+
         p.addHeader("Amazon's launcher");
-        p.addRow("Amazon's launcher", AppModel.amazonLauncherOn(c) ? "on" : "off", null)
-                .setHelp("Switch it off in Debloat to make Home open Homestead directly.");
+        if (AppModel.amazonLauncherOn(c)) {
+            p.addRow("Amazon's launcher", "on", null)
+                    .setHelp("Switch it off in Debloat to make Home open Homestead directly.");
+        } else {
+            p.addRow("Amazon's launcher", "off", new Runnable() {
+                public void run() { host.showPanel(SettingsPanel.buildLauncherOff(c, host)); }
+            }).opens().setHelp("What changes while it is off, and how to get the screens "
+                    + "that need it.");
+        }
         final Panel.Row watch = p.addRow("Warn if the system undoes Debloat",
                 onOff(Prefs.restoreWatch(c)), null).asSwitch();
         watch.cell.setOnClickListener(new View.OnClickListener() {
@@ -123,7 +143,78 @@ public final class FireTvSettingsPanel {
         return p.root;
     }
 
+    // ---------------------------------------------------------------- all settings, via the launcher
+
+    /** The warning, then the button: what is about to happen and what it costs. */
+    private static View buildOpenRest(final Context c, final SettingsPanel.Host host) {
+        final Panel p = new Panel(c, "All Amazon settings", null, Panel.SHEET);
+
+        p.addHeader("What will happen");
+        p.addNote("1. Amazon's launcher is switched back on, over the ADB link.");
+        p.addNote("2. Amazon's settings menu opens. Change what you need.");
+        p.addNote("3. Press Home when you are done. Homestead covers Amazon's home again, with "
+                + "a tile on top saying the launcher was switched back on. Press OK on it to "
+                + "switch the launcher off again.");
+        p.addHeader("What it costs if you leave it on");
+        p.addNote("With Amazon's launcher on, Home goes through Amazon's home screen again: "
+                + "its ads and a flash of it on every press. This also turns on \"Warn if the "
+                + "system undoes Debloat\", which is what shows the tile in step 3.");
+
+        p.addRow("Switch it on and open the settings", "", new Runnable() {
+            public void run() { openRest(c); }
+        });
+        p.addRow("Cancel", "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
+    }
+
+    private static void openRest(final Context c) {
+        if (!AdbBridge.canRun(c)) {
+            Toast.makeText(c, R.string.home_restore_failed, Toast.LENGTH_LONG).show();
+            return;
+        }
+        // Kept in the list of what this app switched off, so the restore tile offers to undo it.
+        Prefs.setRestoreWatch(c, true);
+        Toast.makeText(c, R.string.home_connecting, Toast.LENGTH_SHORT).show();
+        AdbBridge.runRetry(new String[]{ AdbBridge.enableCommand(AppModel.AMAZON_LAUNCHER) },
+                new AdbBridge.Callback() {
+            public void onDone(boolean ok, String out) {
+                if (Debloat.stateOf(c, AppModel.AMAZON_LAUNCHER) != Debloat.ENABLED) {
+                    Toast.makeText(c, R.string.home_restore_failed, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                openAllSettings(c);
+            }
+        });
+    }
+
+    /**
+     * Amazon's full settings menu: straight away with the launcher on, behind the warning
+     * with it off.
+     */
+    static void openAll(Context c, SettingsPanel.Host host) {
+        if (AppModel.amazonLauncherOn(c)) openAllSettings(c);
+        else host.showPanel(buildOpenRest(c, host));
+    }
+
+    /** Amazon's own settings menu, which the launcher serves and needs no permission to start. */
+    private static void openAllSettings(Context c) {
+        Intent i = new Intent();
+        i.setClassName(AppModel.AMAZON_LAUNCHER, AppModel.AMAZON_LAUNCHER + ".ui.MainSettingsActivity");
+        SetupPanel.start(c, i);
+    }
+
     // ---------------------------------------------------------------- small helpers
 
     private static String onOff(boolean on) { return on ? "on" : "off"; }
+
+    private static String join(List<String> items) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < items.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(items.get(i));
+        }
+        return sb.toString();
+    }
 }

@@ -124,6 +124,51 @@ public final class SettingsPanel {
         return p.root;
     }
 
+    // ---------------------------------------------------------------- amazon launcher off
+
+    /**
+     * The actions Amazon's launcher registers that nothing else on the TV answers, found by
+     * resolving them with the launcher switched off (TCL 40V5D, Fire OS 14). A list to keep
+     * up to date, not a promise about every TV.
+     */
+    static View buildLauncherOff(final Context c, final Host host) {
+        final Panel p = new Panel(c, "Amazon's launcher is off", null, Panel.SHEET);
+
+        p.addHeader("Only Amazon's launcher had these");
+        p.addRow("Inputs screen", "use the input tiles", null)
+                .setHelp("com.amazon.tv.action.NAVIGATE_TO_INPUTS. Each input is a tile on the "
+                        + "home screen and opens directly.");
+        p.addRow("Recents", "use the home screen", null)
+                .setHelp("com.amazon.tv.action.NAVIGATE_TO_RECENTS. Apps are ordered by last "
+                        + "use on the home screen.");
+        p.addRow("All apps", "use the home screen", null)
+                .setHelp("android.intent.action.ALL_APPS. The home screen lists every app.");
+        p.addRow("Games", "nothing", null)
+                .setHelp("com.amazon.tv.action.NAVIGATE_TO_GAMES. Games are ordinary tiles.");
+        p.addRow("Network details", "Network in Fire TV settings", null)
+                .setHelp("amazon.net.UNIFIED_NETWORK. The Network screen opens from Settings > "
+                        + "System > Fire TV settings.");
+        p.addRow("Language, Accessibility", "All settings", null)
+                .setHelp("Amazon's settings app opens these only for Amazon's own launcher. "
+                        + "\"All Amazon settings\" in Fire TV settings switches the launcher on "
+                        + "for a moment to reach them.");
+        p.addRow("Remote's Settings button", "account, apps, picture, sound", null)
+                .setHelp("It opens Amazon's quick settings. Language and Accessibility are not "
+                        + "in it.");
+
+        p.addHeader("Still works");
+        p.addNote("Amazon's Settings app (com.amazon.tv.settings.v2) is a separate package and "
+                + "keeps working. Settings > System > Fire TV settings opens each of its "
+                + "screens directly.");
+        p.addNote("To switch Amazon's launcher back on: Debloat, \"Amazon's launcher\", or "
+                + "adb shell pm enable --user 0 com.amazon.tv.launcher");
+
+        p.addRow("Back", "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
+    }
+
     // ---------------------------------------------------------------- home screen
 
     private static View buildHome(final Context c, final Host host, final Runnable changed) {

@@ -663,6 +663,7 @@ public class HomeGrid implements SettingsPanel.Host {
         List<AppModel.Item> inputs = new ArrayList<AppModel.Item>();
         List<AppModel.Item> nonTv = new ArrayList<AppModel.Item>();
         List<AppModel.Item> tv = new ArrayList<AppModel.Item>();
+        List<AppModel.Item> shortcuts = new ArrayList<AppModel.Item>();
 
         // Live TV first takes the Live TV tile out of its section and puts it above them all.
         boolean tvFirst = liveTvFirst();
@@ -677,6 +678,8 @@ public class HomeGrid implements SettingsPanel.Host {
             if (it.type == AppModel.TYPE_RESTORE) {
                 restoreShown = true;
                 restore = it;
+            } else if (it.type == AppModel.TYPE_SHORTCUT) {
+                shortcuts.add(it);
             } else if (tvFirst && it.type == AppModel.TYPE_LIVETV) {
                 liveTv = it;
             } else if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV
@@ -717,18 +720,26 @@ public class HomeGrid implements SettingsPanel.Host {
         String inputsTitle = ctx.getString(R.string.home_sec_inputs);
         String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
         String tvTitle = ctx.getString(R.string.home_sec_tv);
+        String shortcutsTitle = ctx.getString(R.string.home_sec_settings);
+        boolean scTop = !shortcuts.isEmpty() && Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_TOP;
+        boolean scBottom = !shortcuts.isEmpty()
+                && Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_BOTTOM;
         boolean first = true;
         if (restore != null) { addRestoreTile(restore); first = false; }
         if (tvFirst) {
             if (liveTv != null)    { addLiveTvTile(liveTv); first = false; }
+            if (scTop)             { addHeader(shortcutsTitle, first); first = false; addCardRow(shortcuts); }
             if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
             if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); addNonTv(nonTv); }
+            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
+            if (scBottom)          { addHeader(shortcutsTitle, first); addCardRow(shortcuts); }
             return;
         }
+        if (scTop)             { addHeader(shortcutsTitle, first); first = false; addCardRow(shortcuts); }
         if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
         if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
-        if (!tv.isEmpty())     { addHeader(tvTitle, first); addTileGrid(tv); }
+        if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
+        if (scBottom)          { addHeader(shortcutsTitle, first); addCardRow(shortcuts); }
     }
 
     /** Live TV first: one large tile, two banner cells wide, on its own row. */
@@ -1348,6 +1359,11 @@ public class HomeGrid implements SettingsPanel.Host {
         }
         if (it.type == AppModel.TYPE_RESTORE) {
             restoreReverted();
+            return;
+        }
+        if (it.type == AppModel.TYPE_SHORTCUT) {
+            logOpen(it.label);
+            SetupPanel.start(ctx, FireTvSettingsPanel.intentFor(it.cls));
             return;
         }
         if (it.type == AppModel.TYPE_LIVETV) {

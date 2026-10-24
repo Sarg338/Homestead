@@ -12,6 +12,7 @@
   <string name="home_restore_failed">Could not reach the TV. Open Setup to connect</string>
   <string name="home_restore_refused">Fire OS kept %1$s on</string>
   <string name="home_connecting">Connecting to the TV...</string>
+  <string name="home_sec_settings">Fire TV settings</string>
   <string name="home_sec_inputs">Inputs &amp; System</string>
   <string name="home_sec_nontv">Non-TV Applications</string>
   <string name="home_sec_tv">TV Applications</string>

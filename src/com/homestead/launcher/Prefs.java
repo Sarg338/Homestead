@@ -42,6 +42,8 @@ public final class Prefs {
     private static final String K_TUNNEL = "adb_tunnel_enabled";
     private static final String K_REAPPLY = "adb_reapply_on_boot";
     private static final String K_RESTORE_WATCH = "restore_watch";
+    private static final String K_SHORTCUTS_PLACE = "shortcuts_place";
+    private static final String K_SHORTCUTS = "shortcuts";
     private static final String K_DISABLED = "disabled_by_us";
     private static final String K_REFUSED = "refused_by_fire_os";
     private static final String K_HOME_OFF = "home_off_by_user";
@@ -223,6 +225,36 @@ public final class Prefs {
     /** Amazon Home, Settings and TV Health use icons read from Fire OS's own apps. */
     public static boolean fireOsIcons(Context c) { return sp(c).getBoolean(K_FIRE_ICONS, false); }
     public static void setFireOsIcons(Context c, boolean v) { sp(c).edit().putBoolean(K_FIRE_ICONS, v).apply(); }
+
+    /** The Fire TV settings shortcuts row: where it goes on the home screen, and what is in it. */
+    public static final int SHORTCUTS_OFF = 0;
+    public static final int SHORTCUTS_TOP = 1;
+    public static final int SHORTCUTS_BOTTOM = 2;
+
+    public static int shortcutsPlace(Context c) {
+        int n = sp(c).getInt(K_SHORTCUTS_PLACE, SHORTCUTS_OFF);
+        return (n < SHORTCUTS_OFF || n > SHORTCUTS_BOTTOM) ? SHORTCUTS_OFF : n;
+    }
+    public static void setShortcutsPlace(Context c, int v) {
+        sp(c).edit().putInt(K_SHORTCUTS_PLACE, v).apply();
+    }
+
+    /** Screen ids (FireTvSettingsPanel) in the row; the four that open from here until chosen. */
+    public static Set<String> shortcuts(Context c) {
+        Set<String> s = sp(c).getStringSet(K_SHORTCUTS, null);
+        if (s != null) return new HashSet<String>(s);
+        Set<String> d = new HashSet<String>();
+        d.add("network");
+        d.add("controllers");
+        d.add("applications");
+        d.add("device");
+        return d;
+    }
+    public static void setShortcut(Context c, String id, boolean on) {
+        Set<String> s = shortcuts(c);
+        if (on) s.add(id); else s.remove(id);
+        sp(c).edit().putStringSet(K_SHORTCUTS, s).apply();
+    }
 
     /**
      * Tell me when the system undoes my changes: after an update Fire OS can switch back on

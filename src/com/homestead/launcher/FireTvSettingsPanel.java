@@ -24,8 +24,8 @@ import java.util.List;
 
 /**
  * Everything about Amazon's settings and launcher in one place: the settings screens that
- * open from here, the one that needs Amazon's launcher, and what to know with Amazon's
- * launcher switched off.
+ * open from here, the one that needs Amazon's launcher, an optional row of shortcuts on the
+ * home screen, and what to know with Amazon's launcher switched off.
  *
  * Every screen is an action that com.amazon.tv.settings.v2 answers, aimed at that package
  * so a second handler (the quick settings overlay also answers some) cannot turn the press
@@ -113,6 +113,23 @@ public final class FireTvSettingsPanel {
                 + (AppModel.amazonLauncherOn(c) ? ""
                         : " With Amazon's launcher off it is switched on for a moment first."));
 
+        p.addHeader("Shortcuts on the home screen");
+        final Panel.Row place = p.addRow("Shortcuts row", placeLabel(Prefs.shortcutsPlace(c)), null);
+        place.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.shortcutsPlace(c) + 1) % 3;
+                Prefs.setShortcutsPlace(c, n);
+                place.setValue(placeLabel(n));
+                AppModel.reload(c);
+                host.rebuildGrid();
+            }
+        });
+        place.setHelp("A row of settings shortcuts on the home screen: off, above the apps or "
+                + "below them.");
+        p.addRow("Choose shortcuts", "", new Runnable() {
+            public void run() { host.showPanel(buildChoose(c, host)); }
+        }).opens().setHelp("Which screens go in the row.");
+
         p.addHeader("Amazon's launcher");
         if (AppModel.amazonLauncherOn(c)) {
             p.addRow("Amazon's launcher", "on", null)
@@ -137,6 +154,34 @@ public final class FireTvSettingsPanel {
         watch.setHelp("If an update switches back on something Debloat turned off, the home "
                 + "screen shows it for 10 seconds, and OK switches it off again.");
 
+        p.addRow("Back", "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
+    }
+
+    private static View buildChoose(final Context c, final SettingsPanel.Host host) {
+        final Panel p = new Panel(c, "Choose shortcuts", null, Panel.SHEET);
+        p.addHeader("In the shortcuts row");
+        final java.util.Set<String> on = Prefs.shortcuts(c);
+        List<String[]> open = available(c, null);
+        for (int i = 0; i < open.size(); i++) {
+            final String id = open.get(i)[ID];
+            final Panel.Row row = p.addRow(open.get(i)[TITLE], onOff(on.contains(id)), null).asSwitch();
+            row.cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    boolean n = !Prefs.shortcuts(c).contains(id);
+                    Prefs.setShortcut(c, id, n);
+                    row.setValue(onOff(n));
+                    AppModel.reload(c);
+                    host.rebuildGrid();
+                }
+            });
+            row.setHelp(open.get(i)[HELP]);
+        }
+        if (Prefs.shortcutsPlace(c) == Prefs.SHORTCUTS_OFF) {
+            p.addNote("The row is off. Turn it on with \"Shortcuts row\" on the previous page.");
+        }
         p.addRow("Back", "", new Runnable() {
             public void run() { host.closePanel(); }
         });
@@ -206,6 +251,12 @@ public final class FireTvSettingsPanel {
     }
 
     // ---------------------------------------------------------------- small helpers
+
+    private static String placeLabel(int place) {
+        if (place == Prefs.SHORTCUTS_TOP) return "above the apps";
+        if (place == Prefs.SHORTCUTS_BOTTOM) return "below the apps";
+        return "off";
+    }
 
     private static String onOff(boolean on) { return on ? "on" : "off"; }
 

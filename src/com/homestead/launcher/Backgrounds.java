@@ -55,8 +55,9 @@ final class Backgrounds {
 
     private static final int EDGE = 0x3DFFFFFF;
 
-    /** Index 0 is the original look and the default. */
+    /** Index 0 is the default: a flat night blue that the tiles' own colours sit on. */
     static final Preset[] PRESETS = {
+            new Preset("Night",    0xFF0E1726, 0xFF0E1726, 0xFFE8EEF6, 0xFFFFFFFF, 0),
             new Preset("Sky",      0xFF6991C7, 0xFFA3BDED, 0xFFFFFFFF, 0xFF2C2C2C, 0),
             new Preset("Midnight", 0xFF0B1F38, 0xFF1D4E86, 0xFFFFFFFF, 0xFFE6EEF8, EDGE),
             new Preset("Charcoal", 0xFF1A1B1F, 0xFF3A3C44, 0xFFFFFFFF, 0xFFE6E6E6, EDGE),

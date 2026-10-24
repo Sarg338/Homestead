@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A frame with a play button, for the local photo and video gallery. Tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+  <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8"
+      android:strokeLineJoin="round" android:strokeLineCap="round"
+      android:pathData="M3.5,5 H20.5 V19 H3.5 Z M10,9 L15,12 L10,15 Z"/>
+</vector>

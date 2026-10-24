@@ -57,6 +57,8 @@ public final class AppModel {
     public static final int TYPE_HEALTH = 4;
     /** Fire TV Live TV (antenna/cable tuner), started through Amazon's public TuneService. */
     public static final int TYPE_LIVETV = 5;
+    /** The TV's own settings (android.settings.SETTINGS), as opposed to this launcher's. */
+    public static final int TYPE_TVSETTINGS = 6;
 
     static final String LIVETV_PKG = "com.amazon.tv.livetv";
     static final String LIVETV_SVC = "com.amazon.tv.livetv.TuneService";
@@ -64,6 +66,31 @@ public final class AppModel {
     static final String LIVETV_KEY = "sys:livetv";
     static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     static final String AMAZON_HOME_CLS = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
+    /**
+     * Apps with no TV banner whose phone-sized icons look poor on a Tools card: drawn with a
+     * line icon instead. {glyph, swatch, glyph colour}.
+     */
+    private static final Map<String, int[]> GLYPHS = new java.util.HashMap<String, int[]>();
+    static {
+        GLYPHS.put("com.amazon.venezia",
+                new int[] { R.drawable.ic_tool_store, 0xFF4A2A12, 0xFFFFB36B });
+        GLYPHS.put("com.amazon.tahoe",
+                new int[] { R.drawable.ic_tool_kids, 0xFF3D3812, 0xFFF2D86B });
+        GLYPHS.put("com.amazon.bueller.photos",
+                new int[] { R.drawable.ic_tool_photos, 0xFF0F3E4A, 0xFF7FD6EA });
+        GLYPHS.put("com.amazon.cloud9",
+                new int[] { R.drawable.ic_tool_web, 0xFF0E4A44, 0xFF5EE0C8 });
+        GLYPHS.put("com.android.documentsui",
+                new int[] { R.drawable.ic_tool_folder, 0xFF1B3260, 0xFF8FB4FF });
+        GLYPHS.put("com.amazon.tv.localgallery",
+                new int[] { R.drawable.ic_tool_gallery, 0xFF3F1F3A, 0xFFF29AC8 });
+    }
+
+    private static void setGlyph(Item it, int glyph, int swatch, int tint) {
+        it.glyph = glyph;
+        it.swatch = swatch;
+        it.glyphTint = tint;
+    }
 
     /** Grid metrics: 32dp margins, 16dp gaps, 6 columns. */
     public static int columns(Context c) { return Prefs.columns(c); }
@@ -73,7 +100,7 @@ public final class AppModel {
     private static final int MARGIN_DP = 32;
     private static final int GAP_DP = 16;
     private static final int ICON_PX = 96;
-    private static final int CORNER_DP = 8;
+    private static final int CORNER_DP = 10;   // matches HomeGrid's cards and focus ring
 
     public static class Item {
         public int type;
@@ -88,6 +115,14 @@ public final class AppModel {
         public boolean tvApp;
         public Bitmap banner;
         public Bitmap icon;
+        /** Line icon drawn tinted instead of icon (inputs, system tiles); 0 for none. */
+        public int glyph;
+        /** For a glyph on a Tools card: the swatch behind it and the glyph's colour; 0 if unset. */
+        public int swatch, glyphTint;
+        /** Dominant colour of icon, for the swatch behind it on a Tools card; 0 if none. */
+        public int accent;
+        /** An input with something plugged in and powered, as far as the TV can tell. */
+        public boolean connected;
         public long lastUsed;
 
         /** Stable across a re-sort; the handoff carries this, never an index. */
@@ -97,6 +132,7 @@ public final class AppModel {
             if (type == TYPE_AMAZON_HOME) return "amz";
             if (type == TYPE_SETTINGS) return "sys:settings";
             if (type == TYPE_HEALTH) return "sys:health";
+            if (type == TYPE_TVSETTINGS) return "sys:tvsettings";
             return "app:" + pkg;
         }
     }
@@ -169,20 +205,26 @@ public final class AppModel {
 
         Item amazon = new Item();
         amazon.type = TYPE_AMAZON_HOME;
-        amazon.label = "Amazon Home";
-        amazon.icon = toBitmap(c, appIcon(c, AMAZON_LAUNCHER), ICON_PX, ICON_PX, false);
+        amazon.label = c.getString(R.string.home_amazon);
+        setGlyph(amazon, R.drawable.ic_tool_amazon, 0xFF123F5C, 0xFF6CC4FF);
         ITEMS.add(amazon);
+
+        Item tvSettings = new Item();
+        tvSettings.type = TYPE_TVSETTINGS;
+        tvSettings.label = c.getString(R.string.home_tvsettings);
+        setGlyph(tvSettings, R.drawable.ic_tool_tvsettings, 0xFF24364A, 0xFFE8EEF6);
+        ITEMS.add(tvSettings);
 
         Item settings = new Item();
         settings.type = TYPE_SETTINGS;
-        settings.label = "Settings";
-        settings.icon = toBitmap(c, drawable(c, android.R.drawable.ic_menu_manage), ICON_PX, ICON_PX, false);
+        settings.label = c.getString(R.string.home_settings);
+        setGlyph(settings, R.drawable.ic_tool_settings, 0xFF2E3442, 0xFFC9D3E3);
         ITEMS.add(settings);
 
         Item health = new Item();
         health.type = TYPE_HEALTH;
-        health.label = "TV Health";
-        health.icon = toBitmap(c, drawable(c, android.R.drawable.ic_menu_info_details), ICON_PX, ICON_PX, false);
+        health.label = c.getString(R.string.home_health);
+        setGlyph(health, R.drawable.ic_tool_health, 0xFF3A2440, 0xFFE6A4F2);
         ITEMS.add(health);
 
         PackageManager pm = c.getPackageManager();
@@ -218,11 +260,15 @@ public final class AppModel {
                 a.banner = toBitmap(c, raw, cellW, cellH, true);
                 raw = null;
                 a.tvApp = (ci == 0) || a.banner != null;
-                // Icons are only shown when there is no banner, so only decode them then.
-                if (a.banner == null) {
+                int[] g = (a.banner == null) ? GLYPHS.get(a.pkg) : null;
+                if (g != null) {
+                    setGlyph(a, g[0], g[1], g[2]);
+                } else if (a.banner == null) {
+                    // Icons are only shown when there is no banner, so only decode them then.
                     Drawable ic = null;
                     try { ic = ri.loadIcon(pm); } catch (Throwable t) { ic = null; }
                     a.icon = toBitmap(c, ic, ICON_PX, ICON_PX, false);
+                    a.accent = dominant(a.icon);
                     ic = null;
                 }
                 ITEMS.add(a);
@@ -336,6 +382,7 @@ public final class AppModel {
             Item tv = new Item();
             tv.type = TYPE_LIVETV;
             tv.label = c.getString(R.string.home_livetv);
+            tv.glyph = R.drawable.ic_in_antenna;
             ITEMS.add(tv);
         }
         try {
@@ -352,18 +399,44 @@ public final class AppModel {
                 CharSequence lb = null;
                 try { lb = info.loadLabel(c); } catch (Throwable t) { }
                 it.label = (lb == null || lb.length() == 0) ? "Input" : lb.toString();
+                it.glyph = it.label.toUpperCase(Locale.US).startsWith("HDMI")
+                        ? R.drawable.ic_in_hdmi : R.drawable.ic_in_composite;
+                it.connected = inputConnected(tim, it.inputId);
                 ITEMS.add(it);
             }
         } catch (Throwable t) { }
     }
 
-    private static Drawable drawable(Context c, int id) {
-        try { return c.getResources().getDrawable(id); } catch (Throwable t) { return null; }
+    /** INPUT_STATE_CONNECTED only; standby and disconnected read as not connected. */
+    private static boolean inputConnected(TvInputManager tim, String id) {
+        if (android.os.Build.VERSION.SDK_INT < 24) return false;
+        try {
+            return tim.getInputState(id) == TvInputManager.INPUT_STATE_CONNECTED;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
-    private static Drawable appIcon(Context c, String pkg) {
-        try { return c.getPackageManager().getApplicationIcon(pkg); }
-        catch (Throwable t) { return null; }
+    /**
+     * Average colour of an icon's opaque, not near-grey pixels, sampled on a coarse grid;
+     * 0 when the icon is missing or colourless.
+     */
+    private static int dominant(Bitmap b) {
+        if (b == null) return 0;
+        long r = 0, g = 0, bl = 0, n = 0;
+        int step = Math.max(1, Math.min(b.getWidth(), b.getHeight()) / 16);
+        for (int y = 0; y < b.getHeight(); y += step) {
+            for (int x = 0; x < b.getWidth(); x += step) {
+                int p = b.getPixel(x, y);
+                if ((p >>> 24) < 200) continue;
+                int pr = (p >> 16) & 0xFF, pg = (p >> 8) & 0xFF, pb = p & 0xFF;
+                int max = Math.max(pr, Math.max(pg, pb)), min = Math.min(pr, Math.min(pg, pb));
+                if (max - min < 40) continue;
+                r += pr; g += pg; bl += pb; n++;
+            }
+        }
+        if (n == 0) return 0;
+        return 0xFF000000 | (int) (r / n) << 16 | (int) (g / n) << 8 | (int) (bl / n);
     }
 
     /**
@@ -443,7 +516,8 @@ public final class AppModel {
             private int rank(int t) {
                 if (t == TYPE_LIVETV) return 0;
                 if (t == TYPE_INPUT) return 1;
-                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH) return 2;
+                if (t == TYPE_AMAZON_HOME || t == TYPE_TVSETTINGS
+                        || t == TYPE_SETTINGS || t == TYPE_HEALTH) return 2;
                 return 3;
             }
         });

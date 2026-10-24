@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A shopping bag, for the Appstore. Tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+  <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8"
+      android:strokeLineJoin="round" android:strokeLineCap="round"
+      android:pathData="M5,8 H19 L18,20 H6 Z M9,8 V6.5 A3,3 0 0,1 15,6.5 V8 M9,11.5 V12 M15,11.5 V12"/>
+</vector>

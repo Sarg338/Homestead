@@ -68,11 +68,24 @@ public class HomeGrid implements SettingsPanel.Host {
     // Layout metrics.
     private static final int MARGIN_DP = 32;
     private static final int GAP_DP = 16;
-    private static final int CARD_W_DP = 167;   // wide card, non-TV row
-    private static final int CARD_H_DP = 94;
-    private static final int HEADER_SP = 21;
-    private static final int HEADER_TOP_DP = 28;
+    private static final int INPUT_W_DP = 176;  // input card: line icon over label
+    private static final int INPUT_H_DP = 96;
+    private static final int TOOL_W_DP = 176;   // Tools card: swatch beside label
+    private static final int TOOL_H_DP = 68;
+    private static final int CORNER_DP = 10;
+    private static final int HEADER_SP = 18;
+    private static final int HEADER_TOP_DP = 26;
     private static final int HEADER_BOTTOM_DP = 12;
+    /** Room under a banner tile for its name, shown while it has focus. */
+    private static final int TILE_LABEL_DP = 28;
+    private static final float FOCUS_SCALE = 1.08f;
+    private static final int FOCUS_MS = 140;
+
+    // Card colours; the cards keep these on every background preset.
+    private static final int CARD_BG = 0xFF1A2638;
+    private static final int CARD_TEXT = 0xFFE8EEF6;
+    private static final int GLYPH_INPUT = 0xFF8FC2FF;
+    private static final int CONNECTED = 0xFF7BD88F;
 
     private final Context ctx;
     private final Listener listener;
@@ -80,7 +93,13 @@ public class HomeGrid implements SettingsPanel.Host {
     public final FrameLayout root;
     private final ScrollView scroll;
     private final LinearLayout column;
+    /** Greeting, date and clock; rebuilt into the column's first row on every build. */
+    private final LinearLayout header;
+    private final TextView greet;
+    private final TextView date;
     private final TextView clock;
+    /** Banner tiles' name labels, shown only while the tile has focus. */
+    private final Map<View, TextView> tileLabels = new HashMap<View, TextView>();
 
     private final Map<String, View> cellsByKey = new HashMap<String, View>();
     /** The horizontally scrolling section rows, in build order. */
@@ -185,19 +204,28 @@ public class HomeGrid implements SettingsPanel.Host {
         column.setOrientation(LinearLayout.VERTICAL);
         column.setClipChildren(false);
         column.setClipToPadding(false);
-        column.setPadding(dp(MARGIN_DP), dp(46), dp(MARGIN_DP), dp(MARGIN_DP));
+        // Extra room at the bottom so the last row's grown, ringed card is not cut off.
+        column.setPadding(dp(MARGIN_DP), dp(28), dp(MARGIN_DP), dp(56));
         scroll.addView(column, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        header = new LinearLayout(c);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout words = new LinearLayout(c);
+        words.setOrientation(LinearLayout.VERTICAL);
+        greet = new TextView(c);
+        greet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+        greet.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        words.addView(greet);
+        date = new TextView(c);
+        date.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        words.addView(date);
+        header.addView(words, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         clock = new TextView(c);
-        clock.setTextColor(Color.WHITE);
-        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-        FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP | Gravity.RIGHT);
-        clp.topMargin = dp(14);
-        clp.rightMargin = dp(33);
-        root.addView(clock, clp);
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+        header.addView(clock);
 
         AppModel.ensureLoaded(c);
         Backgrounds.ensureFolder(c);
@@ -241,7 +269,11 @@ public class HomeGrid implements SettingsPanel.Host {
         look = p;
         root.setBackground(photo != null ? Backgrounds.photoDrawable(ctx, photo)
                 : Backgrounds.drawable(p));
+        paintText(greet);
         paintText(clock);
+        paintText(date);
+        date.setTextColor((look.text & 0x00FFFFFF) | 0xA6000000);
+        for (View lb : tileLabels.values()) paintText((TextView) lb);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
             if (v instanceof TextView) paintText((TextView) v);
@@ -262,10 +294,16 @@ public class HomeGrid implements SettingsPanel.Host {
     // ---------------------------------------------------------------- public API
 
     public void updateClock() {
+        Date now = new Date();
+        int hour = Integer.parseInt(new SimpleDateFormat("H", Locale.US).format(now));
+        greet.setText(hour >= 5 && hour < 12 ? R.string.home_greet_morning
+                : hour >= 12 && hour < 18 ? R.string.home_greet_afternoon
+                : R.string.home_greet_evening);
+        date.setText(new SimpleDateFormat("EEEE d MMMM", Locale.getDefault()).format(now));
         int mode = Prefs.clockMode(ctx);
         if (mode == Prefs.CLOCK_OFF) { clock.setText(""); return; }
         String fmt = (mode == Prefs.CLOCK_12H) ? "h:mm a" : "HH:mm";
-        clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(new Date()));
+        clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(now));
     }
 
     /** Focus for a fresh Home press: Live TV when it comes first, else as takeFocus(). */
@@ -539,12 +577,23 @@ public class HomeGrid implements SettingsPanel.Host {
         }
     }
 
-    /** Enough to get to Settings, using nothing that can throw. */
-    private void buildFallback() {
+    /** Clears the column and puts the greeting row back at its top. */
+    private void startColumn() {
         column.removeAllViews();
         cellsByKey.clear();
+        tileLabels.clear();
         rows.clear();
         focusedCell = null;
+        if (header.getParent() != null) ((ViewGroup) header.getParent()).removeView(header);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(6);
+        column.addView(header, lp);
+    }
+
+    /** Enough to get to Settings, using nothing that can throw. */
+    private void buildFallback() {
+        startColumn();
         topTile = null;
 
         List<AppModel.Item> safe = new ArrayList<AppModel.Item>();
@@ -557,17 +606,20 @@ public class HomeGrid implements SettingsPanel.Host {
             }
         }
         addHeader("Homestead", true);
-        if (!safe.isEmpty()) addCardRow(safe);
+        if (!safe.isEmpty()) addCardRow(safe, TOOL_W_DP, TOOL_H_DP);
+    }
+
+    private static boolean isSystemTool(AppModel.Item it) {
+        return it.type == AppModel.TYPE_AMAZON_HOME || it.type == AppModel.TYPE_TVSETTINGS
+                || it.type == AppModel.TYPE_SETTINGS || it.type == AppModel.TYPE_HEALTH;
     }
 
     private void buildSections() {
-        column.removeAllViews();
-        cellsByKey.clear();
-        rows.clear();
-        focusedCell = null;
+        startColumn();
 
         List<AppModel.Item> inputs = new ArrayList<AppModel.Item>();
-        List<AppModel.Item> nonTv = new ArrayList<AppModel.Item>();
+        List<AppModel.Item> tools = new ArrayList<AppModel.Item>();
+        List<AppModel.Item> system = new ArrayList<AppModel.Item>();
         List<AppModel.Item> tv = new ArrayList<AppModel.Item>();
 
         // Live TV first takes the Live TV tile out of its section and puts it above them all.
@@ -580,55 +632,56 @@ public class HomeGrid implements SettingsPanel.Host {
             AppModel.Item it = all.get(i);
             if (tvFirst && it.type == AppModel.TYPE_LIVETV) {
                 liveTv = it;
-            } else if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV
-                    || it.type == AppModel.TYPE_AMAZON_HOME
-                    || it.type == AppModel.TYPE_SETTINGS || it.type == AppModel.TYPE_HEALTH) {
+            } else if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV) {
                 inputs.add(it);
+            } else if (isSystemTool(it)) {
+                system.add(it);
             } else if (it.tvApp && it.banner != null) {
                 tv.add(it);
             } else {
-                nonTv.add(it);
+                tools.add(it);
             }
         }
 
-        // Settings and TV Health survive the section being switched off.
-        if (!Prefs.showInputs(ctx)) {
+        if (!Prefs.showInputs(ctx)) inputs.clear();
+        // Settings and TV Health survive the Tools section being switched off.
+        if (!Prefs.showNonTv(ctx)) {
+            tools.clear();
             List<AppModel.Item> keep = new ArrayList<AppModel.Item>();
-            for (int i = 0; i < inputs.size(); i++) {
-                int t = inputs.get(i).type;
-                if (t == AppModel.TYPE_SETTINGS || t == AppModel.TYPE_HEALTH) keep.add(inputs.get(i));
+            for (int i = 0; i < system.size(); i++) {
+                if (system.get(i).type != AppModel.TYPE_AMAZON_HOME) keep.add(system.get(i));
             }
-            inputs = keep;
+            system = keep;
         }
-        if (!Prefs.showNonTv(ctx)) nonTv.clear();
 
         // Simple mode drops them too, unless nothing else is left: an empty grid has
         // nothing to focus, so the Menu presses that open Settings may not reach us.
         if (Prefs.simpleMode(ctx)) {
             List<AppModel.Item> rest = new ArrayList<AppModel.Item>();
-            for (int i = 0; i < inputs.size(); i++) {
-                int t = inputs.get(i).type;
-                if (t != AppModel.TYPE_SETTINGS && t != AppModel.TYPE_HEALTH) rest.add(inputs.get(i));
+            for (int i = 0; i < system.size(); i++) {
+                int t = system.get(i).type;
+                if (t != AppModel.TYPE_SETTINGS && t != AppModel.TYPE_HEALTH) rest.add(system.get(i));
             }
-            if (!rest.isEmpty() || !nonTv.isEmpty() || !tv.isEmpty() || liveTv != null) {
-                inputs = rest;
+            if (!rest.isEmpty() || !tools.isEmpty() || !inputs.isEmpty() || !tv.isEmpty()
+                    || liveTv != null) {
+                system = rest;
             }
         }
+        tools.addAll(system);
 
         String inputsTitle = ctx.getString(R.string.home_sec_inputs);
-        String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
+        String toolsTitle = ctx.getString(R.string.home_sec_nontv);
         String tvTitle = ctx.getString(R.string.home_sec_tv);
         boolean first = true;
+        if (tvFirst && liveTv != null) { addLiveTvTile(liveTv); first = false; }
         if (tvFirst) {
-            if (liveTv != null)    { addLiveTvTile(liveTv); first = false; }
             if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
-            if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); addCardRow(nonTv); }
-            return;
+            if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs, INPUT_W_DP, INPUT_H_DP); }
+        } else {
+            if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs, INPUT_W_DP, INPUT_H_DP); }
+            if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
         }
-        if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-        if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addCardRow(nonTv); }
-        if (!tv.isEmpty())     { addHeader(tvTitle, first); addTileGrid(tv); }
+        if (!tools.isEmpty()) { addHeader(toolsTitle, first); addCardRow(tools, TOOL_W_DP, TOOL_H_DP); }
     }
 
     /** Live TV first: one large tile, two banner cells wide, on its own row. */
@@ -673,13 +726,13 @@ public class HomeGrid implements SettingsPanel.Host {
         h.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = first ? 0 : dp(HEADER_TOP_DP);
+        lp.topMargin = first ? dp(14) : dp(HEADER_TOP_DP);
         lp.bottomMargin = dp(HEADER_BOTTOM_DP);
         column.addView(h, lp);
     }
 
-    /** Wide cards in a horizontally scrolling row. */
-    private void addCardRow(List<AppModel.Item> items) {
+    /** Cards of one size in a horizontally scrolling row. */
+    private void addCardRow(List<AppModel.Item> items, int wDp, int hDp) {
         HorizontalScrollView hs = new HorizontalScrollView(ctx);
         rows.add(hs);
         hs.setHorizontalScrollBarEnabled(false);
@@ -691,7 +744,7 @@ public class HomeGrid implements SettingsPanel.Host {
         for (int i = 0; i < items.size(); i++) {
             View cell = buildCard(items.get(i));
             LinearLayout.LayoutParams lp =
-                    new LinearLayout.LayoutParams(dp(CARD_W_DP), dp(CARD_H_DP));
+                    new LinearLayout.LayoutParams(dp(wDp), dp(hDp));
             if (i > 0) lp.leftMargin = dp(GAP_DP);
             row.addView(cell, lp);
         }
@@ -701,7 +754,10 @@ public class HomeGrid implements SettingsPanel.Host {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
-    /** 6-column grid of banner tiles, built as plain rows. */
+    /**
+     * 6-column grid of banner tiles, built as plain rows. Each tile has its name under it,
+     * shown only while it has focus; the space is kept so rows do not jump.
+     */
     private void addTileGrid(List<AppModel.Item> items) {
         int w = AppModel.cellW(ctx);
         int h = AppModel.cellH(ctx);
@@ -713,13 +769,28 @@ public class HomeGrid implements SettingsPanel.Host {
                 row.setClipChildren(false);
                 LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                if (i > 0) rlp.topMargin = dp(GAP_DP);
+                if (i > 0) rlp.topMargin = dp(4);
                 column.addView(row, rlp);
             }
+            LinearLayout slot = new LinearLayout(ctx);
+            slot.setOrientation(LinearLayout.VERTICAL);
+            slot.setClipChildren(false);
             View cell = buildTile(items.get(i));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
+            slot.addView(cell, new LinearLayout.LayoutParams(w, h));
+            TextView name = new TextView(ctx);
+            name.setText(items.get(i).label);
+            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            name.setGravity(Gravity.CENTER);
+            name.setSingleLine(true);
+            name.setEllipsize(TextUtils.TruncateAt.END);
+            name.setVisibility(View.INVISIBLE);
+            paintText(name);
+            slot.addView(name, new LinearLayout.LayoutParams(w, dp(TILE_LABEL_DP)));
+            tileLabels.put(cell, name);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    w, ViewGroup.LayoutParams.WRAP_CONTENT);
             if (i % AppModel.columns(ctx) != 0) lp.leftMargin = dp(GAP_DP);
-            row.addView(cell, lp);
+            row.addView(slot, lp);
         }
     }
 
@@ -740,6 +811,8 @@ public class HomeGrid implements SettingsPanel.Host {
                 } else {
                     style(v, false);
                 }
+                TextView name = tileLabels.get(v);
+                if (name != null) name.setVisibility(has ? View.VISIBLE : View.INVISIBLE);
             }
         });
         cell.setOnClickListener(new View.OnClickListener() {
@@ -767,36 +840,41 @@ public class HomeGrid implements SettingsPanel.Host {
     private Drawable outline() {
         if (look == null || look.outline == 0) return null;
         GradientDrawable d = new GradientDrawable();
-        d.setCornerRadius(dp(8));
+        d.setCornerRadius(dp(CORNER_DP));
         d.setStroke(dp(1), look.outline);
         d.setColor(Color.TRANSPARENT);
         return d;
     }
 
     /**
-     * Focus treatment: 1.1x scale and a ring in the preset's colour (dark on the light
-     * default, since white is invisible on white banners; light on the dark presets). Set
-     * directly rather than via a selector so it survives the window losing focus during
-     * the overlay -> activity handoff.
+     * Focus treatment: a short grow to 1.08x and a ring in the preset's colour (dark on the
+     * light Sky preset, since white is invisible on white banners; light on the dark ones).
+     * The ring is set directly rather than via a selector so it survives the window losing
+     * focus during the overlay -> activity handoff; the grow is animated, and an unchanged
+     * state is left alone so repaints do not restart it.
      */
     private void style(View v, boolean focused) {
         if (!(v instanceof FrameLayout)) return;
         FrameLayout f = (FrameLayout) v;
         if (focused) {
             GradientDrawable ring = new GradientDrawable();
-            ring.setCornerRadius(dp(8));
+            ring.setCornerRadius(dp(CORNER_DP));
             ring.setStroke(dp(3), look.ring);
             ring.setColor(Color.TRANSPARENT);
             f.setForeground(ring);
-            f.setScaleX(1.10f);
-            f.setScaleY(1.10f);
-            f.setTranslationZ(dp(8));
         } else {
             f.setForeground(outline());
-            f.setScaleX(1f);
-            f.setScaleY(1f);
-            f.setTranslationZ(0f);
         }
+        float scale = focused ? FOCUS_SCALE : 1f;
+        float z = focused ? dp(8) : 0f;
+        f.animate().cancel();
+        if (!f.isAttachedToWindow()) {
+            f.setScaleX(scale);
+            f.setScaleY(scale);
+            f.setTranslationZ(z);
+            return;
+        }
+        f.animate().scaleX(scale).scaleY(scale).translationZ(z).setDuration(FOCUS_MS).start();
     }
 
     /** A TV app: full-bleed banner, already rounded in the bitmap. */
@@ -810,47 +888,85 @@ public class HomeGrid implements SettingsPanel.Host {
         return cell;
     }
 
-    /** An input, Amazon Home, or a non-TV app: icon + label on a card. */
+    /** An input or Live TV (line icon over its name), or a Tools card (swatch beside name). */
     private View buildCard(AppModel.Item it) {
         FrameLayout cell = newCell(it);
         GradientDrawable card = new GradientDrawable();
-        card.setCornerRadius(dp(8));
-        boolean textTile = it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV;
-        // Live TV first: inputs go a quiet grey so only the Live TV tile stands out, and
-        // app labels get larger and brighter.
-        boolean tvFirst = liveTvFirst();
-        if (textTile) card.setColor(tvFirst ? 0xFF2A333D : 0xFF0E5A63);
-        else card.setColor(0xFF033058);
+        card.setCornerRadius(dp(CORNER_DP));
+        card.setColor(CARD_BG);
         cell.setBackground(card);
-
-        if (textTile) {
-            TextView tv = new TextView(ctx);
-            tv.setText(it.label);
-            tv.setTextColor(Color.WHITE);
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-            tv.setGravity(Gravity.CENTER);
-            cell.addView(tv, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            return cell;
+        if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV) {
+            buildInputCard(cell, it);
+        } else {
+            buildToolCard(cell, it);
         }
+        return cell;
+    }
 
+    private void buildInputCard(FrameLayout cell, AppModel.Item it) {
+        LinearLayout col = new LinearLayout(ctx);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(dp(14), dp(12), dp(12), dp(10));
+
+        ImageView ic = glyphView(it.glyph, GLYPH_INPUT);
+        col.addView(ic, new LinearLayout.LayoutParams(dp(28), dp(28)));
+        col.addView(new View(ctx), new LinearLayout.LayoutParams(0, 0, 1f));
+
+        TextView name = new TextView(ctx);
+        name.setSingleLine(true);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        name.setTextColor(CARD_TEXT);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        if (it.connected) {
+            String tag = "  · " + ctx.getString(R.string.home_connected);
+            android.text.SpannableString s = new android.text.SpannableString(it.label + tag);
+            int from = it.label.length();
+            s.setSpan(new android.text.style.ForegroundColorSpan(CONNECTED), from, s.length(), 0);
+            s.setSpan(new android.text.style.RelativeSizeSpan(0.8f), from, s.length(), 0);
+            name.setText(s);
+        } else {
+            name.setText(it.label);
+        }
+        col.addView(name);
+
+        cell.addView(col, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private void buildToolCard(FrameLayout cell, AppModel.Item it) {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(6), dp(8), dp(6));
+        row.setPadding(dp(12), dp(10), dp(12), dp(10));
 
-        ImageView ic = new ImageView(ctx);
-        ic.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        if (it.icon != null) ic.setImageBitmap(it.icon);
-        int isz = dp(CARD_H_DP) * 62 / 100;
-        LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(isz, isz);
-        ilp.rightMargin = dp(9);
-        row.addView(ic, ilp);
+        // The swatch: the item's own colour pair, else the app icon's colour, dimmed.
+        FrameLayout swatch = new FrameLayout(ctx);
+        GradientDrawable sw = new GradientDrawable();
+        sw.setCornerRadius(dp(10));
+        sw.setColor(it.swatch != 0 ? it.swatch
+                : it.accent != 0 ? mix(it.accent, CARD_BG, 0.35f) : 0xFF2E3442);
+        swatch.setBackground(sw);
+        View inner;
+        int innerDp;
+        if (it.glyph != 0) {
+            inner = glyphView(it.glyph, it.glyphTint != 0 ? it.glyphTint : CARD_TEXT);
+            innerDp = 24;
+        } else {
+            ImageView ic = new ImageView(ctx);
+            ic.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            if (it.icon != null) ic.setImageBitmap(it.icon);
+            inner = ic;
+            innerDp = 32;
+        }
+        swatch.addView(inner, new FrameLayout.LayoutParams(dp(innerDp), dp(innerDp), Gravity.CENTER));
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(dp(44), dp(44));
+        slp.rightMargin = dp(12);
+        row.addView(swatch, slp);
 
         TextView tv = new TextView(ctx);
         tv.setText(it.label);
-        tv.setTextColor(tvFirst ? 0xFFD5DDE5 : 0xFFA2AFBB);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, tvFirst ? 14 : 12);
+        tv.setTextColor(CARD_TEXT);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         tv.setMaxLines(2);
         tv.setEllipsize(TextUtils.TruncateAt.END);
         tv.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
@@ -860,7 +976,25 @@ public class HomeGrid implements SettingsPanel.Host {
 
         cell.addView(row, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        return cell;
+    }
+
+    /** A line icon from res/drawable, tinted. */
+    private ImageView glyphView(int res, int colour) {
+        ImageView v = new ImageView(ctx);
+        v.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        if (res != 0) {
+            v.setImageResource(res);
+            v.setColorFilter(colour, android.graphics.PorterDuff.Mode.SRC_IN);
+        }
+        return v;
+    }
+
+    /** a over b, a weighted by f. */
+    private static int mix(int a, int b, float f) {
+        int r = (int) (((a >> 16) & 0xFF) * f + ((b >> 16) & 0xFF) * (1 - f));
+        int g = (int) (((a >> 8) & 0xFF) * f + ((b >> 8) & 0xFF) * (1 - f));
+        int bl = (int) ((a & 0xFF) * f + (b & 0xFF) * (1 - f));
+        return 0xFF000000 | r << 16 | g << 8 | bl;
     }
 
     // ---------------------------------------------------------------- launching
@@ -908,6 +1042,16 @@ public class HomeGrid implements SettingsPanel.Host {
             i.putExtra(HdmiActivity.EXTRA_LABEL, it.label);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try { ctx.startActivity(i); } catch (Throwable t) { }
+            return;
+        }
+        if (it.type == AppModel.TYPE_TVSETTINGS) {
+            // On Fire OS 8 this passes through Amazon's launcher; HomeRedirectService knows
+            // to stand down for it.
+            try {
+                Intent i = new Intent(android.provider.Settings.ACTION_SETTINGS);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(i);
+            } catch (Throwable t) { }
             return;
         }
         if (it.type == AppModel.TYPE_AMAZON_HOME) {

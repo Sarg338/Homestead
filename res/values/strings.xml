@@ -6,7 +6,15 @@
   <string name="home_livetv">Live TV</string>
   <string name="home_livetv_hint">Press OK to watch</string>
   <string name="home_livetv_failed">Live TV is not available</string>
-  <string name="home_sec_inputs">Inputs &amp; System</string>
-  <string name="home_sec_nontv">Non-TV Applications</string>
-  <string name="home_sec_tv">TV Applications</string>
+  <string name="home_sec_inputs">Inputs</string>
+  <string name="home_sec_nontv">Tools</string>
+  <string name="home_sec_tv">Apps</string>
+  <string name="home_settings">Homestead settings</string>
+  <string name="home_tvsettings">TV settings</string>
+  <string name="home_health">TV Health</string>
+  <string name="home_amazon">Amazon Home</string>
+  <string name="home_connected">connected</string>
+  <string name="home_greet_morning">Good morning</string>
+  <string name="home_greet_afternoon">Good afternoon</string>
+  <string name="home_greet_evening">Good evening</string>
 </resources>

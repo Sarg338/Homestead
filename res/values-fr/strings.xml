@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="home_livetv">TV en direct</string>
+  <string name="home_livetv_hint">Appuyez sur OK pour regarder</string>
+  <string name="home_livetv_failed">La TV en direct n\'est pas disponible</string>
+  <string name="home_sec_inputs">Entrées</string>
+  <string name="home_sec_nontv">Outils</string>
+  <string name="home_sec_tv">Applications</string>
+  <string name="home_settings">Réglages Homestead</string>
+  <string name="home_tvsettings">Paramètres TV</string>
+  <string name="home_health">État TV</string>
+  <string name="home_amazon">Accueil Amazon</string>
+  <string name="home_connected">connecté</string>
+  <string name="home_greet_morning">Bonjour</string>
+  <string name="home_greet_afternoon">Bon après-midi</string>
+  <string name="home_greet_evening">Bonsoir</string>
+</resources>

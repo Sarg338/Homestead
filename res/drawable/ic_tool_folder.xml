@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A folder, for the file browser. Tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+  <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8"
+      android:strokeLineJoin="round" android:strokeLineCap="round"
+      android:pathData="M3.5,6.5 Q3.5,5.5 4.5,5.5 H9.5 L11.5,7.5 H19.5 Q20.5,7.5 20.5,8.5 V18 Q20.5,19 19.5,19 H4.5 Q3.5,19 3.5,18 Z M3.5,10 H20.5"/>
+</vector>

@@ -89,6 +89,10 @@ public final class AppModel {
         public Bitmap banner;
         public Bitmap icon;
         public long lastUsed;
+        /** Inputs and Live TV: line icon (res/drawable), tinted in code; 0 if none. */
+        public int glyph;
+        /** Inputs: the TV reports a device on this input. */
+        public boolean connected;
 
         /** Stable across a re-sort; the handoff carries this, never an index. */
         public String key() {
@@ -278,7 +282,7 @@ public final class AppModel {
                     if (info == null || !info.isPassthroughInput()) continue;
                     CharSequence lb = null;
                     try { lb = info.loadLabel(c); } catch (Throwable t) { }
-                    parts.add("in:" + info.getId() + "=" + lb);
+                    parts.add("in:" + info.getId() + "=" + lb + "/" + inputConnected(tim, info.getId()));
                 }
             }
         } catch (Throwable t) {
@@ -336,6 +340,7 @@ public final class AppModel {
             Item tv = new Item();
             tv.type = TYPE_LIVETV;
             tv.label = c.getString(R.string.home_livetv);
+            tv.glyph = R.drawable.ic_in_antenna;
             ITEMS.add(tv);
         }
         try {
@@ -352,9 +357,22 @@ public final class AppModel {
                 CharSequence lb = null;
                 try { lb = info.loadLabel(c); } catch (Throwable t) { }
                 it.label = (lb == null || lb.length() == 0) ? "Input" : lb.toString();
+                it.glyph = it.label.toUpperCase(Locale.US).startsWith("HDMI")
+                        ? R.drawable.ic_in_hdmi : R.drawable.ic_in_composite;
+                it.connected = inputConnected(tim, it.inputId);
                 ITEMS.add(it);
             }
         } catch (Throwable t) { }
+    }
+
+    /** INPUT_STATE_CONNECTED only; disconnected, or a state the TV can't tell, reads as not. */
+    private static boolean inputConnected(TvInputManager tim, String id) {
+        if (android.os.Build.VERSION.SDK_INT < 24) return false;
+        try {
+            return tim.getInputState(id) == TvInputManager.INPUT_STATE_CONNECTED;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private static Drawable drawable(Context c, int id) {

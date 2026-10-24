@@ -843,12 +843,35 @@ public class HomeGrid implements SettingsPanel.Host {
         cell.setBackground(card);
 
         if (textTile) {
+            LinearLayout col = new LinearLayout(ctx);
+            col.setOrientation(LinearLayout.VERTICAL);
+            col.setGravity(Gravity.CENTER);
+            if (it.glyph != 0) {
+                ImageView ic = new ImageView(ctx);
+                ic.setImageResource(it.glyph);
+                ic.setColorFilter(tvFirst ? 0xFFB4BECA : 0xFFBFE9EE,
+                        android.graphics.PorterDuff.Mode.SRC_IN);
+                LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(28), dp(28));
+                ilp.bottomMargin = dp(6);
+                col.addView(ic, ilp);
+            }
             TextView tv = new TextView(ctx);
             tv.setText(it.label);
             tv.setTextColor(Color.WHITE);
             tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
             tv.setGravity(Gravity.CENTER);
-            cell.addView(tv, new FrameLayout.LayoutParams(
+            tv.setSingleLine(true);
+            tv.setEllipsize(TextUtils.TruncateAt.END);
+            col.addView(tv);
+            if (it.connected) {
+                TextView tag = new TextView(ctx);
+                tag.setText(R.string.home_connected);
+                tag.setTextColor(0xFF7BD88F);
+                tag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                tag.setGravity(Gravity.CENTER);
+                col.addView(tag);
+            }
+            cell.addView(col, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             return cell;
         }

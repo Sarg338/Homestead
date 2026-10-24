@@ -387,6 +387,7 @@ public class HomeRedirectService extends AccessibilityService {
         @Override public void onInputAdded(String id) { queueChange("input:" + id); }
         @Override public void onInputRemoved(String id) { queueChange("input:" + id); }
         @Override public void onInputUpdated(String id) { queueChange("input:" + id); }
+        @Override public void onInputStateChanged(String id, int state) { queueChange("input:" + id); }
     };
 
     private void queueChange(String what) {

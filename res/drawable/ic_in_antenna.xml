@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Broadcast mast: a dot sending two waves each way, on a pole. Tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+  <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8"
+      android:strokeLineJoin="round" android:strokeLineCap="round"
+      android:pathData="M12,11 V21 M9,21 H15
+                        M9.53,6.53 A3.5,3.5 0 0,0 9.53,11.47
+                        M14.47,6.53 A3.5,3.5 0 0,1 14.47,11.47
+                        M7.4,4.4 A6.5,6.5 0 0,0 7.4,13.6
+                        M16.6,4.4 A6.5,6.5 0 0,1 16.6,13.6"/>
+  <path android:fillColor="#FFFFFFFF"
+      android:pathData="M12,9 m-1.6,0 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0"/>
+</vector>

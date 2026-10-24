@@ -9,4 +9,5 @@
   <string name="home_sec_inputs">Inputs &amp; System</string>
   <string name="home_sec_nontv">Non-TV Applications</string>
   <string name="home_sec_tv">TV Applications</string>
+  <string name="home_connected">connected</string>
 </resources>

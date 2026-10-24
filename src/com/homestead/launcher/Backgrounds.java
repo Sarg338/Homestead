@@ -62,7 +62,11 @@ final class Backgrounds {
             new Preset("Charcoal", 0xFF1A1B1F, 0xFF3A3C44, 0xFFFFFFFF, 0xFFE6E6E6, EDGE),
             new Preset("Dusk",     0xFF2A1B3D, 0xFF6B3E7C, 0xFFFFFFFF, 0xFFF0E6F5, EDGE),
             new Preset("Black",    0xFF000000, 0xFF000000, 0xFFFFFFFF, 0xFFE6E6E6, EDGE),
+            new Preset("Night",    0xFF0E1726, 0xFF0E1726, 0xFFE8EEF6, 0xFFFFFFFF, EDGE),
     };
+
+    /** The setting up to 1.6.5, saved as a position: the presets of then, then the photo. */
+    private static final String[] ORDER_BEFORE_166 = { "Sky", "Midnight", "Charcoal", "Dusk", "Black", "Photo" };
 
     /** The setting value for the photo: the slot after the last preset. */
     static final int PHOTO = PRESETS.length;
@@ -91,6 +95,22 @@ final class Backgrounds {
         if (i == PHOTO) return PHOTO_LOOK;
         if (i < 0 || i > PHOTO) i = 0;
         return PRESETS[i];
+    }
+
+    static String nameBefore166(int i) {
+        return (i >= 0 && i < ORDER_BEFORE_166.length) ? ORDER_BEFORE_166[i] : PRESETS[0].name;
+    }
+
+    /** A saved name back to a position; an unknown name gets the default. */
+    static int indexOf(String name) {
+        if (PHOTO_LOOK.name.equals(name)) return PHOTO;
+        for (int i = 0; i < PRESETS.length; i++) if (PRESETS[i].name.equals(name)) return i;
+        return 0;
+    }
+
+    static String nameOf(int i) {
+        if (i == PHOTO) return PHOTO_LOOK.name;
+        return PRESETS[(i < 0 || i >= PRESETS.length) ? 0 : i].name;
     }
 
     static boolean photoChosen(Context c) { return Prefs.background(c) == PHOTO; }

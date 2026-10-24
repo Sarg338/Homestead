@@ -36,6 +36,7 @@ public final class Prefs {
     private static final String K_SEC_NONTV = "sec_nontv";
     private static final String K_CLOCK = "clock";
     private static final String K_BACKGROUND = "background";
+    private static final String K_BACKGROUND_NAME = "background_name";
     private static final String K_PHOTO_DIM = "photo_dim";
     private static final String K_ADB = "adb_enabled";
     private static final String K_TUNNEL = "adb_tunnel_enabled";
@@ -113,9 +114,18 @@ public final class Prefs {
     public static boolean showNonTv(Context c) { return sp(c).getBoolean(K_SEC_NONTV, true); }
     public static void setShowNonTv(Context c, boolean v) { sp(c).edit().putBoolean(K_SEC_NONTV, v).apply(); }
 
-    /** Index into Backgrounds.PRESETS. */
-    public static int background(Context c) { return sp(c).getInt(K_BACKGROUND, 0); }
-    public static void setBackground(Context c, int v) { sp(c).edit().putInt(K_BACKGROUND, v).apply(); }
+    /**
+     * Index into Backgrounds.PRESETS, or Backgrounds.PHOTO. Saved by name, so presets can be
+     * added anywhere in the list; a value saved by position (1.6.5 and older) is still read.
+     */
+    public static int background(Context c) {
+        String n = sp(c).getString(K_BACKGROUND_NAME, null);
+        if (n == null) n = Backgrounds.nameBefore166(sp(c).getInt(K_BACKGROUND, 0));
+        return Backgrounds.indexOf(n);
+    }
+    public static void setBackground(Context c, int v) {
+        sp(c).edit().putString(K_BACKGROUND_NAME, Backgrounds.nameOf(v)).apply();
+    }
 
     /** Index into Backgrounds.DIM_NAMES. Light by default, so labels stay readable. */
     public static int photoDim(Context c) { return sp(c).getInt(K_PHOTO_DIM, 1); }

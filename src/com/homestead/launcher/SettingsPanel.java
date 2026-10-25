@@ -223,6 +223,20 @@ public final class SettingsPanel {
         fire.setHelp("Amazon Home, Settings and TV Health use the icons of Fire OS's own home and "
                 + "Settings, read from this TV. Where one is missing, the usual icon stays.");
 
+        final Panel.Row pages = p.addRow("Fire TV settings tiles", onOff(Prefs.tvPages(c)), null).asSwitch();
+        pages.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean n = !Prefs.tvPages(c);
+                Prefs.setTvPages(c, n);
+                pages.setValue(onOff(n));
+                AppModel.reload(c);
+                host.rebuildGrid();
+            }
+        });
+        pages.setHelp("Tiles beside Amazon Home for pages of the TV's own Settings: Network, "
+                + "Applications, Help and the others an app may open, with the names and icons "
+                + "the TV uses. Hide any you don't want like any other tile.");
+
         p.addHeader("Sections");
 
         // Only offered on a TV that has the Live TV tile.

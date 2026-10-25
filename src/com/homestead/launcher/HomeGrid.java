@@ -649,7 +649,7 @@ public class HomeGrid implements SettingsPanel.Host {
             if (tvFirst && it.type == AppModel.TYPE_LIVETV) {
                 liveTv = it;
             } else if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV
-                    || it.type == AppModel.TYPE_AMAZON_HOME
+                    || it.type == AppModel.TYPE_AMAZON_HOME || it.type == AppModel.TYPE_TVPAGE
                     || it.type == AppModel.TYPE_SETTINGS || it.type == AppModel.TYPE_HEALTH) {
                 inputs.add(it);
             } else if (it.tvApp && it.banner != null) {
@@ -1104,6 +1104,13 @@ public class HomeGrid implements SettingsPanel.Host {
             } catch (Throwable t) {
                 Toast.makeText(ctx, R.string.home_livetv_failed, Toast.LENGTH_SHORT).show();
             }
+            return;
+        }
+        if (it.type == AppModel.TYPE_TVPAGE) {
+            logOpen(it.label);
+            try {
+                ctx.startActivity(new Intent(it.intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Throwable t) { }
             return;
         }
         if (it.type == AppModel.TYPE_INPUT) {

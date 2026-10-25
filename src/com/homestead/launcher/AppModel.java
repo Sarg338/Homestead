@@ -57,6 +57,8 @@ public final class AppModel {
     public static final int TYPE_HEALTH = 4;
     /** Fire TV Live TV (antenna/cable tuner), started through Amazon's public TuneService. */
     public static final int TYPE_LIVETV = 5;
+    /** A page of Fire OS's own Settings, opened by its intent (Prefs.tvPages). */
+    public static final int TYPE_TVPAGE = 6;
 
     static final String LIVETV_PKG = "com.amazon.tv.livetv";
     static final String LIVETV_SVC = "com.amazon.tv.livetv.TuneService";
@@ -65,6 +67,22 @@ public final class AppModel {
     static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     static final String AMAZON_SETTINGS = "com.amazon.tv.settings.v2";
     static final String AMAZON_HOME_CLS = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
+
+    /**
+     * Settings pages an app may open, as Fire OS 8's Settings grid shows them: its icon and
+     * title resource in Amazon Settings, then the action or component that opens the page.
+     * The other pages need Amazon's own permission.
+     */
+    private static final String[][] TV_PAGES = {
+        { "icon_network_card", "network_card", "android.settings.WIFI_SETTINGS" },
+        { "icon_device_margo_card", "device_card_title_smartTv", "com.amazon.device.settings.action.DEVICE" },
+        { "icon_applications_card", "applications_card", "com.amazon.device.settings.action.APPLICATIONS" },
+        { "icon_controllers_card", "controllers_and_bluetooth_devices_card", "com.amazon.device.settings.action.HURLEY" },
+        { "icon_device_control_card", "device_control_settings_card",
+                "com.amazon.tv.devicecontrolsettings/.screens.main_menu.OzOobeSettingsActivity" },
+        { "icon_accessibility_card", "accessibility_card", "android.settings.ACCESSIBILITY_SETTINGS" },
+        { "icon_help_card", "help_card", "com.amazon.tv.csapp/.activity.CSLandingActivity" },
+    };
 
     /** Grid metrics: 32dp margins, 16dp gaps, 6 columns. */
     public static int columns(Context c) { return Prefs.columns(c); }
@@ -94,6 +112,8 @@ public final class AppModel {
         public int glyph;
         /** Inputs: the TV reports a device on this input. */
         public boolean connected;
+        /** TV pages: what opens the page. Its title resource name is kept in cls. */
+        public Intent intent;
 
         /** Stable across a re-sort; the handoff carries this, never an index. */
         public String key() {
@@ -102,6 +122,7 @@ public final class AppModel {
             if (type == TYPE_AMAZON_HOME) return "amz";
             if (type == TYPE_SETTINGS) return "sys:settings";
             if (type == TYPE_HEALTH) return "sys:health";
+            if (type == TYPE_TVPAGE) return "tv:" + cls;
             return "app:" + pkg;
         }
     }
@@ -197,6 +218,7 @@ public final class AppModel {
         health.icon = toBitmap(c, d != null ? d : drawable(c, android.R.drawable.ic_menu_info_details), ICON_PX, ICON_PX, false);
         ITEMS.add(health);
         d = null;
+        if (Prefs.tvPages(c)) loadTvPages(c);
         boolean wide = Prefs.nonTvWide(c);
 
         PackageManager pm = c.getPackageManager();
@@ -395,6 +417,33 @@ public final class AppModel {
         catch (Throwable t) { return null; }
     }
 
+    /** The TV_PAGES this TV has and lets us open, named and drawn as its Settings grid does. */
+    private static void loadTvPages(Context c) {
+        PackageManager pm = c.getPackageManager();
+        android.content.res.Resources r;
+        try { r = pm.getResourcesForApplication(AMAZON_SETTINGS); } catch (Throwable t) { return; }
+        for (int k = 0; k < TV_PAGES.length; k++) {
+            String[] p = TV_PAGES[k];
+            Intent i = p[2].indexOf('/') > 0
+                    ? new Intent().setComponent(ComponentName.unflattenFromString(p[2]))
+                    : new Intent(p[2]);
+            ResolveInfo ri = pm.resolveActivity(i, 0);
+            if (ri == null || ri.activityInfo == null || !ri.activityInfo.exported
+                    || ri.activityInfo.permission != null) continue;
+            int id = r.getIdentifier(p[1], "string", AMAZON_SETTINGS);
+            Drawable d = fireOsIcon(c, AMAZON_SETTINGS, p[0]);
+            if (id == 0 || d == null) continue;
+            Item it = new Item();
+            it.type = TYPE_TVPAGE;
+            it.cls = p[1];
+            it.intent = i;
+            // Some titles break over two lines on Amazon's cards.
+            it.label = r.getString(id).replace('\n', ' ');
+            it.icon = toBitmap(c, d, ICON_PX, ICON_PX, false);
+            ITEMS.add(it);
+        }
+    }
+
     /**
      * A drawable from another app's resources on this TV, by name; null if it has none.
      * Tinted light: some are coloured by the owning app's theme, which we don't have.
@@ -515,7 +564,8 @@ public final class AppModel {
             private int rank(int t) {
                 if (t == TYPE_LIVETV) return 0;
                 if (t == TYPE_INPUT) return 1;
-                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH) return 2;
+                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH
+                        || t == TYPE_TVPAGE) return 2;
                 return 3;
             }
         });

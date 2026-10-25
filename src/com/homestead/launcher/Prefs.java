@@ -57,6 +57,7 @@ public final class Prefs {
     private static final String K_DATE = "date_format";
     private static final String K_NONTV_WIDE = "nontv_wide";
     private static final String K_FIRE_ICONS = "fire_os_icons";
+    private static final String K_TV_PAGES = "tv_pages";
 
     public static final int SORT_LAST_USED = 0;
     public static final int SORT_ALPHA = 1;
@@ -222,6 +223,10 @@ public final class Prefs {
     /** Amazon Home, Settings and TV Health use icons read from Fire OS's own apps. */
     public static boolean fireOsIcons(Context c) { return sp(c).getBoolean(K_FIRE_ICONS, false); }
     public static void setFireOsIcons(Context c, boolean v) { sp(c).edit().putBoolean(K_FIRE_ICONS, v).apply(); }
+
+    /** Tiles for pages of Fire OS's own Settings (Network, Applications, Help...). */
+    public static boolean tvPages(Context c) { return sp(c).getBoolean(K_TV_PAGES, false); }
+    public static void setTvPages(Context c, boolean v) { sp(c).edit().putBoolean(K_TV_PAGES, v).apply(); }
 
     // ---------------------------------------------------------------- updates
 

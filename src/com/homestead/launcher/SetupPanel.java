@@ -400,6 +400,11 @@ public final class SetupPanel {
         start(c, new Intent(Settings.ACTION_SETTINGS));
     }
 
+    /** Fire TV's own Settings, the main page. False if nothing would open. */
+    static boolean openTvSettings(Context c) {
+        return start(c, new Intent(Settings.ACTION_SETTINGS));
+    }
+
     private static boolean start(Context c, Intent i) {
         try {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

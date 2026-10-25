@@ -1172,10 +1172,9 @@ public class HomeGrid implements SettingsPanel.Host {
         });
         cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Settings and TV Health open a panel in this window, so they are not
-                // reported as a pick; that would make an overlay host dismiss itself.
-                boolean leaves = it.type != AppModel.TYPE_SETTINGS
-                        && it.type != AppModel.TYPE_HEALTH;
+                // TV Health opens a panel in this window, so it is not reported as a
+                // pick; that would make an overlay host dismiss itself.
+                boolean leaves = it.type != AppModel.TYPE_HEALTH;
                 if (listener != null && leaves) listener.onPick(it);
                 act(it);
             }
@@ -1375,8 +1374,9 @@ public class HomeGrid implements SettingsPanel.Host {
 
     private void act(AppModel.Item it) {
         if (it.type == AppModel.TYPE_SETTINGS) {
+            // The tile opens the TV's own Settings; Homestead's are on the Settings pill.
             logOpen(it.label);
-            showPanel(SettingsPanel.build(ctx, panelHost));
+            if (!SetupPanel.openTvSettings(ctx)) showPanel(SettingsPanel.build(ctx, panelHost));
             return;
         }
         if (it.type == AppModel.TYPE_HEALTH) {

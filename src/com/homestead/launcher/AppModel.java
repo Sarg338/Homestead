@@ -189,7 +189,7 @@ public final class AppModel {
 
         Item settings = new Item();
         settings.type = TYPE_SETTINGS;
-        settings.label = "Settings";
+        settings.label = "TV Settings";
         d = fire ? fireOsIcon(c, AMAZON_LAUNCHER, "ic_settings_default_60dp") : null;
         settings.icon = d != null ? toBitmap(c, d, ICON_PX, ICON_PX, false) : gearIcon(ICON_PX);
         ITEMS.add(settings);

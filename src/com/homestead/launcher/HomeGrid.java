@@ -20,6 +20,7 @@ import android.os.Build;
 import android.widget.Toast;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -29,6 +30,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
@@ -38,19 +40,28 @@ import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The launcher UI, built against a plain Context so the same screen can be hosted by an
  * Activity or a WindowManager overlay.
  *
- * Sections (headers, scrolling card rows, a banner-tile grid) are plain focusable views in
- * a ScrollView rather than a GridView: no recycling, so each view is its item and focus
- * survives a re-sort by key. Data and bitmaps come from the process-wide AppModel.
+ * Plain, minimal shape on purpose: a greeting and clock top-left, one round Settings button
+ * top-right, a translucent dock of the most-used apps, then a single uniform grid for
+ * everything else - inputs, Settings, TV Health, Amazon Home and the rest of the apps - with
+ * no section headers. "Show Inputs &amp; System" and "Show Non-TV Applications" in Settings
+ * still gate exactly what they always did; there just is no longer a labelled band for them.
+ *
+ * Sections are plain focusable views in a ScrollView rather than a GridView: no recycling,
+ * so each view is its item and focus survives a re-sort by key. Data and bitmaps come from
+ * the process-wide AppModel.
  */
 public class HomeGrid implements SettingsPanel.Host {
 
@@ -65,19 +76,50 @@ public class HomeGrid implements SettingsPanel.Host {
      */
     public interface BackHandler { boolean onBack(); }
 
-    // Layout metrics.
+    // ---------------------------------------------------------------- layout metrics
+    // Margins and gaps match AppModel's own grid math, so every tile - dock or grid - lines
+    // up on the same rhythm regardless of column count.
     private static final int MARGIN_DP = 32;
     private static final int GAP_DP = 16;
-    private static final int CARD_W_DP = 167;   // wide card, non-TV row
-    private static final int CARD_H_DP = 94;
-    private static final int HEADER_SP = 21;
-    private static final int HEADER_TOP_DP = 28;
-    private static final int HEADER_BOTTOM_DP = 12;
-    private static final float FOCUS_SCALE = 1.10f;
-    private static final long FOCUS_MS = 140L;
-    /** The name label under a focused banner. */
-    private static final int NAME_H_DP = 20;
-    private static final String NAME_TAG = "name";
+    private static final int CORNER_DP = 10;
+    private static final int TOP_RESERVE_DP = 152;
+    private static final int TOPBAR_SIDE_DP = 32;
+    private static final int TOPBAR_TOP_DP = 26;
+    private static final int DOCK_COUNT = 5;
+    // Dock tile height per Prefs.DOCK_SIZE_NAMES; tiles are 16:9, so Large and up scroll
+    // sideways past the screen edge rather than shrinking to fit.
+    private static final int[] DOCK_H_DP = { 88, 112, 136, 160 };
+    private static final int DOCK_PAD_DP = 14;
+    private static final int DOCK_BOTTOM_DP = 26;
+    private static final int ICON_SZ_DP = 26;
+    // One flat neutral card colour for every non-banner tile - hierarchy comes from the
+    // dock's translucent band standing apart from the grid, not from a different hue per
+    // tile type.
+    private static final int CARD_COLOR = 0xFF1B1B1E;
+    private static final int DOCK_BAND_COLOR = 0x24FFFFFF;
+    private static final int PILL_COLOR = 0x26FFFFFF;
+    private static final int PILL_COLOR_FOCUSED = 0x40FFFFFF;
+    // The ambient glow behind the dock: a big soft radial blob, recoloured (not moved) to
+    // whichever tile's own art is focused - most of it sits off the top-left of the screen,
+    // the same way the reference look only ever shows the bottom-right curve of it.
+    private static final int GLOW_SIZE_DP = 900;
+    private static final int GLOW_TOP_DP = -420;
+    private static final int GLOW_LEFT_DP = -260;
+    private static final int GLOW_ALPHA = 0x8A;
+    // A short, calm tween for the pills' focus change.
+    private static final int FOCUS_MS = 140;
+    private static final android.view.animation.Interpolator FOCUS_INTERP =
+            new android.view.animation.DecelerateInterpolator(1.5f);
+    // Tile focus feel: the "springs up and settles" motion of a premium TV launcher - a
+    // gentle overshoot in, a softer relax out. See style() below.
+    private static final float FOCUS_SCALE = 1.12f;
+    private static final int FOCUS_LIFT_DP = 10;    // z-lift, so a focused card casts a shadow
+    private static final long FOCUS_IN_MS = 220L;   // grow + settle
+    private static final long FOCUS_OUT_MS = 160L;  // relax back
+    private static final android.view.animation.Interpolator FOCUS_IN_INTERP =
+            new android.view.animation.OvershootInterpolator(2.2f);
+    private static final android.view.animation.Interpolator FOCUS_OUT_INTERP =
+            new android.view.animation.DecelerateInterpolator(1.4f);
 
     private final Context ctx;
     private final Listener listener;
@@ -85,19 +127,36 @@ public class HomeGrid implements SettingsPanel.Host {
     public final FrameLayout root;
     private final ScrollView scroll;
     private final LinearLayout column;
+    private final TextView greeting;
     private final TextView clock;
-    /** Greeting and date at the top left; fixed, so they stay put while the grid scrolls. */
-    private final LinearLayout head;
-    private final TextView greet;
-    private final TextView date;
+    private final TextView dateLine;
+    private final FrameLayout settingsPill;
+    private final TextView settingsLabel;
+    private final FrameLayout inputsPill;
+    private final TextView inputsLabel;
+    /** A soft, colour-shifting glow behind the dock - see setGlow(). */
+    private final View glow;
+    private int glowColor;
+    /** The dock's title line, showing whichever dock tile is focused; null when no dock. */
+    private TextView dockTitleView;
+    /**
+     * True once this build has already pointed the Settings pill's down-focus at the first
+     * tile below it. ScrollView intercepts an UP/DOWN press at its own edge before normal
+     * focus search would reach a sibling outside it (the pill lives on root, not in scroll),
+     * so the very first row - the dock's, if there is one, else the grid's - gets an
+     * explicit nextFocusUpId back to the pill instead of relying on geometry alone.
+     */
+    private boolean topRowWired;
 
     private final Map<String, View> cellsByKey = new HashMap<String, View>();
-    /** The horizontally scrolling section rows, in build order. */
+    /** buildCard() cells and whether each is an input/Live TV tile, for repainting their glass. */
+    private final Map<View, Boolean> cardCells = new HashMap<View, Boolean>();
+    /** Keys of the tiles currently in the dock, so focusing one can scroll to the top. */
+    private final Set<String> dockKeys = new HashSet<String>();
+    /** The horizontally scrolling rows (the dock, if present), in build order. */
     private final List<HorizontalScrollView> rows = new ArrayList<HorizontalScrollView>();
     private View focusedCell;
     private String focusedKey;
-    /** The Live TV first tile, or null when that layout is not in use. */
-    private View topTile;
     /** AppModel.order() as of the last build, to spot a re-sort done by the other grid. */
     private String builtOrder;
     /**
@@ -144,6 +203,11 @@ public class HomeGrid implements SettingsPanel.Host {
     public HomeGrid(Context c, Listener l) {
         this.ctx = c;
         this.listener = l;
+        // Before anything below, including the pills' own icons: AppModel.loaded is a
+        // process-wide static, but nothing guarantees some earlier HomeGrid in this process
+        // already reached it, and the pill needs the Settings item's icon immediately.
+        AppModel.ensureLoaded(c);
+        Backgrounds.ensureFolder(c);
 
         // Overridden so Back and Menu reach us before the focused child consumes them; a
         // key listener on the root would never fire.
@@ -182,6 +246,18 @@ public class HomeGrid implements SettingsPanel.Host {
         };
         root.setClipChildren(false);
 
+        // Added first, so it draws behind everything else: a big soft colour blob that
+        // recolours (never moves) to whichever tile's own art is focused, the same ambient
+        // glow the cleanyourtv default theme sits its dock on.
+        glow = new View(c);
+        int screenW = c.getResources().getDisplayMetrics().widthPixels;
+        int screenH = c.getResources().getDisplayMetrics().heightPixels;
+        int glowSize = Math.round(screenH * 1.05f);
+        FrameLayout.LayoutParams glowLp = new FrameLayout.LayoutParams(glowSize, glowSize);
+        glowLp.leftMargin = Math.round(screenW * 0.12f) - glowSize / 2;
+        glowLp.topMargin = Math.round(screenH * 0.42f) - glowSize / 2;
+        root.addView(glow, glowLp);
+
         scroll = new ScrollView(c);
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setClipChildren(false);
@@ -194,43 +270,214 @@ public class HomeGrid implements SettingsPanel.Host {
         column.setOrientation(LinearLayout.VERTICAL);
         column.setClipChildren(false);
         column.setClipToPadding(false);
-        column.setPadding(dp(MARGIN_DP), dp(46), dp(MARGIN_DP), dp(MARGIN_DP));
+        column.setPadding(dp(MARGIN_DP), dp(TOP_RESERVE_DP), dp(MARGIN_DP), dp(MARGIN_DP));
         scroll.addView(column, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        clock = new TextView(c);
-        clock.setTextColor(Color.WHITE);
-        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-        FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP | Gravity.RIGHT);
-        clp.topMargin = dp(14);
-        clp.rightMargin = dp(33);
-        root.addView(clock, clp);
+        // Top-left: a small tracked-out greeting over a large plain clock, then the date -
+        // the only "chrome" on the whole screen besides the Settings pill.
+        LinearLayout topLeft = new LinearLayout(c);
+        topLeft.setOrientation(LinearLayout.VERTICAL);
 
-        head = new LinearLayout(c);
-        head.setOrientation(LinearLayout.VERTICAL);
-        greet = new TextView(c);
-        greet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
-        greet.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        head.addView(greet);
-        date = new TextView(c);
-        date.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        date.setAlpha(0.8f);
-        head.addView(date);
-        FrameLayout.LayoutParams hlp = new FrameLayout.LayoutParams(
+        greeting = new TextView(c);
+        greeting.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        greeting.setLetterSpacing(0.12f);
+        greeting.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        // Wrap-content and one line: a match-parent TextView doesn't re-measure its parent
+        // on setText, so the column kept its old width and "GOOD AFTERNOON" was cut short.
+        greeting.setSingleLine(true);
+        topLeft.addView(greeting, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        clock = new TextView(c);
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 46);
+        clock.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        LinearLayout.LayoutParams clockLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        clockLp.topMargin = dp(2);
+        topLeft.addView(clock, clockLp);
+
+        dateLine = new TextView(c);
+        dateLine.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        // Same as the greeting: wrap-content and one line, or a longer date is cut short.
+        dateLine.setSingleLine(true);
+        topLeft.addView(dateLine, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        FrameLayout.LayoutParams topLeftLp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP | Gravity.LEFT);
-        hlp.topMargin = dp(14);
-        hlp.leftMargin = dp(MARGIN_DP);
-        root.addView(head, hlp);
+        topLeftLp.topMargin = dp(TOPBAR_TOP_DP);
+        topLeftLp.leftMargin = dp(TOPBAR_SIDE_DP);
+        root.addView(topLeft, topLeftLp);
 
-        AppModel.ensureLoaded(c);
-        Backgrounds.ensureFolder(c);
+        // Top-right: Inputs, then Settings - the two persistent actions, frosted pills over
+        // the glow the way the reference dock's own top bar sits over its ambient colour.
+        inputsLabel = new TextView(c);
+        inputsPill = buildPill(inputsLabel, ctx.getString(R.string.home_inputs_pill),
+                inputsIcon(dp(ICON_SZ_DP)), new Runnable() {
+                    public void run() { jumpToInputs(); }
+                });
+        inputsPill.setId(View.generateViewId());
+
+        settingsLabel = new TextView(c);
+        settingsPill = buildPill(settingsLabel, ctx.getString(R.string.home_settings_pill),
+                settingsIcon(), new Runnable() {
+                    public void run() {
+                        logOpen("Settings (pill)");
+                        showPanel(SettingsPanel.build(ctx, panelHost));
+                    }
+                });
+        settingsPill.setId(View.generateViewId());
+
+        LinearLayout pillRow = new LinearLayout(c);
+        pillRow.setOrientation(LinearLayout.HORIZONTAL);
+        pillRow.setClipChildren(false);
+        LinearLayout.LayoutParams inputsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        inputsLp.rightMargin = dp(12);
+        pillRow.addView(inputsPill, inputsLp);
+        pillRow.addView(settingsPill, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        FrameLayout.LayoutParams pillLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.RIGHT);
+        pillLp.topMargin = dp(TOPBAR_TOP_DP);
+        pillLp.rightMargin = dp(TOPBAR_SIDE_DP);
+        root.addView(pillRow, pillLp);
+
         applyBackground();
         build();
         updateClock();
     }
+
+    // ---------------------------------------------------------------- top bar
+
+    /** The Settings item's own icon, already drawn once by AppModel; reused here at pill size. */
+    private Bitmap settingsIcon() {
+        List<AppModel.Item> all = AppModel.allItems();
+        for (int i = 0; i < all.size(); i++) {
+            if (all.get(i).type == AppModel.TYPE_SETTINGS) return all.get(i).icon;
+        }
+        return null;
+    }
+
+    /** A plain monitor glyph for the Inputs pill - this is chrome, not a grid item, so it is
+     *  drawn here rather than added to AppModel's own icon set. */
+    private Bitmap inputsIcon(int px) {
+        Bitmap bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas cv = new android.graphics.Canvas(bmp);
+        android.graphics.Paint stroke = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        stroke.setStyle(android.graphics.Paint.Style.STROKE);
+        stroke.setStrokeWidth(px * 0.09f);
+        stroke.setColor(Color.WHITE);
+        android.graphics.RectF screen = new android.graphics.RectF(
+                px * 0.10f, px * 0.14f, px * 0.90f, px * 0.68f);
+        cv.drawRoundRect(screen, px * 0.08f, px * 0.08f, stroke);
+
+        android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        fill.setColor(Color.WHITE);
+        cv.drawRect(px * 0.42f, px * 0.70f, px * 0.58f, px * 0.80f, fill);
+        android.graphics.RectF base = new android.graphics.RectF(
+                px * 0.26f, px * 0.80f, px * 0.74f, px * 0.86f);
+        cv.drawRoundRect(base, px * 0.02f, px * 0.02f, fill);
+        return bmp;
+    }
+
+    /** Jumps focus straight to the first Live TV / HDMI tile - the Inputs pill's one job. */
+    private void jumpToInputs() {
+        List<AppModel.Item> all = AppModel.visibleItems(ctx);
+        for (int i = 0; i < all.size(); i++) {
+            int t = all.get(i).type;
+            if (t == AppModel.TYPE_LIVETV || t == AppModel.TYPE_INPUT) {
+                selectKey(all.get(i).key());
+                return;
+            }
+        }
+    }
+
+    private FrameLayout buildPill(final TextView label, String text, Bitmap icon,
+                                   final Runnable action) {
+        final FrameLayout cell = new FrameLayout(ctx);
+        cell.setFocusable(true);
+        cell.setFocusableInTouchMode(true);
+        cell.setClipChildren(false);
+        cell.setPadding(dp(18), dp(11), dp(22), dp(11));
+
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        if (icon != null) {
+            ImageView iv = new ImageView(ctx);
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iv.setImageBitmap(icon);
+            LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(
+                    dp(ICON_SZ_DP), dp(ICON_SZ_DP));
+            ilp.rightMargin = dp(10);
+            row.addView(iv, ilp);
+        }
+
+        label.setText(text);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        label.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        row.addView(label);
+
+        cell.addView(row, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER));
+
+        cell.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            public void onFocusChange(View v, boolean has) { pillStyle(cell, has); }
+        });
+        cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { action.run(); }
+        });
+        pillStyle(cell, false);
+        return cell;
+    }
+
+    /**
+     * A frosted-glass look: a soft gradient fill (brighter at the top, like light catching
+     * the top of a glass surface) plus a thin bright rim, rather than one flat translucent
+     * tone - this device has no real-time blur (RenderEffect needs API 31; this TV is 30),
+     * so the glass read comes from the gradient and rim alone.
+     */
+    private void pillStyle(FrameLayout cell, boolean focused) {
+        cell.animate().cancel();
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                focused ? new int[]{ 0x4DFFFFFF, 0x33FFFFFF } : new int[]{ 0x33FFFFFF, 0x1ABEBEBE });
+        bg.setCornerRadius(dp(999));
+        bg.setStroke(dp(1), focused ? 0x66FFFFFF : 0x29FFFFFF);
+        cell.setBackground(bg);
+        float scale = focused ? 1.05f : 1f;
+        cell.animate().scaleX(scale).scaleY(scale)
+                .setDuration(FOCUS_MS).setInterpolator(FOCUS_INTERP).start();
+    }
+
+    /**
+     * Recolours the ambient glow to the focused tile's own banner colour, or turns it off
+     * for a tile with no art (Settings, an HDMI input, TV Health...). Set directly, not
+     * animated - a cross-fade here would mean caching two gradients per move for a cosmetic
+     * touch the eye mostly reads as "the colour changed", not "it faded".
+     */
+    private void setGlow(int accent) {
+        if (accent == glowColor) return;
+        glowColor = accent;
+        if (accent == 0) {
+            glow.setBackground(null);
+            return;
+        }
+        GradientDrawable d = new GradientDrawable();
+        d.setShape(GradientDrawable.OVAL);
+        d.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        d.setGradientRadius(glow.getLayoutParams().width / 2f);
+        d.setColors(new int[]{ (GLOW_ALPHA << 24) | (accent & 0x00FFFFFF), accent & 0x00FFFFFF });
+        glow.setBackground(d);
+    }
+
+    // ---------------------------------------------------------------- background / theme
 
     /** The chosen look; the overlay and the activity re-read it when they come up. */
     private Backgrounds.Preset look;
@@ -267,15 +514,32 @@ public class HomeGrid implements SettingsPanel.Host {
         look = p;
         root.setBackground(photo != null ? Backgrounds.photoDrawable(ctx, photo)
                 : Backgrounds.drawable(p));
+        paintText(greeting);
         paintText(clock);
-        paintText(greet);
-        paintText(date);
+        paintText(dateLine);
+        paintText(settingsLabel);
+        paintText(inputsLabel);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
             if (v instanceof TextView) paintText((TextView) v);
         }
-        // The ring and the outline are per look, so every cell is repainted.
-        for (View cell : cellsByKey.values()) style(cell, cell == focusedCell);
+        // The ring and the outline are per look, so every cell is repainted (not animated:
+        // this is a palette swap, not a focus change).
+        for (View cell : cellsByKey.values()) style(cell, cell == focusedCell, false);
+        for (Map.Entry<View, Boolean> e : cardCells.entrySet()) {
+            Drawable bg = e.getKey().getBackground();
+            if (bg instanceof GradientDrawable) ((GradientDrawable) bg).setColor(cardColor(e.getValue()));
+        }
+    }
+
+    /**
+     * On a photo background, cards are translucent "glass" panels so the picture shows
+     * through, matching the premium top-shelf look; the outline() hairline (the photo look
+     * carries one) gives them a crisp lit edge. Presets keep the flat card.
+     */
+    private int cardColor(boolean textTile) {
+        if (look == Backgrounds.PHOTO_LOOK) return textTile ? 0xA6222831 : 0xA6161A20;
+        return CARD_COLOR;
     }
 
     /** Header and clock colour; on a photo, a soft shadow keeps them readable. */
@@ -290,49 +554,37 @@ public class HomeGrid implements SettingsPanel.Host {
     // ---------------------------------------------------------------- public API
 
     public void updateClock() {
-        updateHead();
         int mode = Prefs.clockMode(ctx);
-        if (mode == Prefs.CLOCK_OFF) { clock.setText(""); return; }
-        String fmt = (mode == Prefs.CLOCK_12H) ? "h:mm a" : "HH:mm";
-        clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(new Date()));
-    }
-
-    /** Greeting and date, each its own setting; the grid moves down while either shows. */
-    private void updateHead() {
-        Date now = new Date();
-        boolean g = Prefs.greeting(ctx);
-        int df = Prefs.dateFormat(ctx);
-        if (g) {
-            int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-            greet.setText(h >= 5 && h < 12 ? R.string.home_greet_morning
-                    : h >= 12 && h < 18 ? R.string.home_greet_afternoon : R.string.home_greet_evening);
+        if (mode == Prefs.CLOCK_OFF) {
+            clock.setText("");
+            greeting.setText("");
+            dateLine.setText("");
+            return;
         }
-        greet.setVisibility(g ? View.VISIBLE : View.GONE);
+        Date now = new Date();
+        String fmt = (mode == Prefs.CLOCK_12H) ? "h:mm a" : "HH:mm";
+        clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(now));
+        // The greeting over the clock and the date under it follow their own settings.
+        boolean g = Prefs.greeting(ctx);
+        greeting.setVisibility(g ? View.VISIBLE : View.GONE);
+        if (g) greeting.setText(greetingFor(Calendar.getInstance()).toUpperCase(Locale.getDefault()));
+        int df = Prefs.dateFormat(ctx);
+        dateLine.setVisibility(df != Prefs.DATE_OFF ? View.VISIBLE : View.GONE);
         if (df == Prefs.DATE_LONG) {
             String pat = android.text.format.DateFormat.getBestDateTimePattern(
                     Locale.getDefault(), "EEEEdMMMM");
-            date.setText(new SimpleDateFormat(pat, Locale.getDefault()).format(now));
+            dateLine.setText(new SimpleDateFormat(pat, Locale.getDefault()).format(now));
         } else if (df == Prefs.DATE_SHORT) {
-            date.setText(android.text.format.DateFormat.getDateFormat(ctx).format(now));
+            dateLine.setText(android.text.format.DateFormat.getDateFormat(ctx).format(now));
         }
-        date.setVisibility(df != Prefs.DATE_OFF ? View.VISIBLE : View.GONE);
-        boolean show = g || df != Prefs.DATE_OFF;
-        head.setVisibility(show ? View.VISIBLE : View.GONE);
-        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) scroll.getLayoutParams();
-        // With the header up, the scroll area starts below it and clips, so the grid never
-        // draws over it while scrolling; the padding moves the other way, so tiles at rest
-        // stay where they were and a focused tile in the first row still has room to grow.
-        int top = show ? dp(g && df != Prefs.DATE_OFF ? 76 : 54) : 0;
-        if (lp.topMargin != top) {
-            lp.topMargin = top;
-            scroll.setLayoutParams(lp);
-            column.setPadding(column.getPaddingLeft(), show ? dp(14) : dp(46),
-                    column.getPaddingRight(), column.getPaddingBottom());
-        }
-        // Clipping to the outline holds with hardware drawing, where clipChildren alone let
-        // the scrolled rows show through over the header.
-        scroll.setOutlineProvider(android.view.ViewOutlineProvider.BOUNDS);
-        scroll.setClipToOutline(show);
+    }
+
+    private String greetingFor(Calendar cal) {
+        int h = cal.get(Calendar.HOUR_OF_DAY);
+        if (h < 5) return ctx.getString(R.string.home_greeting_night);
+        if (h < 12) return ctx.getString(R.string.home_greeting_morning);
+        if (h < 18) return ctx.getString(R.string.home_greeting_afternoon);
+        return ctx.getString(R.string.home_greeting_evening);
     }
 
     /** Focus for a fresh Home press: Live TV when it comes first, else as takeFocus(). */
@@ -353,13 +605,34 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /**
-     * The Live TV first tile has no header above it, so focusing it scrolls the page to the
+     * The dock has no header above it, so focusing one of its tiles scrolls the page to the
      * top. Repeated after layout, which would otherwise scroll it flush with the screen edge.
      */
     private void keepAtTop() {
         scroll.scrollTo(0, 0);
         scroll.post(new Runnable() {
             public void run() { scroll.scrollTo(0, 0); }
+        });
+    }
+
+    /**
+     * Scrolls the dock so the focused tile keeps the row's padding on both sides. The scroll
+     * view on its own stops flush with the tile's unscaled edge, which clips the zoom and the
+     * focus rim of an end tile against the band at the larger dock sizes.
+     */
+    private void revealInDock(final View cell) {
+        cell.post(new Runnable() {
+            public void run() {
+                if (!(cell.getParent() instanceof ViewGroup)) return;
+                ViewGroup row = (ViewGroup) cell.getParent();
+                if (!(row.getParent() instanceof HorizontalScrollView)) return;
+                HorizontalScrollView hs = (HorizontalScrollView) row.getParent();
+                int x = hs.getScrollX();
+                int left = cell.getLeft() - row.getPaddingLeft();
+                int right = cell.getRight() + row.getPaddingRight();
+                if (left < x) hs.smoothScrollTo(left, 0);
+                else if (right > x + hs.getWidth()) hs.smoothScrollTo(right - hs.getWidth(), 0);
+            }
         });
     }
 
@@ -391,9 +664,8 @@ public class HomeGrid implements SettingsPanel.Host {
         }
         Prefs.setHidden(ctx, target.key(), true);
         try {
-            android.widget.Toast.makeText(ctx,
-                    target.label + " hidden - restore it in Settings",
-                    android.widget.Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, target.label + " hidden - restore it in Settings",
+                    Toast.LENGTH_SHORT).show();
         } catch (Throwable t) { }
         layoutGen++;
         rebuild();
@@ -514,7 +786,7 @@ public class HomeGrid implements SettingsPanel.Host {
     /** Also carried across the handoff; restoring focus alone does not restore scroll. */
     public int getScrollY() { return scroll.getScrollY(); }
 
-    /** Horizontal offset of each card row. */
+    /** Horizontal offset of each scrolling row (the dock, if present). */
     public int[] getRowScrollX() {
         int[] out = new int[rows.size()];
         for (int i = 0; i < rows.size(); i++) out[i] = rows.get(i).getScrollX();
@@ -611,9 +883,12 @@ public class HomeGrid implements SettingsPanel.Host {
     private void buildFallback() {
         column.removeAllViews();
         cellsByKey.clear();
+        cardCells.clear();
         rows.clear();
+        dockKeys.clear();
+        dockTitleView = null;
+        topRowWired = false;
         focusedCell = null;
-        topTile = null;
 
         List<AppModel.Item> safe = new ArrayList<AppModel.Item>();
         List<AppModel.Item> all = AppModel.allItems();
@@ -624,24 +899,27 @@ public class HomeGrid implements SettingsPanel.Host {
                 safe.add(all.get(i));
             }
         }
-        addHeader("Homestead", true);
-        if (!safe.isEmpty()) addCardRow(safe);
+        if (!safe.isEmpty()) addTileGrid(safe);
     }
 
     private void buildSections() {
         column.removeAllViews();
         cellsByKey.clear();
+        cardCells.clear();
         rows.clear();
+        dockKeys.clear();
+        dockTitleView = null;
+        topRowWired = false;
         focusedCell = null;
 
         List<AppModel.Item> inputs = new ArrayList<AppModel.Item>();
         List<AppModel.Item> nonTv = new ArrayList<AppModel.Item>();
         List<AppModel.Item> tv = new ArrayList<AppModel.Item>();
 
-        // Live TV first takes the Live TV tile out of its section and puts it above them all.
+        // Live TV first takes the Live TV tile out of its section and puts it first in the
+        // dock, wider than the rest, instead of the old full-width tile above everything.
         boolean tvFirst = liveTvFirst();
         AppModel.Item liveTv = null;
-        topTile = null;
 
         List<AppModel.Item> all = AppModel.visibleItems(ctx);
         for (int i = 0; i < all.size(); i++) {
@@ -659,7 +937,8 @@ public class HomeGrid implements SettingsPanel.Host {
             }
         }
 
-        // Settings and TV Health survive the section being switched off.
+        // Same gating "Show Inputs & System" / "Show Non-TV Applications" always had -
+        // there is just no labelled band left to turn off along with the tiles.
         if (!Prefs.showInputs(ctx)) {
             List<AppModel.Item> keep = new ArrayList<AppModel.Item>();
             for (int i = 0; i < inputs.size(); i++) {
@@ -683,89 +962,22 @@ public class HomeGrid implements SettingsPanel.Host {
             }
         }
 
-        String inputsTitle = ctx.getString(R.string.home_sec_inputs);
-        String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
-        String tvTitle = ctx.getString(R.string.home_sec_tv);
-        boolean first = true;
-        if (tvFirst) {
-            if (liveTv != null)    { addLiveTvTile(liveTv); first = false; }
-            if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
-            if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); addNonTv(nonTv); }
-            return;
+        // Dock: Live TV first (if on), then the top few most-used TV apps. AppModel.resort()
+        // already put the most relevant ones first, so the dock is just "take the front".
+        int dockSlots = Math.max(0, DOCK_COUNT - (liveTv != null ? 1 : 0));
+        int dockAppCount = Math.min(dockSlots, tv.size());
+        List<AppModel.Item> dockApps = tv.subList(0, dockAppCount);
+        List<AppModel.Item> tvGrid = tv.subList(dockAppCount, tv.size());
+
+        if (liveTv != null || !dockApps.isEmpty()) {
+            addDock(liveTv, dockApps);
         }
-        if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-        if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
-        if (!tv.isEmpty())     { addHeader(tvTitle, first); addTileGrid(tv); }
-    }
 
-    /** Live TV first: one large tile, two banner cells wide, on its own row. */
-    private void addLiveTvTile(AppModel.Item it) {
-        FrameLayout cell = newCell(it);
-        topTile = cell;
-        // Alone on its row, so Left or Right would otherwise jump to a tile in another row.
-        stopAt(cell, true, true);
-        GradientDrawable card = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[] { 0xFF168494, 0xFF0A3642 });
-        card.setCornerRadius(dp(8));
-        cell.setBackground(card);
-
-        LinearLayout text = new LinearLayout(ctx);
-        text.setOrientation(LinearLayout.VERTICAL);
-        text.setGravity(Gravity.CENTER_VERTICAL);
-        text.setPadding(dp(24), dp(12), dp(24), dp(12));
-
-        TextView title = new TextView(ctx);
-        title.setText(it.label);
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
-        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        text.addView(title);
-
-        TextView hint = new TextView(ctx);
-        hint.setText(ctx.getString(R.string.home_livetv_hint));
-        hint.setTextColor(0xCCFFFFFF);
-        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        text.addView(hint);
-
-        // The same line icon as the Live TV card, large, left of the text.
-        LinearLayout row = new LinearLayout(ctx);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(24), 0, 0, 0);
-        if (it.glyph != 0) {
-            ImageView ic = new ImageView(ctx);
-            ic.setImageResource(it.glyph);
-            ic.setColorFilter(0xFFBFE9EE, android.graphics.PorterDuff.Mode.SRC_IN);
-            row.addView(ic, new LinearLayout.LayoutParams(dp(56), dp(56)));
-        }
-        row.addView(text, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        cell.addView(row, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        int w = AppModel.cellW(ctx) * 2 + dp(GAP_DP);
-        int h = AppModel.cellH(ctx) * 3 / 2;
-        column.addView(cell, new LinearLayout.LayoutParams(w, h));
-    }
-
-    private void addHeader(String text, boolean first) {
-        TextView h = new TextView(ctx);
-        h.setText(text);
-        paintText(h);
-        h.setTextSize(TypedValue.COMPLEX_UNIT_SP, HEADER_SP);
-        h.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = first ? 0 : dp(HEADER_TOP_DP);
-        lp.bottomMargin = dp(HEADER_BOTTOM_DP);
-        column.addView(h, lp);
-    }
-
-    /** Cards, or banner tiles made from the icons when "Wide tiles" is on (AppModel builds them). */
-    private void addNonTv(List<AppModel.Item> items) {
-        // Until the model reloads after the switch, the tiles are not built yet.
-        if (Prefs.nonTvWide(ctx) && items.get(0).banner != null) addTileGrid(items);
-        else addCardRow(items);
+        List<AppModel.Item> gridItems = new ArrayList<AppModel.Item>();
+        gridItems.addAll(inputs);
+        gridItems.addAll(tvGrid);
+        gridItems.addAll(nonTv);
+        if (!gridItems.isEmpty()) addTileGrid(gridItems);
     }
 
     /**
@@ -788,37 +1000,122 @@ public class HomeGrid implements SettingsPanel.Host {
         }
     }
 
-    /** Wide cards in a horizontally scrolling row. */
-    private void addCardRow(List<AppModel.Item> items) {
+    /** The translucent dock band: Live TV (if first) wider, then the most-used TV apps. */
+    /**
+     * Called for every cell in whichever row is the first one built - every dock cell
+     * (the dock, when present, is always row one), or the grid's first row when there is
+     * no dock (see the dockKeys.isEmpty() guard at its one call site below). Points the
+     * cell's UP back at the Settings pill, and - the first time this runs per build - both
+     * pills' DOWN back at that cell; LEFT/RIGHT between the two pills needs no wiring, since
+     * they are plain siblings in the same row, not across a ScrollView boundary. See
+     * topRowWired.
+     */
+    private void wireTopRow(View cell) {
+        if (cell.getId() == View.NO_ID) cell.setId(View.generateViewId());
+        cell.setNextFocusUpId(settingsPill.getId());
+        if (!topRowWired) {
+            topRowWired = true;
+            settingsPill.setNextFocusDownId(cell.getId());
+            inputsPill.setNextFocusDownId(cell.getId());
+        }
+    }
+
+    private void addDock(AppModel.Item liveTv, List<AppModel.Item> dockApps) {
+        TextView title = new TextView(ctx);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        title.setMaxLines(1);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        paintText(title);
+        title.setText(liveTv != null ? liveTv.label
+                : dockApps.isEmpty() ? "" : dockApps.get(0).label);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tlp.bottomMargin = dp(10);
+
+        // Pin the dock to the bottom of the screen, wallpaper open above it, the way the
+        // reference dock sits: a spacer fills whatever the title + band leave of the first
+        // screen. The grid follows below the fold, and keepAtTop() brings the dock back.
+        title.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int screenH = ctx.getResources().getDisplayMetrics().heightPixels;
+        int bandH = dp(DOCK_H_DP[Prefs.dockSize(ctx)]) + 2 * dp(DOCK_PAD_DP);
+        int spacer = screenH - dp(TOP_RESERVE_DP) - title.getMeasuredHeight() - tlp.bottomMargin
+                - bandH - dp(DOCK_BOTTOM_DP);
+        if (spacer > 0) column.addView(new View(ctx), new LinearLayout.LayoutParams(1, spacer));
+
+        column.addView(title, tlp);
+        dockTitleView = title;
+
         HorizontalScrollView hs = new CardRow(ctx);
-        rows.add(hs);
         hs.setHorizontalScrollBarEnabled(false);
-        hs.setClipChildren(false);
         hs.setClipToPadding(false);
+        rows.add(hs);
+
+        int h = dp(DOCK_H_DP[Prefs.dockSize(ctx)]);
+        int normalW = h * 16 / 9;
+        int featuredW = normalW + normalW / 2;
+
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setClipChildren(false);
-        for (int i = 0; i < items.size(); i++) {
-            View cell = buildCard(items.get(i));
-            LinearLayout.LayoutParams lp =
-                    new LinearLayout.LayoutParams(dp(CARD_W_DP), dp(CARD_H_DP));
-            if (i > 0) lp.leftMargin = dp(GAP_DP);
-            stopAt(cell, i == 0, i == items.size() - 1);
+        // The band's inset lives here, inside the scrolling row, so a focused tile scaled to
+        // FOCUS_SCALE has room inside the scroll view's clip - and clipToPadding is off,
+        // since clipChildren(false) alone still clips to the padding, which cut the focused
+        // tile (and its focus rim) off at its unscaled edges. The sides grow with the widest
+        // tile, so an end tile's zoom still fits at the larger dock sizes.
+        int widest = (liveTv != null) ? featuredW : normalW;
+        int grow = Math.round(widest * (FOCUS_SCALE - 1f) / 2f) + dp(2);
+        int padV = dp(DOCK_PAD_DP);
+        int padH = Math.max(padV, grow);
+        row.setPadding(padH, padV, padH, padV);
+        row.setClipToPadding(false);
+
+        if (liveTv != null) {
+            View cell = buildCard(liveTv);
+            wireTopRow(cell);
+            stopAt(cell, true, dockApps.isEmpty());
+            row.addView(cell, new LinearLayout.LayoutParams(featuredW, h));
+            dockKeys.add(liveTv.key());
+        }
+        for (int i = 0; i < dockApps.size(); i++) {
+            AppModel.Item it = dockApps.get(i);
+            View cell = buildTile(it);
+            wireTopRow(cell);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(normalW, h);
+            if (i > 0 || liveTv != null) lp.leftMargin = dp(GAP_DP);
+            stopAt(cell, i == 0 && liveTv == null, i == dockApps.size() - 1);
             row.addView(cell, lp);
+            dockKeys.add(it.key());
         }
         hs.addView(row, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        column.addView(hs, new LinearLayout.LayoutParams(
+
+        // The band clips the scroll view to its own edges, so tiles that don't fit (at the
+        // larger dock sizes) are cut off cleanly inside it instead of running on past its
+        // end. The row's padding keeps a focused tile's zoom inside that clip.
+        FrameLayout band = new FrameLayout(ctx);
+        GradientDrawable bandBg = new GradientDrawable();
+        bandBg.setCornerRadius(dp(CORNER_DP + 8));
+        bandBg.setColor(DOCK_BAND_COLOR);
+        band.setBackground(bandBg);
+        band.addView(hs, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        blp.bottomMargin = dp(DOCK_BOTTOM_DP);
+        column.addView(band, blp);
     }
 
-    /** 6-column grid of banner tiles, built as plain rows. */
+    /** The single grid below the dock: banner tiles and icon+label cards, side by side. */
     private void addTileGrid(List<AppModel.Item> items) {
         int w = AppModel.cellW(ctx);
         int h = AppModel.cellH(ctx);
+        int cols = AppModel.columns(ctx);
         LinearLayout row = null;
         for (int i = 0; i < items.size(); i++) {
-            if (i % AppModel.columns(ctx) == 0) {
+            if (i % cols == 0) {
                 row = new LinearLayout(ctx);
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setClipChildren(false);
@@ -827,12 +1124,15 @@ public class HomeGrid implements SettingsPanel.Host {
                 if (i > 0) rlp.topMargin = dp(GAP_DP);
                 column.addView(row, rlp);
             }
-            View cell = buildTile(items.get(i));
-            boolean rowEnd = i % AppModel.columns(ctx) == AppModel.columns(ctx) - 1
-                    || i == items.size() - 1;
-            stopAt(cell, i % AppModel.columns(ctx) == 0, rowEnd);
+            AppModel.Item it = items.get(i);
+            View cell = (it.banner != null) ? buildTile(it) : buildCard(it);
+            // Only when there is no dock above this grid - otherwise UP from here must
+            // reach the dock normally, not jump straight past it to the pill.
+            if (i < cols && dockKeys.isEmpty()) wireTopRow(cell);
+            boolean rowEnd = i % cols == cols - 1 || i == items.size() - 1;
+            stopAt(cell, i % cols == 0, rowEnd);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
-            if (i % AppModel.columns(ctx) != 0) lp.leftMargin = dp(GAP_DP);
+            if (i % cols != 0) lp.leftMargin = dp(GAP_DP);
             row.addView(cell, lp);
         }
     }
@@ -844,13 +1144,27 @@ public class HomeGrid implements SettingsPanel.Host {
         cell.setFocusable(true);
         cell.setFocusableInTouchMode(true);
         cell.setClipChildren(false);
+        // A rounded-rect outline so a focused tile's elevation shadow is shaped like the
+        // card, not the square it would otherwise fall back to.
+        final int radius = dp(CORNER_DP);
+        cell.setOutlineProvider(new ViewOutlineProvider() {
+            public void getOutline(View v, Outline outline) {
+                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), radius);
+            }
+        });
+        cell.setClipToOutline(true);
         cell.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             public void onFocusChange(View v, boolean has) {
                 if (has) {
                     focusedCell = v;
                     focusedKey = it.key();
-                    style(v, true, true);
-                    if (v == topTile) keepAtTop();
+                    style(v, true);
+                    setGlow(it.accent);
+                    if (dockKeys.contains(it.key())) {
+                        keepAtTop();
+                        revealInDock(v);
+                        if (dockTitleView != null) dockTitleView.setText(it.label);
+                    }
                 } else {
                     style(v, false, true);
                 }
@@ -873,7 +1187,7 @@ public class HomeGrid implements SettingsPanel.Host {
             }
         });
         cellsByKey.put(it.key(), cell);
-        style(cell, false);
+        style(cell, false, false);
         return cell;
     }
 
@@ -881,66 +1195,55 @@ public class HomeGrid implements SettingsPanel.Host {
     private Drawable outline() {
         if (look == null || look.outline == 0) return null;
         GradientDrawable d = new GradientDrawable();
-        d.setCornerRadius(dp(8));
+        d.setCornerRadius(dp(CORNER_DP));
         d.setStroke(dp(1), look.outline);
         d.setColor(Color.TRANSPARENT);
         return d;
     }
 
     /**
-     * Focus treatment: 1.1x scale and a ring in the preset's colour (dark on the light
-     * default, since white is invisible on white banners; light on the dark presets). Set
-     * directly rather than via a selector so it survives the window losing focus during
-     * the overlay -> activity handoff.
+     * The selection cursor: a bright rounded rim over the focused cell. A crisp near-white
+     * inner edge reads cleanly on both light banners and a photo background, the Apple-TV
+     * look. Drawn as the cell's foreground so it sits above the banner, with the same
+     * corner radius as the tile so it never shows sharp corners against rounded art.
      */
-    private void style(View v, boolean focused) { style(v, focused, false); }
+    private Drawable focusRim() {
+        GradientDrawable d = new GradientDrawable();
+        d.setCornerRadius(dp(CORNER_DP));
+        d.setStroke(dp(3), 0xFFFFFFFF);
+        d.setColor(Color.TRANSPARENT);
+        return d;
+    }
+
+    private void style(View v, boolean focused) { style(v, focused, true); }
 
     /**
-     * @param animate grow or shrink over FOCUS_MS; only for a D-pad move, so a focus
-     *        restored during the handoff appears at its final size.
+     * Focus treatment, animated for a premium feel: the cell springs to {@link #FOCUS_SCALE}
+     * with a gentle overshoot, lifts on the z-axis so it casts a rounded shadow (newCell()
+     * gives every cell a rounded outline), and gains the bright selection rim. The rim is
+     * set immediately, so the right edge shows even if the overlay -> activity handoff cuts
+     * the animation short. animate is false for a cell's first style (nothing was focused a
+     * moment ago to animate from) and for the repaint applyBackground() does across every
+     * cell at once, where an instant re-skin reads as a palette swap, not a focus move.
      */
     private void style(View v, boolean focused, boolean animate) {
         if (!(v instanceof FrameLayout)) return;
         FrameLayout f = (FrameLayout) v;
-        float scale = focused ? FOCUS_SCALE : 1f;
-        if (focused) {
-            GradientDrawable ring = new GradientDrawable();
-            ring.setCornerRadius(dp(8));
-            ring.setStroke(dp(3), look.ring);
-            ring.setColor(Color.TRANSPARENT);
-            f.setForeground(ring);
-            f.setTranslationZ(dp(8));
-        } else {
-            f.setForeground(outline());
-            f.setTranslationZ(0f);
-        }
         f.animate().cancel();
-        if (animate) {
-            f.animate().scaleX(scale).scaleY(scale).setDuration(FOCUS_MS).start();
-        } else {
+        f.setForeground(focused ? focusRim() : outline());
+        float scale = focused ? FOCUS_SCALE : 1f;
+        float z = focused ? dp(FOCUS_LIFT_DP) : 0f;
+        if (!animate || !f.isAttachedToWindow() || f.getWidth() == 0) {
             f.setScaleX(scale);
             f.setScaleY(scale);
+            f.setTranslationZ(z);
+            return;
         }
-        View name = f.findViewWithTag(NAME_TAG);
-        if (name != null) {
-            name.setVisibility(focused ? View.VISIBLE : View.INVISIBLE);
-            // The label hangs over the next grid row, which is drawn later; lift this row
-            // above it. Left up while focus stays in the row, whatever order the calls come.
-            View row = (View) f.getParent();
-            if (row != null && (focused || focusedCell == null || focusedCell.getParent() != row)) {
-                row.setTranslationZ(focused ? dp(8) : 0f);
-            }
-            // Scroll far enough to show the label too, not only the banner.
-            if (focused && animate) {
-                final FrameLayout cell = f;
-                cell.post(new Runnable() {
-                    public void run() {
-                        cell.requestRectangleOnScreen(new android.graphics.Rect(0, 0,
-                                cell.getWidth(), cell.getHeight() + dp(NAME_H_DP + 8)));
-                    }
-                });
-            }
-        }
+        f.animate().scaleX(scale).scaleY(scale).translationZ(z)
+                .setDuration(focused ? FOCUS_IN_MS : FOCUS_OUT_MS)
+                .setInterpolator(focused ? FOCUS_IN_INTERP : FOCUS_OUT_INTERP)
+                .withLayer()
+                .start();
     }
 
     /**
@@ -958,51 +1261,38 @@ public class HomeGrid implements SettingsPanel.Host {
         });
     }
 
-    /** A TV app: full-bleed banner, already rounded in the bitmap. */
+    /**
+     * A TV app: full-bleed banner, already rounded in the bitmap - which means its four
+     * corners are genuinely transparent pixels (AppModel clips banners to a rounded path on
+     * decode), and some apps' own banner art carries large transparent regions besides
+     * (a logo on nothing, rather than a full-bleed image). Without an opaque plate under it,
+     * either one lets whatever is behind the tile - the dock band, the photo wallpaper -
+     * show through unevenly next to tiles whose own art happens to be fully opaque, which
+     * reads as a rendering glitch rather than a deliberate look.
+     */
     private View buildTile(AppModel.Item it) {
         FrameLayout cell = newCell(it);
+        GradientDrawable plate = new GradientDrawable();
+        plate.setCornerRadius(dp(CORNER_DP));
+        plate.setColor(CARD_COLOR);
+        cell.setBackground(plate);
         ImageView img = new ImageView(ctx);
         img.setScaleType(ImageView.ScaleType.FIT_XY);
         img.setImageBitmap(it.banner);
         cell.addView(img, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-        // The app's name, shown while focused. It hangs below the banner into the gap and
-        // over the row beneath (the focused cell draws on top), so rows keep their height.
-        TextView name = new TextView(ctx);
-        name.setTag(NAME_TAG);
-        name.setText(it.label);
-        name.setTextColor(Color.WHITE);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        name.setSingleLine(true);
-        name.setEllipsize(TextUtils.TruncateAt.END);
-        name.setGravity(Gravity.CENTER);
-        name.setPadding(dp(8), 0, dp(8), 0);
-        GradientDrawable pill = new GradientDrawable();
-        pill.setCornerRadius(dp(10));
-        pill.setColor(0xD9101820);
-        name.setBackground(pill);
-        name.setVisibility(View.INVISIBLE);
-        FrameLayout.LayoutParams nlp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(NAME_H_DP),
-                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        name.setTranslationY(dp(NAME_H_DP + 4));
-        cell.addView(name, nlp);
         return cell;
     }
 
-    /** An input, Amazon Home, or a non-TV app: icon + label on a card. */
+    /** An input, Live TV, Settings, TV Health, Amazon Home, or a non-TV app: one flat card. */
     private View buildCard(AppModel.Item it) {
         FrameLayout cell = newCell(it);
         GradientDrawable card = new GradientDrawable();
-        card.setCornerRadius(dp(8));
+        card.setCornerRadius(dp(CORNER_DP));
         boolean textTile = it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV;
-        // Live TV first: inputs go a quiet grey so only the Live TV tile stands out, and
-        // app labels get larger and brighter.
-        boolean tvFirst = liveTvFirst();
-        if (textTile) card.setColor(tvFirst ? 0xFF2A333D : 0xFF0E5A63);
-        else card.setColor(0xFF033058);
+        card.setColor(cardColor(textTile));
         cell.setBackground(card);
+        cardCells.put(cell, Boolean.valueOf(textTile));
 
         if (textTile) {
             LinearLayout col = new LinearLayout(ctx);
@@ -1011,7 +1301,7 @@ public class HomeGrid implements SettingsPanel.Host {
             if (it.glyph != 0) {
                 ImageView ic = new ImageView(ctx);
                 ic.setImageResource(it.glyph);
-                ic.setColorFilter(tvFirst ? 0xFFB4BECA : 0xFFBFE9EE,
+                ic.setColorFilter(0xFFBFE9EE,
                         android.graphics.PorterDuff.Mode.SRC_IN);
                 LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(28), dp(28));
                 ilp.bottomMargin = dp(6);
@@ -1041,20 +1331,20 @@ public class HomeGrid implements SettingsPanel.Host {
         LinearLayout row = new LinearLayout(ctx);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(6), dp(8), dp(6));
+        row.setPadding(dp(14), dp(10), dp(14), dp(10));
 
         ImageView ic = new ImageView(ctx);
         ic.setScaleType(ImageView.ScaleType.FIT_CENTER);
         if (it.icon != null) ic.setImageBitmap(it.icon);
-        int isz = dp(CARD_H_DP) * 62 / 100;
+        int isz = dp(34);
         LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(isz, isz);
-        ilp.rightMargin = dp(9);
+        ilp.rightMargin = dp(10);
         row.addView(ic, ilp);
 
         TextView tv = new TextView(ctx);
         tv.setText(it.label);
-        tv.setTextColor(tvFirst ? 0xFFD5DDE5 : 0xFFA2AFBB);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, tvFirst ? 14 : 12);
+        tv.setTextColor(0xFFB8B8BD);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tv.setMaxLines(2);
         tv.setEllipsize(TextUtils.TruncateAt.END);
         tv.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);

@@ -45,7 +45,7 @@ public final class SettingsPanel {
 
         final Panel.Row home = p.addRow("Home screen", homeSummary(c), null).opens();
         home.setValueColor(0xFF8FA3B8);
-        home.setHelp("Hidden tiles, sorting, grid columns, the clock and the sections.");
+        home.setHelp("Hidden tiles, sorting, grid columns, dock size, the clock and the sections.");
         final Panel.Row look = p.addRow("Background", Backgrounds.label(c), null).opens();
         look.setValueColor(0xFF8FA3B8);
         look.setHelp("The colour or photo behind the home screen.");
@@ -162,6 +162,19 @@ public final class SettingsPanel {
                 changed.run();
             }
         });
+
+        final Panel.Row dock = p.addRow("Dock size",
+                Prefs.DOCK_SIZE_NAMES[Prefs.dockSize(c)], null);
+        dock.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.dockSize(c) + 1) % Prefs.DOCK_SIZE_NAMES.length;
+                Prefs.setDockSize(c, n);
+                dock.setValue(Prefs.DOCK_SIZE_NAMES[n]);
+                host.rebuildGrid();
+            }
+        });
+        dock.setHelp("How big the app tiles in the dock along the bottom are. Larger sizes "
+                + "scroll sideways when they don't all fit.");
 
         final Panel.Row clock = p.addRow("Clock", clockLabel(c), null);
         clock.cell.setOnClickListener(new View.OnClickListener() {

@@ -22,6 +22,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -94,6 +96,8 @@ public final class AppModel {
         public int glyph;
         /** Inputs: the TV reports a device on this input. */
         public boolean connected;
+        /** The banner's own dominant colour, for the home screen's ambient glow; 0 without one. */
+        public int accent;
 
         /** Stable across a re-sort; the handoff carries this, never an index. */
         public String key() {
@@ -187,14 +191,14 @@ public final class AppModel {
         settings.type = TYPE_SETTINGS;
         settings.label = "Settings";
         d = fire ? fireOsIcon(c, AMAZON_LAUNCHER, "ic_settings_default_60dp") : null;
-        settings.icon = toBitmap(c, d != null ? d : drawable(c, android.R.drawable.ic_menu_manage), ICON_PX, ICON_PX, false);
+        settings.icon = d != null ? toBitmap(c, d, ICON_PX, ICON_PX, false) : gearIcon(ICON_PX);
         ITEMS.add(settings);
 
         Item health = new Item();
         health.type = TYPE_HEALTH;
         health.label = "TV Health";
         d = fire ? fireOsIcon(c, AMAZON_SETTINGS, "icon_device_margo") : null;
-        health.icon = toBitmap(c, d != null ? d : drawable(c, android.R.drawable.ic_menu_info_details), ICON_PX, ICON_PX, false);
+        health.icon = d != null ? toBitmap(c, d, ICON_PX, ICON_PX, false) : infoIcon(ICON_PX);
         ITEMS.add(health);
         d = null;
         boolean wide = Prefs.nonTvWide(c);
@@ -232,6 +236,7 @@ public final class AppModel {
                 a.banner = toBitmap(c, raw, cellW, cellH, true);
                 raw = null;
                 a.tvApp = (ci == 0) || a.banner != null;
+                if (a.banner != null) a.accent = dominantColor(a.banner);
                 // Icons are only shown when there is no banner, so only decode them then.
                 if (a.banner == null) {
                     Drawable ic = null;
@@ -390,6 +395,74 @@ public final class AppModel {
         try { return c.getResources().getDrawable(id); } catch (Throwable t) { return null; }
     }
 
+    /**
+     * A plain gear, for the Settings tile: a ring of evenly-spaced teeth around an open
+     * centre, built from ovals and rotated rounded rects rather than a traced icon. Flat and
+     * monochrome, matching every other tile's icon style - replaces
+     * android.R.drawable.ic_menu_manage, one of the old pre-Material stock icons that read
+     * as a system dialog glyph rather than part of this launcher.
+     */
+    private static Bitmap gearIcon(int px) {
+        Bitmap bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(bmp);
+        float cx = px / 2f, cy = px / 2f;
+        float outer = px * 0.40f, inner = px * 0.24f, hole = px * 0.14f;
+        float toothW = px * 0.15f, toothH = px * 0.14f;
+        int teeth = 8;
+
+        Path gear = new Path();
+        gear.addCircle(cx, cy, outer, Path.Direction.CW);
+        RectF tooth = new RectF(cx - toothW / 2, cy - outer - toothH * 0.35f,
+                cx + toothW / 2, cy - outer + toothH * 0.65f);
+        for (int i = 0; i < teeth; i++) {
+            Path t = new Path();
+            t.addRoundRect(tooth, px * 0.02f, px * 0.02f, Path.Direction.CW);
+            Matrix m = new Matrix();
+            m.setRotate(360f / teeth * i, cx, cy);
+            t.transform(m);
+            gear.op(t, Path.Op.UNION);
+        }
+        Path ring = new Path();
+        ring.addCircle(cx, cy, outer, Path.Direction.CW);
+        ring.op(circle(cx, cy, inner), Path.Op.DIFFERENCE);
+        gear.op(ring, Path.Op.INTERSECT);
+        gear.op(circle(cx, cy, hole), Path.Op.UNION);
+        gear.op(circle(cx, cy, hole * 0.4f), Path.Op.DIFFERENCE);
+
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(0xFFFFFFFF);
+        cv.drawPath(gear, p);
+        return bmp;
+    }
+
+    /** A circled "i", for the TV Health tile. Replaces android.R.drawable.ic_menu_info_details. */
+    private static Bitmap infoIcon(int px) {
+        Bitmap bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888);
+        Canvas cv = new Canvas(bmp);
+        float cx = px / 2f, cy = px / 2f;
+        float outer = px * 0.40f, ringW = px * 0.045f;
+
+        Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ring.setStyle(Paint.Style.STROKE);
+        ring.setStrokeWidth(ringW);
+        ring.setColor(0xFFFFFFFF);
+        cv.drawCircle(cx, cy, outer - ringW / 2, ring);
+
+        Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fill.setColor(0xFFFFFFFF);
+        float dotR = px * 0.045f;
+        cv.drawCircle(cx, cy - outer * 0.42f, dotR, fill);
+        RectF stem = new RectF(cx - dotR, cy - outer * 0.12f, cx + dotR, cy + outer * 0.55f);
+        cv.drawRoundRect(stem, dotR, dotR, fill);
+        return bmp;
+    }
+
+    private static Path circle(float cx, float cy, float r) {
+        Path p = new Path();
+        p.addCircle(cx, cy, r, Path.Direction.CW);
+        return p;
+    }
+
     private static Drawable appIcon(Context c, String pkg) {
         try { return c.getPackageManager().getApplicationIcon(pkg); }
         catch (Throwable t) { return null; }
@@ -465,6 +538,42 @@ public final class AppModel {
             return bmp;
         } catch (Throwable t) {
             return null;
+        }
+    }
+
+    /**
+     * A single representative colour for the banner's ambient glow: average a sparse grid
+     * of sample points (the banner is already shrunk to the grid cell, so this is cheap),
+     * then push saturation and brightness up to a floor - a plain average is often a muddy
+     * grey, and the glow needs to read clearly against a black background.
+     */
+    private static int dominantColor(Bitmap bmp) {
+        try {
+            int w = bmp.getWidth(), h = bmp.getHeight();
+            if (w <= 0 || h <= 0) return 0;
+            int cols = 6, rows = 6;
+            long r = 0, g = 0, b = 0;
+            int n = 0;
+            for (int yi = 0; yi < rows; yi++) {
+                int y = Math.min(h - 1, (int) ((yi + 0.5f) * h / rows));
+                for (int xi = 0; xi < cols; xi++) {
+                    int x = Math.min(w - 1, (int) ((xi + 0.5f) * w / cols));
+                    int p = bmp.getPixel(x, y);
+                    if (android.graphics.Color.alpha(p) < 32) continue;
+                    r += android.graphics.Color.red(p);
+                    g += android.graphics.Color.green(p);
+                    b += android.graphics.Color.blue(p);
+                    n++;
+                }
+            }
+            if (n == 0) return 0;
+            float[] hsv = new float[3];
+            android.graphics.Color.RGBToHSV((int) (r / n), (int) (g / n), (int) (b / n), hsv);
+            hsv[1] = Math.min(1f, Math.max(hsv[1], 0.55f));
+            hsv[2] = Math.min(1f, Math.max(hsv[2], 0.55f));
+            return android.graphics.Color.HSVToColor(hsv);
+        } catch (Throwable t) {
+            return 0;
         }
     }
 

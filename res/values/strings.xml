@@ -10,7 +10,10 @@
   <string name="home_sec_nontv">Non-TV Applications</string>
   <string name="home_sec_tv">TV Applications</string>
   <string name="home_connected">connected</string>
-  <string name="home_greet_morning">Good morning</string>
-  <string name="home_greet_afternoon">Good afternoon</string>
-  <string name="home_greet_evening">Good evening</string>
+  <string name="home_settings_pill">Settings</string>
+  <string name="home_inputs_pill">Inputs</string>
+  <string name="home_greeting_night">Good night</string>
+  <string name="home_greeting_morning">Good morning</string>
+  <string name="home_greeting_afternoon">Good afternoon</string>
+  <string name="home_greeting_evening">Good evening</string>
 </resources>

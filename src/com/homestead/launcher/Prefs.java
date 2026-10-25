@@ -57,6 +57,7 @@ public final class Prefs {
     private static final String K_DATE = "date_format";
     private static final String K_NONTV_WIDE = "nontv_wide";
     private static final String K_FIRE_ICONS = "fire_os_icons";
+    private static final String K_DOCK_SIZE = "dock_size";
 
     public static final int SORT_LAST_USED = 0;
     public static final int SORT_ALPHA = 1;
@@ -118,6 +119,14 @@ public final class Prefs {
     }
     public static void setColumns(Context c, int v) { sp(c).edit().putInt(K_COLUMNS, v).apply(); }
 
+    /** Index into DOCK_SIZE_NAMES (HomeGrid maps it to a tile height). Medium by default. */
+    public static final String[] DOCK_SIZE_NAMES = { "Small", "Medium", "Large", "Extra large" };
+    public static int dockSize(Context c) {
+        int n = sp(c).getInt(K_DOCK_SIZE, 1);
+        return (n < 0 || n >= DOCK_SIZE_NAMES.length) ? 1 : n;
+    }
+    public static void setDockSize(Context c, int v) { sp(c).edit().putInt(K_DOCK_SIZE, v).apply(); }
+
     public static boolean showInputs(Context c) { return sp(c).getBoolean(K_SEC_INPUTS, true); }
     public static void setShowInputs(Context c, boolean v) { sp(c).edit().putBoolean(K_SEC_INPUTS, v).apply(); }
 
@@ -126,8 +135,8 @@ public final class Prefs {
 
     /** A Backgrounds.Preset id or Backgrounds.PHOTO_ID; null if the choice predates ids. */
     public static String backgroundId(Context c) { return sp(c).getString(K_BACKGROUND_ID, null); }
-    /** How 1.6.4 and earlier saved it: a position in that version's list (0, Sky, if unset). */
-    public static int backgroundPosition(Context c) { return sp(c).getInt(K_BACKGROUND, 0); }
+    /** How 1.6.4 and earlier saved it: a position in that version's list (4, Black, if unset). */
+    public static int backgroundPosition(Context c) { return sp(c).getInt(K_BACKGROUND, 4); }
     /** The id, and the old position too unless it is -1 (a look those versions did not have). */
     public static void setBackground(Context c, String id, int oldPosition) {
         SharedPreferences.Editor e = sp(c).edit().putString(K_BACKGROUND_ID, id);

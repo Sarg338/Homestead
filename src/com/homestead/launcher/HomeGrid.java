@@ -888,6 +888,15 @@ public class HomeGrid implements SettingsPanel.Host {
         title.setTextColor(Color.WHITE);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        // A longer name ("TV en direct") would wrap and push the hint out of the tile: keep it
+        // on one line, smaller if it must be. The width is what the icon and paddings leave.
+        int w = AppModel.cellW(ctx) * 2 + dp(GAP_DP);
+        float room = w - dp(24) - (it.glyph != 0 ? dp(56) : 0) - dp(48);
+        title.setSingleLine(true);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        for (int sp = 29; sp >= 20 && title.getPaint().measureText(it.label) > room; sp--) {
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
+        }
         text.addView(title);
 
         TextView hint = new TextView(ctx);
@@ -911,7 +920,6 @@ public class HomeGrid implements SettingsPanel.Host {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         cell.addView(row, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        int w = AppModel.cellW(ctx) * 2 + dp(GAP_DP);
         int h = AppModel.cellH(ctx) * 3 / 2;
         column.addView(cell, new LinearLayout.LayoutParams(w, h));
     }

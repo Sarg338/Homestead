@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.homestead.launcher"
-    android:versionCode="78" android:versionName="1.6.14">
+    android:versionCode="79" android:versionName="1.6.14-fo6test1">
 
   <!-- Optional: last-used times for app sorting, when granted. -->
   <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
@@ -70,6 +70,11 @@
          grant applies without restarting the app. -->
     <service android:name=".HomeKeyWatcher"
              android:process=":homekey"
+             android:exported="false"/>
+
+    <!-- Fire OS 6 Home fallback: where the accessibility service can't bind, this drives the
+         Home button from the log watcher instead. Dormant on Fire OS 7/8. -->
+    <service android:name=".HomeWatchService"
              android:exported="false"/>
 
     <!-- Local tunnel to the TV's own adbd where Fire OS blocks self-connections. Opt-in,

@@ -24,6 +24,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Layout;
+import android.text.SpannableString;
+import android.text.style.RelativeSizeSpan;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -90,6 +92,11 @@ public class HomeGrid implements SettingsPanel.Host {
     private final LinearLayout head;
     private final TextView greet;
     private final TextView date;
+    private final LinearLayout topBar;
+    /** The date beside a large clock, drawn only with the top bar. */
+    private final TextView dateText;
+    private boolean barShown;
+    private View barSpacer, barRule;
 
     private final Map<String, View> cellsByKey = new HashMap<String, View>();
     /** The horizontally scrolling section rows, in build order. */
@@ -190,7 +197,10 @@ public class HomeGrid implements SettingsPanel.Host {
         };
         root.setClipChildren(false);
 
-        scroll = new ScrollView(c);
+        scroll = new ScrollView(c) {
+            // Only the top edge fades under the top bar; the bottom row is not dimmed.
+            @Override protected float getBottomFadingEdgeStrength() { return 0f; }
+        };
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setClipChildren(false);
         scroll.setClipToPadding(false);
@@ -209,12 +219,45 @@ public class HomeGrid implements SettingsPanel.Host {
         clock = new TextView(c);
         clock.setTextColor(Color.WHITE);
         clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        // The clock, with the settings pills to its left when that shortcut row is chosen.
+        dateText = new TextView(c);
+        dateText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        dateText.setLetterSpacing(0.1f);
+        dateText.setSingleLine(true);
+        topBar = new LinearLayout(c) {
+            // The date is the first thing to go when the clock and the pills do not fit side by
+            // side (a 12-hour clock is wider): better no date than a pill pushed off the screen.
+            @Override protected void onMeasure(int w, int h) {
+                super.onMeasure(w, h);
+                if (dateText.getVisibility() != View.VISIBLE) return;
+                int avail = MeasureSpec.getSize(w) - getPaddingLeft() - getPaddingRight();
+                int need = 0;
+                for (int i = 0; i < getChildCount(); i++) {
+                    View v = getChildAt(i);
+                    if (v == barSpacer || v.getVisibility() == View.GONE) continue;
+                    LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
+                    need += v.getMeasuredWidth() + lp.leftMargin + lp.rightMargin;
+                }
+                if (need > avail) {
+                    dateText.setVisibility(View.GONE);
+                    if (barRule != null) barRule.setVisibility(View.GONE);
+                    super.onMeasure(w, h);
+                }
+            }
+        };
+        topBar.setOrientation(LinearLayout.HORIZONTAL);
+        topBar.setGravity(Gravity.CENTER_VERTICAL);
+        topBar.setClipChildren(false);
         FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP | Gravity.RIGHT);
-        clp.topMargin = dp(14);
-        clp.rightMargin = dp(33);
-        root.addView(clock, clp);
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP);
+        clp.topMargin = dp(6);
+        // Room round the pills for the focus ring, which grows past their edge.
+        topBar.setPadding(dp(6), dp(6), dp(6), dp(6));
+        topBar.setClipToPadding(false);
+        clp.leftMargin = dp(MARGIN_DP - 6);
+        clp.rightMargin = dp(33 - 6);
+        root.addView(topBar, clp);
 
         head = new LinearLayout(c);
         head.setOrientation(LinearLayout.VERTICAL);
@@ -278,6 +321,7 @@ public class HomeGrid implements SettingsPanel.Host {
         paintText(clock);
         paintText(greet);
         paintText(date);
+        paintText(dateText);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
             if (v instanceof TextView) paintText((TextView) v);
@@ -300,13 +344,41 @@ public class HomeGrid implements SettingsPanel.Host {
     public void updateClock() {
         updateHead();
         int mode = Prefs.clockMode(ctx);
-        if (mode == Prefs.CLOCK_OFF) { clock.setText(""); return; }
-        String fmt = (mode == Prefs.CLOCK_12H) ? "h:mm a" : "HH:mm";
-        clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(new Date()));
+        if (mode == Prefs.CLOCK_OFF) { clock.setText(""); dateText.setText(""); return; }
+        Date now = new Date();
+        if (mode == Prefs.CLOCK_12H && barShown) {
+            // The large clock keeps AM/PM small, so a 12-hour time is no wider than a 24-hour one.
+            String t = new SimpleDateFormat("h:mm", Locale.getDefault()).format(now);
+            String ap = new SimpleDateFormat("a", Locale.getDefault()).format(now);
+            SpannableString s = new SpannableString(t + " " + ap);
+            s.setSpan(new RelativeSizeSpan(0.4f), t.length() + 1, s.length(), 0);
+            clock.setText(s);
+        } else {
+            String fmt = (mode == Prefs.CLOCK_12H) ? "h:mm a" : "HH:mm";
+            clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(now));
+        }
+        dateText.setText(dateString(now, true).toUpperCase(Locale.getDefault()));
+    }
+
+    /**
+     * The date as the Date setting asks for it; empty when it is off. In the bar the long form
+     * is abbreviated, since the full weekday and month do not fit beside the pills.
+     */
+    private String dateString(Date now, boolean compact) {
+        int df = Prefs.dateFormat(ctx);
+        if (df == Prefs.DATE_LONG) {
+            String pat = android.text.format.DateFormat.getBestDateTimePattern(
+                    Locale.getDefault(), compact ? "EEEdMMM" : "EEEEdMMMM");
+            return new SimpleDateFormat(pat, Locale.getDefault()).format(now);
+        }
+        if (df == Prefs.DATE_SHORT) return android.text.format.DateFormat.getDateFormat(ctx).format(now);
+        return "";
     }
 
     /** Greeting and date, each its own setting; the grid moves down while either shows. */
     private void updateHead() {
+        // The bar carries the clock and the date at the left, so the greeting steps aside.
+        if (barShown) { head.setVisibility(View.GONE); return; }
         Date now = new Date();
         boolean g = Prefs.greeting(ctx);
         int df = Prefs.dateFormat(ctx);
@@ -316,13 +388,7 @@ public class HomeGrid implements SettingsPanel.Host {
                     : h >= 12 && h < 18 ? R.string.home_greet_afternoon : R.string.home_greet_evening);
         }
         greet.setVisibility(g ? View.VISIBLE : View.GONE);
-        if (df == Prefs.DATE_LONG) {
-            String pat = android.text.format.DateFormat.getBestDateTimePattern(
-                    Locale.getDefault(), "EEEEdMMMM");
-            date.setText(new SimpleDateFormat(pat, Locale.getDefault()).format(now));
-        } else if (df == Prefs.DATE_SHORT) {
-            date.setText(android.text.format.DateFormat.getDateFormat(ctx).format(now));
-        }
+        if (df != Prefs.DATE_OFF) date.setText(dateString(now, false));
         date.setVisibility(df != Prefs.DATE_OFF ? View.VISIBLE : View.GONE);
         boolean show = g || df != Prefs.DATE_OFF;
         head.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -622,6 +688,7 @@ public class HomeGrid implements SettingsPanel.Host {
         builtGen = layoutGen;
         updateClock();
         try {
+            buildTopBar();
             buildSections();
         } catch (Throwable t) {
             android.util.Log.e("Homestead", "grid build failed, drawing fallback", t);
@@ -663,6 +730,7 @@ public class HomeGrid implements SettingsPanel.Host {
         List<AppModel.Item> inputs = new ArrayList<AppModel.Item>();
         List<AppModel.Item> nonTv = new ArrayList<AppModel.Item>();
         List<AppModel.Item> tv = new ArrayList<AppModel.Item>();
+        List<AppModel.Item> shortcuts = new ArrayList<AppModel.Item>();
 
         // Live TV first takes the Live TV tile out of its section and puts it above them all.
         boolean tvFirst = liveTvFirst();
@@ -677,6 +745,11 @@ public class HomeGrid implements SettingsPanel.Host {
             if (it.type == AppModel.TYPE_RESTORE) {
                 restoreShown = true;
                 restore = it;
+            } else if (it.type == AppModel.TYPE_SHORTCUT) {
+                shortcuts.add(it);
+            } else if (barShown && it.type == AppModel.TYPE_SETTINGS) {
+                // The top bar has its own Settings pill; the tile would only repeat it.
+                continue;
             } else if (tvFirst && it.type == AppModel.TYPE_LIVETV) {
                 liveTv = it;
             } else if (it.type == AppModel.TYPE_INPUT || it.type == AppModel.TYPE_LIVETV
@@ -717,18 +790,26 @@ public class HomeGrid implements SettingsPanel.Host {
         String inputsTitle = ctx.getString(R.string.home_sec_inputs);
         String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
         String tvTitle = ctx.getString(R.string.home_sec_tv);
+        String shortcutsTitle = ctx.getString(R.string.home_sec_settings);
+        boolean scTop = !shortcuts.isEmpty() && Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_TOP;
+        boolean scBottom = !shortcuts.isEmpty()
+                && Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_BOTTOM;
         boolean first = true;
         if (restore != null) { addRestoreTile(restore); first = false; }
         if (tvFirst) {
             if (liveTv != null)    { addLiveTvTile(liveTv); first = false; }
+            if (scTop)             { addHeader(shortcutsTitle, first); first = false; addCardRow(shortcuts); }
             if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
             if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); addNonTv(nonTv); }
+            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
+            if (scBottom)          { addHeader(shortcutsTitle, first); addCardRow(shortcuts); }
             return;
         }
+        if (scTop)             { addHeader(shortcutsTitle, first); first = false; addCardRow(shortcuts); }
         if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
         if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
-        if (!tv.isEmpty())     { addHeader(tvTitle, first); addTileGrid(tv); }
+        if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
+        if (scBottom)          { addHeader(shortcutsTitle, first); addCardRow(shortcuts); }
     }
 
     /** Live TV first: one large tile, two banner cells wide, on its own row. */
@@ -778,6 +859,185 @@ public class HomeGrid implements SettingsPanel.Host {
         int w = AppModel.cellW(ctx) * 2 + dp(GAP_DP);
         int h = AppModel.cellH(ctx) * 3 / 2;
         column.addView(cell, new LinearLayout.LayoutParams(w, h));
+    }
+
+    /** The most pills the top bar takes, More settings and Settings included. */
+    private static final int BAR_MAX = 5;
+
+    /**
+     * The "top bar" shortcut row: small rounded buttons left of the clock, at the same height
+     * so nothing below moves. The chosen screens come first, then More settings (Amazon's
+     * full menu) and Settings (this launcher's). Not shown in Simple mode.
+     */
+    private void buildTopBar() {
+        topBar.removeAllViews();
+        boolean bar = Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_BAR && !Prefs.simpleMode(ctx);
+        barShown = bar;
+        boolean showClock = Prefs.clockMode(ctx) != Prefs.CLOCK_OFF;
+
+        View spacer = new View(ctx);
+        barSpacer = spacer;
+        barRule = null;
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(0, 1, 1f);
+
+        if (!bar) {
+            // The plain layout: the clock alone at the right.
+            clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            clock.setTypeface(Typeface.DEFAULT);
+            dateText.setVisibility(View.GONE);
+            topBar.addView(spacer, slp);
+            topBar.addView(clock);
+            updateClock();
+            // Where the page starts is up to updateHead: below the greeting and date, or at the top.
+            scroll.setVerticalFadingEdgeEnabled(false);
+            root.setClipChildren(false);
+            return;
+        }
+
+        // Clock and date at the left, the glass pills at the right.
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 34);
+        clock.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        topBar.addView(clock);
+        if (showClock && Prefs.dateFormat(ctx) != Prefs.DATE_OFF) {
+            View rule = new View(ctx);
+            barRule = rule;
+            rule.setBackgroundColor(0x55FFFFFF);
+            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(dp(1), dp(30));
+            rlp.leftMargin = dp(16);
+            rlp.rightMargin = dp(16);
+            topBar.addView(rule, rlp);
+            dateText.setVisibility(View.VISIBLE);
+            dateText.setAlpha(0.8f);
+            topBar.addView(dateText);
+        } else {
+            dateText.setVisibility(View.GONE);
+        }
+        topBar.addView(spacer, slp);
+
+        List<AppModel.Item> pills = new ArrayList<AppModel.Item>();
+        List<AppModel.Item> all = AppModel.visibleItems(ctx);
+        for (int i = 0; i < all.size() && pills.size() < BAR_MAX - 2; i++) {
+            if (all.get(i).type == AppModel.TYPE_SHORTCUT) pills.add(all.get(i));
+        }
+        pills.add(barItem(AppModel.SC_MORE, "More settings", "more"));
+        pills.add(barItem(AppModel.SC_SETTINGS, "Settings", "settings"));
+        for (int i = 0; i < pills.size(); i++) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(PILL_H_DP));
+            if (i > 0) lp.leftMargin = dp(12);
+            View pill = buildPill(pills.get(i));
+            // Nothing above the bar, and no jumping to a tile past either end of it.
+            boolean firstPill = i == 0, lastPill = i == pills.size() - 1;
+            stopKeys(pill, android.view.KeyEvent.KEYCODE_DPAD_UP,
+                    firstPill ? android.view.KeyEvent.KEYCODE_DPAD_LEFT : -1,
+                    lastPill ? android.view.KeyEvent.KEYCODE_DPAD_RIGHT : -1);
+            topBar.addView(pill, lp);
+        }
+        // The page scrolls below the bar, never behind it, and fades out as it nears it. The
+        // padding keeps the first tile well clear of the pills when the page is at the top.
+        updateClock();
+        setScrollTop(BAR_H_DP);
+        column.setPadding(dp(MARGIN_DP), dp(28), dp(MARGIN_DP), dp(MARGIN_DP));
+    }
+
+    /** The bar's height, which the scrolling page starts under. */
+    private static final int BAR_H_DP = 58;
+
+    /** Where the scrolling page starts; with the bar it also fades at that edge. */
+    private void setScrollTop(int dpTop) {
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) scroll.getLayoutParams();
+        if (lp.topMargin != dp(dpTop)) {
+            lp.topMargin = dp(dpTop);
+            scroll.setLayoutParams(lp);
+        }
+        scroll.setVerticalFadingEdgeEnabled(dpTop > 0);
+        scroll.setFadingEdgeLength(dp(48));
+        // The root normally lets children draw past their own edge so a focused tile can grow; under the bar
+        // that would let it show through, so here it is cut at the edge instead.
+        root.setClipChildren(dpTop > 0);
+    }
+
+    private static final int PILL_H_DP = 40;
+
+    private AppModel.Item barItem(String action, String label, String icon) {
+        AppModel.Item it = new AppModel.Item();
+        it.type = AppModel.TYPE_SHORTCUT;
+        it.label = label;
+        it.cls = action;
+        it.icon = ShortcutIcons.render(icon, dp(40));
+        return it;
+    }
+
+    /** Pills are small: the long screen names lose their second half. */
+    private static String shortLabel(String title) {
+        if ("Controllers & Bluetooth".equals(title)) return "Controllers";
+        if ("Display & sounds".equals(title)) return "Display";
+        if ("Amazon account".equals(title)) return "Account";
+        if ("Data monitoring".equals(title)) return "Data";
+        return title;
+    }
+
+    /**
+     * A glass pill: a faint white wash that fades down, a hairline light edge, fully rounded.
+     * Over a photo or a gradient it picks up what is behind it instead of hiding it. The
+     * focus ring follows the same rounded shape and the fill brightens, so the pill reads
+     * as lit from within rather than boxed.
+     */
+    private View buildPill(AppModel.Item it) {
+        final FrameLayout cell = newCell(it);
+        final int radius = dp(PILL_H_DP / 2);
+        final GradientDrawable glass = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] { 0x40FFFFFF, 0x14FFFFFF });
+        glass.setCornerRadius(radius);
+        glass.setStroke(dp(1), 0x59FFFFFF);
+        cell.setBackground(glass);
+        // newCell draws a tile outline until the first focus change; a pill has none.
+        cell.setForeground(null);
+
+        final View.OnFocusChangeListener base = cell.getOnFocusChangeListener();
+        cell.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            public void onFocusChange(View v, boolean has) {
+                if (base != null) base.onFocusChange(v, has);
+                GradientDrawable ring = new GradientDrawable();
+                ring.setCornerRadius(radius);
+                if (has) {
+                    ring.setStroke(dp(2), 0xF2FFFFFF);
+                    ring.setColor(0x26FFFFFF);
+                    cell.setForeground(ring);
+                    cell.setScaleX(1.06f);
+                    cell.setScaleY(1.06f);
+                } else {
+                    cell.setForeground(null);
+                    cell.setScaleX(1f);
+                    cell.setScaleY(1f);
+                }
+            }
+        });
+
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), 0, dp(16), 0);
+
+        ImageView ic = new ImageView(ctx);
+        ic.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        if (it.icon != null) ic.setImageBitmap(it.icon);
+        LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(dp(20), dp(20));
+        ilp.rightMargin = dp(8);
+        row.addView(ic, ilp);
+
+        TextView tv = new TextView(ctx);
+        tv.setText(shortLabel(it.label));
+        tv.setTextColor(0xF2FFFFFF);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tv.setLetterSpacing(0.03f);
+        tv.setSingleLine(true);
+        row.addView(tv, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        cell.addView(row, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        return cell;
     }
 
     /** The system undid something Debloat had switched off: one amber tile above everything. */
@@ -1210,6 +1470,16 @@ public class HomeGrid implements SettingsPanel.Host {
         });
     }
 
+    /** Swallow the given D-pad keys on a cell, for the bar's edges and its Up. */
+    private static void stopKeys(View cell, final int... codes) {
+        cell.setOnKeyListener(new View.OnKeyListener() {
+            public boolean onKey(View v, int code, android.view.KeyEvent e) {
+                for (int c : codes) if (c == code) return true;
+                return false;
+            }
+        });
+    }
+
     /** A TV app: full-bleed banner, already rounded in the bitmap. */
     private View buildTile(AppModel.Item it) {
         FrameLayout cell = newCell(it);
@@ -1348,6 +1618,17 @@ public class HomeGrid implements SettingsPanel.Host {
         }
         if (it.type == AppModel.TYPE_RESTORE) {
             restoreReverted();
+            return;
+        }
+        if (it.type == AppModel.TYPE_SHORTCUT) {
+            logOpen(it.label);
+            if (AppModel.SC_MORE.equals(it.cls)) {
+                FireTvSettingsPanel.openAll(ctx, panelHost);
+            } else if (AppModel.SC_SETTINGS.equals(it.cls)) {
+                showPanel(SettingsPanel.build(ctx, panelHost));
+            } else {
+                SetupPanel.start(ctx, FireTvSettingsPanel.intentFor(it.cls));
+            }
             return;
         }
         if (it.type == AppModel.TYPE_LIVETV) {

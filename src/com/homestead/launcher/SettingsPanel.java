@@ -108,8 +108,9 @@ public final class SettingsPanel {
 
         p.addRow("Fire TV settings", "", new Runnable() {
             public void run() { host.showPanel(FireTvSettingsPanel.build(c, host)); }
-        }).opens().setHelp("Amazon's own settings screens (network, display, Bluetooth, "
-                + "applications, My Fire TV), each opened directly.");
+        }).opens().setHelp("Amazon's settings screens that open from here, such as network, "
+                + "Bluetooth and applications, its full settings menu, and settings shortcuts "
+                + "for the home screen.");
 
         final Panel.Row updates = p.addRow("Check for updates",
                 "v" + UpdateChecker.installedVersionName(c), null);

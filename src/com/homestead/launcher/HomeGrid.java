@@ -444,8 +444,12 @@ public class HomeGrid implements SettingsPanel.Host {
 
     public void takeFocus() {
         if (focusedKey != null && selectKey(focusedKey)) return;
+        // The first item that has a cell: some are not drawn (the Settings tile while the top
+        // bar is on, a section that is switched off).
         List<AppModel.Item> items = AppModel.visibleItems(ctx);
-        if (!items.isEmpty()) selectKey(items.get(0).key());
+        for (int i = 0; i < items.size(); i++) {
+            if (selectKey(items.get(i).key())) return;
+        }
     }
 
     // ------------------------------------------------------------ SettingsPanel.Host
@@ -464,9 +468,10 @@ public class HomeGrid implements SettingsPanel.Host {
             if (focusedKey.equals(all.get(i).key())) { target = all.get(i); break; }
         }
         if (target == null) return false;
-        // Settings and TV Health stay reachable so hidden tiles can always be restored.
+        // Settings and TV Health stay reachable so hidden tiles can always be restored. The
+        // settings shortcuts come and go with "Choose shortcuts" instead.
         if (target.type == AppModel.TYPE_SETTINGS || target.type == AppModel.TYPE_HEALTH
-                || target.type == AppModel.TYPE_RESTORE) {
+                || target.type == AppModel.TYPE_RESTORE || target.type == AppModel.TYPE_SHORTCUT) {
             return false;
         }
         Prefs.setHidden(ctx, target.key(), true);
@@ -773,6 +778,8 @@ public class HomeGrid implements SettingsPanel.Host {
             inputs = keep;
         }
         if (!Prefs.showNonTv(ctx)) nonTv.clear();
+        // The shortcuts row is not part of Simple mode, like the top bar.
+        if (Prefs.simpleMode(ctx)) shortcuts.clear();
 
         // Simple mode drops them too, unless nothing else is left: an empty grid has
         // nothing to focus, so the Menu presses that open Settings may not reach us.
@@ -919,8 +926,8 @@ public class HomeGrid implements SettingsPanel.Host {
         for (int i = 0; i < all.size() && pills.size() < BAR_MAX - 2; i++) {
             if (all.get(i).type == AppModel.TYPE_SHORTCUT) pills.add(all.get(i));
         }
-        pills.add(barItem(AppModel.SC_MORE, "More settings", "more"));
-        pills.add(barItem(AppModel.SC_SETTINGS, "Settings", "settings"));
+        pills.add(barItem(AppModel.SC_MORE, ctx.getString(R.string.home_sc_more), "more"));
+        pills.add(barItem(AppModel.SC_SETTINGS, ctx.getString(R.string.home_sc_settings), "settings"));
         for (int i = 0; i < pills.size(); i++) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, dp(PILL_H_DP));
@@ -969,12 +976,9 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /** Pills are small: the long screen names lose their second half. */
-    private static String shortLabel(String title) {
-        if ("Controllers & Bluetooth".equals(title)) return "Controllers";
-        if ("Display & sounds".equals(title)) return "Display";
-        if ("Amazon account".equals(title)) return "Account";
-        if ("Data monitoring".equals(title)) return "Data";
-        return title;
+    private String shortLabel(AppModel.Item it) {
+        String s = FireTvSettingsPanel.homeLabel(ctx, it.cls, true);
+        return s != null ? s : it.label;
     }
 
     /**
@@ -1027,7 +1031,7 @@ public class HomeGrid implements SettingsPanel.Host {
         row.addView(ic, ilp);
 
         TextView tv = new TextView(ctx);
-        tv.setText(shortLabel(it.label));
+        tv.setText(shortLabel(it));
         tv.setTextColor(0xF2FFFFFF);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tv.setLetterSpacing(0.03f);
@@ -1364,11 +1368,9 @@ public class HomeGrid implements SettingsPanel.Host {
         });
         cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Settings and TV Health open a panel in this window, so they are not
-                // reported as a pick; that would make an overlay host dismiss itself.
-                boolean leaves = it.type != AppModel.TYPE_SETTINGS
-                        && it.type != AppModel.TYPE_HEALTH;
-                if (listener != null && leaves) listener.onPick(it);
+                // A tile that opens a panel in this window is not reported as a pick; that
+                // would make an overlay host dismiss itself.
+                if (listener != null && !opensPanel(it)) listener.onPick(it);
                 act(it);
             }
         });
@@ -1381,6 +1383,17 @@ public class HomeGrid implements SettingsPanel.Host {
         cellsByKey.put(it.key(), cell);
         style(cell, false);
         return cell;
+    }
+
+    /**
+     * Settings, TV Health, the bar's Settings pill, and its More settings pill while Amazon's
+     * launcher is off (that one asks first): each opens a panel here instead of leaving.
+     */
+    private boolean opensPanel(AppModel.Item it) {
+        if (it.type == AppModel.TYPE_SETTINGS || it.type == AppModel.TYPE_HEALTH) return true;
+        if (it.type != AppModel.TYPE_SHORTCUT) return false;
+        if (AppModel.SC_SETTINGS.equals(it.cls)) return true;
+        return AppModel.SC_MORE.equals(it.cls) && !AppModel.amazonLauncherOn(ctx);
     }
 
     /** The preset's edge around an unfocused cell, or null when the preset has none. */

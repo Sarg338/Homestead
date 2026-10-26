@@ -13,6 +13,23 @@
   <string name="home_restore_refused">Fire OS kept %1$s on</string>
   <string name="home_connecting">Connecting to the TV...</string>
   <string name="home_sec_settings">Fire TV settings</string>
+  <!-- Fire TV settings shortcuts: the name on a tile, and the shorter one on a top-bar pill. -->
+  <string name="home_sc_network">Network</string>
+  <string name="home_sc_display">Display &amp; sounds</string>
+  <string name="home_sc_display_short">Display</string>
+  <string name="home_sc_controllers">Controllers &amp; Bluetooth</string>
+  <string name="home_sc_controllers_short">Controllers</string>
+  <string name="home_sc_accessibility">Accessibility</string>
+  <string name="home_sc_applications">Applications</string>
+  <string name="home_sc_language">Language</string>
+  <string name="home_sc_preferences">Preferences</string>
+  <string name="home_sc_data">Data monitoring</string>
+  <string name="home_sc_data_short">Data</string>
+  <string name="home_sc_account">Amazon account</string>
+  <string name="home_sc_account_short">Account</string>
+  <string name="home_sc_device">My Fire TV</string>
+  <string name="home_sc_more">More settings</string>
+  <string name="home_sc_settings">Settings</string>
   <string name="home_sec_inputs">Inputs &amp; System</string>
   <string name="home_sec_nontv">Non-TV Applications</string>
   <string name="home_sec_tv">TV Applications</string>

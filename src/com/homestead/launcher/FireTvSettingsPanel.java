@@ -40,7 +40,11 @@ public final class FireTvSettingsPanel {
 
     static final int ID = 0, TITLE = 1, ACTION = 2, HELP = 3;
 
-    /** Id (also the icon), title, action, what it holds. Resolved on a TCL 40V5D, Fire OS 14. */
+    /**
+     * Id (also the icon), title, action, what it holds. Resolved on a TCL 40V5D (Fire OS 14)
+     * and an Insignia (Fire OS 7), where Network, Controllers, Applications and My Fire TV
+     * open from here and the rest need Amazon's permission.
+     */
     static final String[][] SCREENS = {
             { "network", "Network", "android.settings.WIFI_SETTINGS",
                     "Wi-Fi, Ethernet and adding a network." },
@@ -61,7 +65,29 @@ public final class FireTvSettingsPanel {
                     "About this TV, software updates, Developer options and ADB debugging." },
     };
 
+    /** The home screen's names for SCREENS, row for row, in the TV's language: tile, pill. */
+    private static final int[][] HOME_LABELS = {
+            { R.string.home_sc_network, R.string.home_sc_network },
+            { R.string.home_sc_display, R.string.home_sc_display_short },
+            { R.string.home_sc_controllers, R.string.home_sc_controllers_short },
+            { R.string.home_sc_accessibility, R.string.home_sc_accessibility },
+            { R.string.home_sc_applications, R.string.home_sc_applications },
+            { R.string.home_sc_language, R.string.home_sc_language },
+            { R.string.home_sc_preferences, R.string.home_sc_preferences },
+            { R.string.home_sc_data, R.string.home_sc_data_short },
+            { R.string.home_sc_account, R.string.home_sc_account_short },
+            { R.string.home_sc_device, R.string.home_sc_device },
+    };
+
     private FireTvSettingsPanel() { }
+
+    /** A screen's name on the home screen, by its action; null for an action not in SCREENS. */
+    static String homeLabel(Context c, String action, boolean pill) {
+        for (int i = 0; i < SCREENS.length; i++) {
+            if (SCREENS[i][ACTION].equals(action)) return c.getString(HOME_LABELS[i][pill ? 1 : 0]);
+        }
+        return null;
+    }
 
     static Intent intentFor(String action) {
         Intent i = new Intent(action);
@@ -220,7 +246,9 @@ public final class FireTvSettingsPanel {
             Toast.makeText(c, R.string.home_restore_failed, Toast.LENGTH_LONG).show();
             return;
         }
-        // Kept in the list of what this app switched off, so the restore tile offers to undo it.
+        // In the list of what this app switched off, so the restore tile offers to undo it,
+        // also when the launcher was switched off some other way than Debloat.
+        Prefs.noteDisabled(c, AppModel.AMAZON_LAUNCHER, true);
         Prefs.setRestoreWatch(c, true);
         Toast.makeText(c, R.string.home_connecting, Toast.LENGTH_SHORT).show();
         AdbBridge.runRetry(new String[]{ AdbBridge.enableCommand(AppModel.AMAZON_LAUNCHER) },

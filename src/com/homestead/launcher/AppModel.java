@@ -392,8 +392,8 @@ public final class AppModel {
             if (!want.contains(s[FireTvSettingsPanel.ID])) continue;
             Item it = new Item();
             it.type = TYPE_SHORTCUT;
-            it.label = s[FireTvSettingsPanel.TITLE];
             it.cls = s[FireTvSettingsPanel.ACTION];
+            it.label = FireTvSettingsPanel.homeLabel(c, it.cls, false);
             it.icon = ShortcutIcons.render(s[FireTvSettingsPanel.ID], ICON_PX);
             ITEMS.add(it);
         }

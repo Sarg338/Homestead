@@ -106,7 +106,9 @@ public final class FireTvSettingsPanel {
             ResolveInfo ri = c.getPackageManager().resolveActivity(intentFor(SCREENS[i][ACTION]), 0);
             if (ri == null || ri.activityInfo == null) continue;
             String need = ri.activityInfo.permission;
-            if (need != null && c.checkSelfPermission(need) != PackageManager.PERMISSION_GRANTED) {
+            // checkPermission, not checkSelfPermission: the latter is Android 6+ only.
+            if (need != null && c.checkPermission(need, android.os.Process.myPid(),
+                    android.os.Process.myUid()) != PackageManager.PERMISSION_GRANTED) {
                 if (locked != null) locked.add(SCREENS[i][TITLE]);
                 continue;
             }

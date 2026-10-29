@@ -111,6 +111,20 @@ public class Panel {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         list.addView(sv, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        // A sheet's help sits under the list and grows with the focused row's text. The D-pad
+        // scroll toward that row is worked out before the new help is laid out, so a longer
+        // help can then cover the row. When the list's height changes, scroll again to it;
+        // a new scroll replaces the one still running.
+        final ScrollView scroller = sv;
+        sv.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            public void onLayoutChange(View v, int l, int t, int r, int b,
+                                       int ol, int ot, int or, int ob) {
+                if (b - t == ob - ot) return;
+                scroller.post(new Runnable() {
+                    public void run() { keepFocusedInView(scroller); }
+                });
+            }
+        });
 
         helpTitle = text("", 19, TEXT);
         helpTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -380,6 +394,18 @@ public class Panel {
     }
 
     // ---------------------------------------------------------------- explanation
+
+    /** Scroll just enough to show the focused row whole, if part of it is out of view. */
+    private void keepFocusedInView(ScrollView s) {
+        Row f = focused;
+        if (f == null || !f.cell.hasFocus()) return;
+        android.graphics.Rect rc = new android.graphics.Rect(0, 0, f.cell.getWidth(), f.cell.getHeight());
+        s.offsetDescendantRectToMyCoords(f.cell, rc);
+        int top = s.getScrollY() + s.getPaddingTop();
+        int bottom = s.getScrollY() + s.getHeight() - s.getPaddingBottom();
+        int delta = rc.bottom > bottom ? rc.bottom - bottom : rc.top < top ? rc.top - top : 0;
+        if (delta != 0) s.smoothScrollBy(0, delta);
+    }
 
     private void showHelp(Row r) {
         String body = r.help != null ? r.help

@@ -175,6 +175,7 @@
   <string name="setup_log_connected">connecté</string>
   <string name="setup_c_disconnect">Déconnecter le lien ADB</string>
   <string name="setup_c_waiting">En attente de votre approbation</string>
+  <string name="ob_c_connecting">Connexion…</string>
   <string name="setup_c_connecting">Connexion…</string>
   <string name="setup_c_refused">Refusé : utilisez le tunnel sur l\'appareil ci-dessous</string>
   <string name="setup_c_no_daemon">Activez le débogage ADB, puis réessayez</string>
@@ -346,13 +347,13 @@
   <string name="db_g_extras">Extras</string>
   <string name="db_r_nopkg">aucun paquet</string>
   <string name="db_r_self">ce lanceur</string>
-  <string name="db_r_ceviche">le désactiver fait planter l\'écran d\'accueil en boucle</string>
+  <string name="db_r_ceviche">plante l\'accueil en boucle</string>
   <string name="db_r_core">composant essentiel du système</string>
-  <string name="db_r_live">utilisé par le système en ce moment</string>
+  <string name="db_r_live">utilisé par le système</string>
   <string name="db_g_home">Écran d\'accueil d\'Amazon</string>
-  <string name="db_r_home_unknown">impossible de vérifier ce qui gère Accueil</string>
-  <string name="db_r_home_fireos">Fire OS prendrait la touche Accueil</string>
-  <string name="db_r_home_other">une autre appli d\'accueil est installée</string>
+  <string name="db_r_home_unknown">gestion d\'Accueil inconnue</string>
+  <string name="db_r_home_fireos">Fire OS prendrait Accueil</string>
+  <string name="db_r_home_other">autre appli d\'accueil</string>
   <string name="db_r_home_shared">Accueil partagé avec %1$s</string>
   <string name="db_launcher_t">Lanceur d\'Amazon</string>
   <string name="db_launcher_n">Accueil ouvre directement Homestead, sans superposition ni apparition de l\'écran d\'Amazon. Tout ce qui n\'existait que sur l\'écran d\'accueil d\'Amazon, comme son écran Entrées, cesse de fonctionner jusqu\'à ce que vous le réactiviez. Une mise à jour du système peut le réactiver d\'elle-même.</string>
@@ -546,7 +547,7 @@
   <string name="db_adata_n">Stockage local de l\'état d\'Alexa.</string>
   <string name="db_broker_t">Répartiteur de commandes Alexa</string>
   <string name="db_broker_n">Achemine les commandes vocales reconnues.</string>
-  <string name="db_extmp_t">Passerelle multimédia externe Alexa</string>
+  <string name="db_extmp_t">Passerelle média externe Alexa</string>
   <string name="db_extmp_n">Relie Alexa aux lecteurs tiers.</string>
   <string name="db_alerts_t">Minuteurs et alarmes Alexa</string>
   <string name="db_alerts_n">Les minuteurs et alarmes vocaux ne fonctionnent plus.</string>
@@ -562,9 +563,9 @@
   <string name="db_skills_n">Relie les skills Alexa à la TV.</string>
   <string name="db_airplay_t">Récepteur AirPlay</string>
   <string name="db_airplay_n">Recopie d\'écran depuis les appareils Apple.</string>
-  <string name="db_whad_t">Service audio sans fil (Wireless Home Audio)</string>
+  <string name="db_whad_t">Service Wireless Home Audio</string>
   <string name="db_whad_n">Association avec des enceintes Echo pour le son de la TV.</string>
-  <string name="db_whaset_t">Réglages audio sans fil (Wireless Home Audio)</string>
+  <string name="db_whaset_t">Réglages Wireless Home Audio</string>
   <string name="db_whaset_n">L\'écran de réglages du service ci-dessus.</string>
   <string name="db_ffs_t">Client de configuration simplifiée (FFS)</string>
   <string name="db_ffs_n">Configuration automatique de nouveaux appareils Amazon depuis celui-ci.</string>
@@ -586,7 +587,7 @@
   <string name="db_livetab_n">L\'onglet Direct, le guide des chaînes et le lecteur TV en direct. Le désactiver retire les trois, et la tuile TV en direct de Homestead avec.</string>
   <string name="db_matter_t">Hub domotique Matter</string>
   <string name="db_matter_n">Permet à la TV de servir de contrôleur domotique Matter.</string>
-  <string name="db_ffsprov_t">Provisionnement de configuration simplifiée (FFS)</string>
+  <string name="db_ffsprov_t">Provisionnement simplifié (FFS)</string>
   <string name="db_ffsprov_n">Configure d\'autres appareils Amazon depuis cette TV par Wi-Fi.</string>
   <string name="db_kids_t">Amazon Kids</string>
   <string name="db_kids_n">Profils Amazon Kids (FreeTime) et contrôle parental.</string>
@@ -608,16 +609,17 @@
   <string name="ftv_choose_off">La rangée est désactivée. Activez-la avec « Rangée de raccourcis » sur la page précédente.</string>
   <string name="ftv_launcher_on_help">Désactivez-le dans le Nettoyage pour que la touche Accueil ouvre directement Homestead.</string>
   <string name="ftv_launcher_off_help">Ce qui change tant qu\'il est désactivé, et comment atteindre les écrans qui en ont besoin.</string>
-  <string name="ftv_watch">Prévenir si le système annule le Nettoyage</string>
+  <string name="ftv_watch">Prévenir si le Nettoyage est annulé</string>
   <string name="ftv_watch_help">Si une mise à jour réactive quelque chose que le Nettoyage avait désactivé, l\'écran d\'accueil l\'affiche pendant 10 secondes, et OK le désactive à nouveau.</string>
   <string name="ftv_rest_what">Ce qui va se passer</string>
   <string name="ftv_rest_1">1. Le lanceur d\'Amazon est réactivé, par le lien ADB.</string>
   <string name="ftv_rest_2">2. Le menu des paramètres d\'Amazon s\'ouvre. Changez ce dont vous avez besoin.</string>
   <string name="ftv_rest_3">3. Appuyez sur Accueil quand vous avez fini. Homestead recouvre à nouveau l\'accueil d\'Amazon, avec une tuile au-dessus indiquant que le lanceur a été réactivé. Appuyez sur OK dessus pour le désactiver à nouveau.</string>
   <string name="ftv_rest_cost">Ce que ça coûte si vous le laissez activé</string>
-  <string name="ftv_rest_cost_note">Avec le lanceur d\'Amazon activé, la touche Accueil repasse par l\'écran d\'accueil d\'Amazon : ses publicités, et un bref passage par lui à chaque appui. Cela active aussi « Prévenir si le système annule le Nettoyage », qui affiche la tuile de l\'étape 3.</string>
+  <string name="ftv_rest_cost_note">Avec le lanceur d\'Amazon activé, la touche Accueil repasse par l\'écran d\'accueil d\'Amazon : ses publicités, et un bref passage par lui à chaque appui. Cela active aussi « Prévenir si le Nettoyage est annulé », qui affiche la tuile de l\'étape 3.</string>
   <string name="ftv_rest_go">L\'activer et ouvrir les paramètres</string>
   <string name="ftv_cancel">Annuler</string>
+  <string name="ftv_place_off">désactivée</string>
   <string name="ftv_place_top">au-dessus des applis</string>
   <string name="ftv_place_bottom">sous les applis</string>
   <string name="ftv_place_bar">barre du haut</string>
@@ -652,7 +654,7 @@
   <string name="lo_lang">Langue, Accessibilité</string>
   <string name="lo_lang_v">Tous les paramètres</string>
   <string name="lo_lang_help">L\'appli Paramètres d\'Amazon n\'ouvre ces écrans que pour le lanceur d\'Amazon. « Tous les paramètres Amazon », dans Paramètres Fire TV, réactive le lanceur un instant pour les atteindre.</string>
-  <string name="lo_remote">Bouton Paramètres de la télécommande</string>
+  <string name="lo_remote">Touche Paramètres</string>
   <string name="lo_remote_v">compte, applis, image, son</string>
   <string name="lo_remote_help">Il ouvre les paramètres rapides d\'Amazon. Langue et Accessibilité n\'y sont pas.</string>
   <string name="lo_still">Fonctionne toujours</string>
@@ -663,8 +665,8 @@
   <string name="home_names_two">%1$s et %2$s</string>
   <string name="home_names_three">%1$s, %2$s et %3$s</string>
   <string name="home_names_more">%1$s, %2$s et %3$d autres</string>
-  <string name="setup_off_amazon_back">désactivée, l\'accueil d\'Amazon est revenu</string>
-  <string name="setup_off_need_launcher">désactivée, réactivez le lanceur d\'Amazon dans le Nettoyage</string>
+  <string name="setup_off_amazon_back">désactivée, accueil d\'Amazon revenu</string>
+  <string name="setup_off_need_launcher">désactivée, réactivez le lanceur dans Nettoyage</string>
   <string name="hdmi_open_failed">Impossible d\'ouvrir cette entrée</string>
 
   <!-- Ordre des rangées (1.7.1) -->

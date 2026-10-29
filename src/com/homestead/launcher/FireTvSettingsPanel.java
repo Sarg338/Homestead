@@ -295,7 +295,7 @@ public final class FireTvSettingsPanel {
     private static String placeLabel(Context c, int place) {
         if (place == Prefs.SHORTCUTS_ROW) return c.getString(R.string.ftv_place_row);
         if (place == Prefs.SHORTCUTS_BAR) return c.getString(R.string.ftv_place_bar);
-        return c.getString(R.string.v_off);
+        return c.getString(R.string.ftv_place_off);
     }
 
     // The switch rows draw "on"/"off" as a toggle, so these stay as they are, in any language.

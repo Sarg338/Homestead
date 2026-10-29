@@ -179,6 +179,7 @@
   <string name="setup_log_connected">connected</string>
   <string name="setup_c_disconnect">Disconnect the ADB link</string>
   <string name="setup_c_waiting">Waiting for you to approve it</string>
+  <string name="ob_c_connecting">Connecting…</string>
   <string name="setup_c_connecting">Connecting...</string>
   <string name="setup_c_refused">Refused - use the on-device tunnel below</string>
   <string name="setup_c_no_daemon">Turn on ADB debugging, then try again</string>
@@ -622,6 +623,7 @@
   <string name="ftv_rest_cost_note">With Amazon\'s launcher on, Home goes through Amazon\'s home screen again: its ads and a flash of it on every press. This also turns on \"Warn if the system undoes Debloat\", which is what shows the tile in step 3.</string>
   <string name="ftv_rest_go">Switch it on and open the settings</string>
   <string name="ftv_cancel">Cancel</string>
+  <string name="ftv_place_off">off</string>
   <string name="ftv_place_top">above the apps</string>
   <string name="ftv_place_bottom">below the apps</string>
   <string name="ftv_place_bar">top bar</string>

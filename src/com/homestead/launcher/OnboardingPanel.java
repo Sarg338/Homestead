@@ -470,7 +470,7 @@ public final class OnboardingPanel {
             } else if (st == AdbBridge.AWAITING_APPROVAL) {
                 setChip(WARN, fp == null ? s(R.string.onb_chip_approve)
                         : s(R.string.onb_chip_approve_fp, SetupPanel.shortFingerprint(fp)));
-            } else if (st == AdbBridge.CONNECTING) setChip(WARN, s(R.string.setup_c_connecting));
+            } else if (st == AdbBridge.CONNECTING) setChip(WARN, s(R.string.ob_c_connecting));
             else if (st == AdbBridge.SELF_REFUSED) setChip(BAD, s(R.string.onb_chip_blocked));
             else if (st == AdbBridge.NO_DAEMON) setChip(BAD, s(R.string.onb_chip_no_daemon));
             else setChip(MUTE, s(R.string.onb_chip_not_yet));

@@ -59,12 +59,17 @@ public final class AppModel {
     public static final int TYPE_LIVETV = 5;
     /** Offers to switch off again what a system update switched back on. */
     public static final int TYPE_RESTORE = 6;
+    /** One of Amazon's settings screens, in the optional shortcuts row. cls holds its action. */
+    public static final int TYPE_SHORTCUT = 7;
 
     static final String LIVETV_PKG = "com.amazon.tv.livetv";
     static final String LIVETV_SVC = "com.amazon.tv.livetv.TuneService";
     /** Item.key() of the Live TV tile; also how it is stored when hidden. */
     static final String LIVETV_KEY = "sys:livetv";
     static final String RESTORE_KEY = "sys:restore";
+    /** Shortcut actions that are not an Amazon settings screen: the top bar's own two pills. */
+    static final String SC_MORE = "homestead:more";
+    static final String SC_SETTINGS = "homestead:settings";
     static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     /** Apple AirPlay & HomeKit. Fire OS only lets its own Settings open it, so we fall back. */
     static final String AIRPLAY_PKG = "com.apple.airplay.amazon.airplay";
@@ -116,6 +121,7 @@ public final class AppModel {
             if (type == TYPE_INPUT) return "in:" + inputId;
             if (type == TYPE_LIVETV) return LIVETV_KEY;
             if (type == TYPE_RESTORE) return RESTORE_KEY;
+            if (type == TYPE_SHORTCUT) return "sc:" + cls;
             if (type == TYPE_AMAZON_HOME) return "amz";
             if (type == TYPE_SETTINGS) return "sys:settings";
             if (type == TYPE_HEALTH) return "sys:health";
@@ -236,6 +242,8 @@ public final class AppModel {
         ITEMS.add(health);
         d = null;
         boolean wide = Prefs.nonTvWide(c);
+
+        loadShortcuts(c);
 
         PackageManager pm = c.getPackageManager();
         Set<String> seen = new HashSet<String>();
@@ -372,6 +380,23 @@ public final class AppModel {
         long now = android.os.SystemClock.uptimeMillis();
         if (popupUntil == 0) popupUntil = now + RESTORE_SHOW_MS;
         return popupUntil - now;
+    }
+
+    /** The Fire TV settings shortcuts the user chose, when the row is switched on. */
+    private static void loadShortcuts(Context c) {
+        if (Prefs.shortcutsPlace(c) == Prefs.SHORTCUTS_OFF) return;
+        java.util.Set<String> want = Prefs.shortcuts(c);
+        List<String[]> screens = FireTvSettingsPanel.available(c, null);
+        for (int i = 0; i < screens.size(); i++) {
+            String[] s = screens.get(i);
+            if (!want.contains(s[FireTvSettingsPanel.ID])) continue;
+            Item it = new Item();
+            it.type = TYPE_SHORTCUT;
+            it.cls = s[FireTvSettingsPanel.ACTION];
+            it.label = FireTvSettingsPanel.homeLabel(c, it.cls, false);
+            it.icon = ShortcutIcons.render(s[FireTvSettingsPanel.ID], ICON_PX);
+            ITEMS.add(it);
+        }
     }
 
     /** Whether the restore tile is in the model. */
@@ -655,7 +680,8 @@ public final class AppModel {
                 if (t == TYPE_RESTORE) return -1;
                 if (t == TYPE_LIVETV) return 0;
                 if (t == TYPE_INPUT) return 1;
-                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH) return 2;
+                if (t == TYPE_AMAZON_HOME || t == TYPE_SETTINGS || t == TYPE_HEALTH
+                        || t == TYPE_SHORTCUT) return 2;
                 return 3;
             }
         });

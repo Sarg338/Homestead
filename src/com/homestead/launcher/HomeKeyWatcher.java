@@ -16,6 +16,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -96,8 +97,10 @@ public class HomeKeyWatcher extends Service {
             try {
                 // -T 1 follows from the newest line, so there is no backlog to skip.
                 // Android 9 (Fire OS 7) logs activity starts as ActivityManager; Android 10
-                // and later (Fire OS 8) as ActivityTaskManager.
-                proc = new ProcessBuilder("logcat", "-b", "system", "-v", "epoch", "-T", "1",
+                // and later (Fire OS 8) as ActivityTaskManager. Fire OS 5 (Android 5.1) has
+                // no "-v epoch", so it reads local times instead.
+                String format = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? "epoch" : "time";
+                proc = new ProcessBuilder("logcat", "-b", "system", "-v", format, "-T", "1",
                         "ActivityManager:I", "ActivityTaskManager:I", "*:S")
                         .redirectErrorStream(true).start();
                 BufferedReader r = new BufferedReader(
@@ -138,12 +141,30 @@ public class HomeKeyWatcher extends Service {
         if (e == s) return -1;
         // -T 1 replays the newest line, which may be an old press.
         try {
-            String t = line.trim();
-            int sp = t.indexOf(' ');
-            long at = (long) (Double.parseDouble(t.substring(0, sp)) * 1000.0);
-            if (at < notBefore) return -1;
+            if (lineTime(line.trim(), System.currentTimeMillis()) < notBefore) return -1;
         } catch (Throwable ignored) { }
         try { return Integer.parseInt(line.substring(s, e)); } catch (Throwable t) { return -1; }
+    }
+
+    /**
+     * When a line was logged, in ms since 1970: "-v epoch" starts with seconds, "-v time"
+     * (Fire OS 5) with a local "MM-DD HH:MM:SS.mmm" and no year. A "-v time" line more than
+     * a day ahead of now is from last December, read in January.
+     */
+    static long lineTime(String t, long now) throws java.text.ParseException {
+        int sp = t.indexOf(' ');
+        String first = t.substring(0, sp);
+        if (first.indexOf('-') < 0) return (long) (Double.parseDouble(first) * 1000.0);
+        String rest = t.substring(sp + 1).trim();
+        String clock = rest.substring(0, rest.indexOf(' '));
+        java.text.SimpleDateFormat f =
+                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.US);
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTimeInMillis(now);
+        int year = cal.get(java.util.Calendar.YEAR);
+        long at = f.parse(year + "-" + first + " " + clock).getTime();
+        if (at > now + 86400000L) at = f.parse((year - 1) + "-" + first + " " + clock).getTime();
+        return at;
     }
 
     private void send(int uid) {

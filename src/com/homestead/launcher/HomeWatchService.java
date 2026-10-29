@@ -153,8 +153,8 @@ public class HomeWatchService extends Service {
     /**
      * Fire OS 6 (Android 7.x) with READ_LOGS granted and the accessibility redirect not
      * running: the Home button works through this service, whether or not it is turned off.
-     * Fire OS 7/8 (SDK 28/30) never qualify, so their behaviour is unchanged. Neither does
-     * Fire OS 5 (Android 5.1): its logcat has no "-v epoch", so the log watcher cannot run.
+     * Fire OS 7/8 (SDK 28/30) never qualify, so their behaviour is unchanged. Fire OS 5
+     * (Android 5.1) is left out until someone confirms how Home behaves there.
      */
     static boolean available(Context c) {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N

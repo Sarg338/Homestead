@@ -65,6 +65,15 @@ public final class SetupPanel {
                 + "Home button needs it.\n\n"
                 + "If the Home button ever goes back to Amazon's home screen, for example "
                 + "after an update, run \"Finish setup automatically\" again.");
+        if (HomeWatchService.available(c)) {
+            svcRow.setHelp("Fire OS 6 does not let Homestead redirect the Home button, so "
+                    + "Homestead watches for the Home press instead and opens itself. Fire OS "
+                    + "holds back other apps for a few seconds after Home, so Amazon's home "
+                    + "screen shows first.\n\n"
+                    + "This needs the READ_LOGS permission, given from a computer with "
+                    + "\"Commands for a computer\". If you turned the Home button off, select "
+                    + "this row to turn it back on; no computer is needed.");
+        }
         final Panel.Row ovlRow = p.addRow("Instant home screen", "", null);
         final Panel.Row useRow = p.addRow("App ordering", "", null);
         final Panel.Row adbRow = p.addRow("Configure this TV", "", null);

@@ -1592,8 +1592,12 @@ public class HomeGrid implements SettingsPanel.Host {
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, tvFirst ? 14 : 12);
         tv.setMaxLines(2);
         tv.setEllipsize(TextUtils.TruncateAt.END);
-        tv.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
-        tv.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE);
+        // Both exist from Android 6; Fire OS 5 (Android 5.1) already breaks simply and never
+        // hyphenates.
+        if (Build.VERSION.SDK_INT >= 23) {
+            tv.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
+            tv.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE);
+        }
         row.addView(tv, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 

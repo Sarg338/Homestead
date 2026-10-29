@@ -79,7 +79,7 @@ public final class SettingsPanel {
 
         p.addHeader("System");
 
-        boolean ready = SetupPanel.serviceEnabled(c);
+        boolean ready = SetupPanel.homeWorks(c);
         final Panel.Row setup = p.addRow("Setup", ready ? "done"
                 : Prefs.homeOffByUser(c) ? "Home button off" : "not finished", null).opens();
         setup.setValueColor(ready ? 0xFFA7D28F : 0xFFE8C468);
@@ -94,7 +94,7 @@ public final class SettingsPanel {
                 setup.setValueColor(0xFFE8C468);
             }
         });
-        p.addNote(SetupPanel.TURN_OFF_HELP);
+        p.addNote(SetupPanel.turnOffHelp(c));
 
         p.addRow("TV Health", "check", new Runnable() {
             public void run() { host.showPanel(HealthPanel.build(c, host)); }

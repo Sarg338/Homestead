@@ -55,12 +55,14 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         setContentView(home.root);
         home.takeStartFocus();
         AdbBridge.init(this);
+        // Fire OS 6 only: start the log-watch Home fallback when it is needed (no-op elsewhere).
+        HomeWatchService.startIfNeeded(this);
 
         // First run shows the wizard; later, if the accessibility service is off (e.g.
         // unbound by an app update) and the user did not turn it off, show Setup instead.
         if (!Prefs.onboarded(this)) {
             home.showPanel(OnboardingPanel.build(this, home));
-        } else if (!SetupPanel.serviceEnabled(this) && !Prefs.homeOffByUser(this)) {
+        } else if (!SetupPanel.homeWorks(this) && !Prefs.homeOffByUser(this)) {
             home.showPanel(SetupPanel.build(this, home));
         }
     }
@@ -126,6 +128,8 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         HomeRedirectService.setLiveActivity(this);
         // Back from a settings, VPN or approval screen: Home should work again straight away.
         HomeRedirectService.endSuspend();
+        // Fire OS 6: READ_LOGS may have just been granted from a computer; start the fallback.
+        HomeWatchService.startIfNeeded(this);
 
         String selKey = HomeRedirectService.overlaySelectedKey();
         int selScroll = HomeRedirectService.overlayScrollY();

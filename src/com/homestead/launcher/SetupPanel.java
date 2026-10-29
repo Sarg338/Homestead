@@ -37,6 +37,15 @@ public final class SetupPanel {
             + "turn it back on, run \"Finish setup automatically\" in Setup (ADB debugging "
             + "must still be on), or use \"Commands for a computer\". Press twice to confirm.";
 
+    /** The same on Fire OS 6, where Home works through the log watcher instead. */
+    static final String TURN_OFF_HELP_FO6 = "Turning it off sends Home back to Amazon's home "
+            + "screen straight away. To turn it back on, select \"Home-button redirect\" at "
+            + "the top of Setup; no computer is needed. Press twice to confirm.";
+
+    static String turnOffHelp(Context c) {
+        return HomeWatchService.available(c) ? TURN_OFF_HELP_FO6 : TURN_OFF_HELP;
+    }
+
     private SetupPanel() { }
 
     public static View build(final Context c, final SettingsPanel.Host host) {
@@ -117,15 +126,22 @@ public final class SetupPanel {
         final Runnable offPaint = addTurnOffRow(c, p, new Runnable() {
             public void run() { if (refreshRef[0] != null) refreshRef[0].run(); }
         });
-        p.addNote(TURN_OFF_HELP);
+        p.addNote(turnOffHelp(c));
 
         // ------------------------------------------------------------------ behaviour
 
         final Runnable refresh = new Runnable() {
             public void run() {
                 boolean svc = serviceEnabled(c);
-                svcRow.setValue(svc ? "on" : "off");
-                svcRow.setValueColor(svc ? OK : BAD);
+                if (HomeWatchService.available(c)) {
+                    // Fire OS 6: no redirect, the log watcher brings Homestead up instead.
+                    boolean watch = HomeWatchService.shouldRun(c);
+                    svcRow.setValue(watch ? "on (Fire OS 6)" : "off - select to turn on");
+                    svcRow.setValueColor(watch ? OK : WARN);
+                } else {
+                    svcRow.setValue(svc ? "on" : "off");
+                    svcRow.setValueColor(svc ? OK : BAD);
+                }
 
                 String type = HomeRedirectService.overlayTypeLabel();
                 if (!svc) {
@@ -294,6 +310,16 @@ public final class SetupPanel {
             public void onViewDetachedFromWindow(View v) { AdbBridge.removeListener(listener); }
         });
 
+        // Fire OS 6: Home turned off here comes back on here, without a computer.
+        svcRow.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (HomeWatchService.available(c) && Prefs.homeOffByUser(c)) {
+                    HomeWatchService.turnOn(c);
+                    refresh.run();
+                }
+            }
+        });
+
         Prefs.setSetupSeen(c, true);
         refreshRef[0] = refresh;
         refresh.run();
@@ -341,6 +367,11 @@ public final class SetupPanel {
         } catch (Throwable t) { return false; }
     }
 
+    /** The Home button reaches Homestead: the redirect, or Fire OS 6's log watcher. */
+    static boolean homeWorks(Context c) {
+        return serviceEnabled(c) || HomeWatchService.shouldRun(c);
+    }
+
     /**
      * "Turn off the Home button". Takes two presses within five seconds, since switching it
      * back on needs ADB. after runs once it is off. @return a Runnable that repaints the row.
@@ -351,7 +382,12 @@ public final class SetupPanel {
         final Runnable paint = new Runnable() {
             public void run() {
                 row.setValueColor(WARN);
-                if (!serviceEnabled(c)) {
+                if (HomeWatchService.available(c)) {
+                    // Fire OS 6: the log watcher, which this app can turn off and on itself.
+                    boolean off = Prefs.homeOffByUser(c);
+                    row.setValue(off ? "off" : armed[0] ? "press again to turn it off" : "");
+                    row.cell.setEnabled(!off);
+                } else if (!serviceEnabled(c)) {
                     row.setValue("off");
                     row.cell.setEnabled(false);
                 } else if (!HomeRedirectService.canTurnOff()) {
@@ -377,7 +413,9 @@ public final class SetupPanel {
                 }
                 row.cell.removeCallbacks(disarm);
                 armed[0] = false;
-                if (!HomeRedirectService.turnOff(c)) {
+                if (HomeWatchService.available(c)) {
+                    HomeWatchService.turnOff(c);
+                } else if (!HomeRedirectService.turnOff(c)) {
                     row.setValue("could not - try again");
                     return;
                 }

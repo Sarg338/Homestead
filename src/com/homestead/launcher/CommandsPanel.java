@@ -48,7 +48,7 @@ public final class CommandsPanel {
                 + "The TV will ask you to allow the connection.");
 
         // ------------------------------------------------------------------ what is missing
-        boolean svc = SetupPanel.serviceEnabled(c);
+        boolean svc = SetupPanel.homeWorks(c);
         boolean wss = HealthPanel.canWriteSettings(c);
         boolean logs = HomeKeyWatcher.permitted(c);
 

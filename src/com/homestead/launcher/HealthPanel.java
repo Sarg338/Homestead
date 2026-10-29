@@ -65,8 +65,9 @@ public final class HealthPanel {
         p.addHeader("Homestead");
 
         boolean svc = SetupPanel.serviceEnabled(c);
-        Panel.Row r1 = p.addRow("Home-button redirect", svc ? "active" : "NOT ACTIVE", null);
-        r1.setValueColor(svc ? OK : BAD);
+        boolean home = SetupPanel.homeWorks(c);
+        Panel.Row r1 = p.addRow("Home-button redirect", home ? "active" : "NOT ACTIVE", null);
+        r1.setValueColor(home ? OK : BAD);
 
         String ovlType = HomeRedirectService.overlayTypeLabel();
         Panel.Row r2 = p.addRow("Instant home screen",

@@ -24,6 +24,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.util.Log;
@@ -44,7 +45,7 @@ import java.util.List;
  * There is no overlay: Homestead is started as an ordinary activity, so Amazon's home screen
  * is visible for a moment first. Nothing is ever left covering another app.
  *
- * Dormant unless {@link #shouldRun}: Fire OS 6 (Android 7.1) only, with READ_LOGS granted,
+ * Dormant unless {@link #shouldRun}: Fire OS 6 (Android 7.x) only, with READ_LOGS granted,
  * the accessibility redirect not running, and the Home button not turned off. Fire OS 7/8
  * keep using {@link HomeRedirectService} and never start this.
  */
@@ -56,7 +57,6 @@ public class HomeWatchService extends Service {
 
     private boolean watcherBound;
     private long lastOpen;
-    private int settingsUid = -1;
 
     private final Messenger fromWatcher = new Messenger(new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message m) {
@@ -107,31 +107,30 @@ public class HomeWatchService extends Service {
     }
 
     /**
-     * A Home press reported from the log. The log line appears as the system starts Amazon's
+     * A HOME start reported from the log. The log line appears as the system starts Amazon's
      * home, so Homestead is launched right behind it. We start our own activity by explicit
      * component (not a HOME-category intent), so it never produces a log line that re-triggers
-     * this. A short debounce drops the -T 1 replay and key repeats.
+     * this. A short debounce drops key repeats.
      */
     private void onHomeKey(int uid) {
-        // Amazon's settings app starts HOME on its way into Settings; not a Home press.
-        if (isSettingsUid(uid)) return;
+        // Turned off since this started: stand down rather than wait to be stopped.
+        if (Prefs.homeOffByUser(this)) {
+            stopSelf();
+            return;
+        }
+        // The system starts HOME for a Home press (uid 1000; uid 0 on some later Fire OS).
+        // Without the accessibility service there is no way to tell which app is in front,
+        // so a HOME start from any other uid, such as an app in the background or Amazon's
+        // settings on its way into Settings, must not pull Homestead over what is on screen.
+        if (uid != Process.SYSTEM_UID && uid != 0) {
+            Log.i(TAG, "FO6 HOME start from uid " + uid + ", not a Home press");
+            return;
+        }
         long now = SystemClock.elapsedRealtime();
         if (now - lastOpen < DEBOUNCE_MS) return;
         lastOpen = now;
         Log.i(TAG, "FO6 Home press (uid " + uid + "); opening Homestead");
         MainActivity.open(this);
-    }
-
-    private boolean isSettingsUid(int uid) {
-        if (settingsUid < 0) {
-            try {
-                settingsUid = getPackageManager()
-                        .getApplicationInfo("com.amazon.tv.settings.v2", 0).uid;
-            } catch (Throwable t) {
-                return false;
-            }
-        }
-        return uid == settingsUid;
     }
 
     // ---------------------------------------------------------------- gate + start
@@ -146,16 +145,34 @@ public class HomeWatchService extends Service {
         }
     }
 
-    /**
-     * Fire OS 6 (Android 7.1) only, with READ_LOGS granted, the accessibility redirect not
-     * running, and the Home button not turned off. Fire OS 7/8 (SDK 28/30) never qualify, so
-     * their behaviour is unchanged.
-     */
+    /** Whether this is how the Home button works here, and the user has not turned it off. */
     static boolean shouldRun(Context c) {
-        return Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1   // 25 = Fire OS 6
+        return available(c) && !Prefs.homeOffByUser(c);
+    }
+
+    /**
+     * Fire OS 6 (Android 7.x) with READ_LOGS granted and the accessibility redirect not
+     * running: the Home button works through this service, whether or not it is turned off.
+     * Fire OS 7/8 (SDK 28/30) never qualify, so their behaviour is unchanged. Neither does
+     * Fire OS 5 (Android 5.1): its logcat has no "-v epoch", so the log watcher cannot run.
+     */
+    static boolean available(Context c) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1   // 25 = Fire OS 6
                 && HomeKeyWatcher.permitted(c)
-                && !Prefs.homeOffByUser(c)
                 && !accessibilityRunning(c);
+    }
+
+    /** "Turn off the Home button" on Fire OS 6. Unlike Fire OS 7/8, no ADB to undo it. */
+    static void turnOff(Context c) {
+        Prefs.setHomeOffByUser(c, true);
+        c.stopService(new Intent(c, HomeWatchService.class));
+    }
+
+    /** Back on: READ_LOGS stays granted, so this needs no computer. */
+    static void turnOn(Context c) {
+        Prefs.setHomeOffByUser(c, false);
+        startIfNeeded(c);
     }
 
     /** Whether our accessibility service is actually bound - not merely set in the setting. */

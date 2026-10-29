@@ -62,7 +62,7 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         // unbound by an app update) and the user did not turn it off, show Setup instead.
         if (!Prefs.onboarded(this)) {
             home.showPanel(OnboardingPanel.build(this, home));
-        } else if (!SetupPanel.serviceEnabled(this) && !Prefs.homeOffByUser(this)) {
+        } else if (!SetupPanel.homeWorks(this) && !Prefs.homeOffByUser(this)) {
             home.showPanel(SetupPanel.build(this, home));
         }
     }

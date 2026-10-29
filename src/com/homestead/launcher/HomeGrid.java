@@ -99,6 +99,11 @@ public class HomeGrid implements SettingsPanel.Host {
     private View barSpacer, barRule;
 
     private final Map<String, View> cellsByKey = new HashMap<String, View>();
+    /**
+     * The top bar's pills by key, so focus can return to one after a panel, an app or the
+     * overlay's handoff. Kept apart from cellsByKey, whose cells get the tile look on restyle.
+     */
+    private final Map<String, View> pillsByKey = new HashMap<String, View>();
     /** The horizontally scrolling section rows, in build order. */
     private final List<HorizontalScrollView> rows = new ArrayList<HorizontalScrollView>();
     private View focusedCell;
@@ -637,6 +642,7 @@ public class HomeGrid implements SettingsPanel.Host {
     public boolean selectKey(String key) {
         if (key == null) return false;
         View v = cellsByKey.get(key);
+        if (v == null) v = pillsByKey.get(key);
         if (v == null) return false;
         v.requestFocus();
         return true;
@@ -878,6 +884,7 @@ public class HomeGrid implements SettingsPanel.Host {
      */
     private void buildTopBar() {
         topBar.removeAllViews();
+        pillsByKey.clear();
         boolean bar = Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_BAR && !Prefs.simpleMode(ctx);
         barShown = bar;
         boolean showClock = Prefs.clockMode(ctx) != Prefs.CLOCK_OFF;
@@ -933,6 +940,7 @@ public class HomeGrid implements SettingsPanel.Host {
                     ViewGroup.LayoutParams.WRAP_CONTENT, dp(PILL_H_DP));
             if (i > 0) lp.leftMargin = dp(12);
             View pill = buildPill(pills.get(i));
+            pillsByKey.put(pills.get(i).key(), pill);
             // Nothing above the bar, and no jumping to a tile past either end of it.
             boolean firstPill = i == 0, lastPill = i == pills.size() - 1;
             stopKeys(pill, android.view.KeyEvent.KEYCODE_DPAD_UP,

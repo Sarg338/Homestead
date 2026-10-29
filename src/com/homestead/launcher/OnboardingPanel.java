@@ -403,9 +403,10 @@ public final class OnboardingPanel {
         } else if (cleanState == CLEAN_DONE && cleanTotal == 0) {
             setChip(OK, s(R.string.onb_clean_already));
         } else if (cleanState == CLEAN_DONE && cleanDone == cleanTotal) {
-            setChip(OK, s(R.string.onb_clean_done, cleanDone));
+            setChip(OK, c.getResources().getQuantityString(R.plurals.onb_clean_done, cleanDone, cleanDone));
         } else if (cleanState == CLEAN_DONE) {
-            setChip(WARN, s(R.string.onb_clean_partial, cleanDone, cleanTotal));
+            setChip(WARN, c.getResources().getQuantityString(R.plurals.onb_clean_partial, cleanDone,
+                    cleanDone, cleanTotal));
         } else if (cleanState == CLEAN_FAILED) {
             setChip(BAD, s(R.string.onb_clean_failed));
         } else {

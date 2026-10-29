@@ -129,7 +129,8 @@ public final class SettingsPanel {
         }).opens().setHelp(c.getString(R.string.set_health_help));
 
         p.addRow(c.getString(R.string.set_debloat),
-                c.getString(R.string.set_debloat_value, Prefs.disabledByUs(c).size()), new Runnable() {
+                c.getResources().getQuantityString(R.plurals.set_debloat_value,
+                        Prefs.disabledByUs(c).size(), Prefs.disabledByUs(c).size()), new Runnable() {
             public void run() { host.showPanel(DebloatPanel.build(c, host)); }
         }).opens().setHelp(c.getString(R.string.set_debloat_help));
 

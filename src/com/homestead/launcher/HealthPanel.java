@@ -196,7 +196,7 @@ public final class HealthPanel {
 
         p.addSectionHelp((stillOn == 0
                 ? c.getString(R.string.health_p_all_off)
-                : c.getString(R.string.health_p_some_left, stillOn))
+                : c.getResources().getQuantityString(R.plurals.health_p_some_left, stillOn, stillOn))
                 + "\n\n" + c.getString(R.string.health_p_protected_note));
 
         // ---------------------------------------------------------- resources

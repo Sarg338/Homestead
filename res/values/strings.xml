@@ -77,7 +77,10 @@
   <string name="set_health_value">check</string>
   <string name="set_health_help">This TV\'s speed and privacy settings and Amazon\'s advertising packages, with a fix for each one it flags.</string>
   <string name="set_debloat">Debloat</string>
-  <string name="set_debloat_value">%1$d off</string>
+  <plurals name="set_debloat_value">
+    <item quantity="one">%1$d off</item>
+    <item quantity="other">%1$d off</item>
+  </plurals>
   <string name="set_debloat_help">Switch Amazon\'s packages off, and back on again. Nothing is ever uninstalled.</string>
   <string name="set_updates">Check for updates</string>
   <string name="set_close">Close</string>
@@ -216,8 +219,14 @@
   <string name="onb_try_again">Try again</string>
   <string name="onb_clean_running">Switching off Debloat\'s safe list: ads, telemetry, unused extras…</string>
   <string name="onb_clean_already">Debloat\'s safe list - already off</string>
-  <string name="onb_clean_done">Debloat\'s safe list - %1$d switched off. Alexa and Amazon Photos left on</string>
-  <string name="onb_clean_partial">Debloat\'s safe list - %1$d of %2$d switched off; Fire OS protects the rest</string>
+  <plurals name="onb_clean_done">
+    <item quantity="one">Debloat\'s safe list - %1$d switched off. Alexa and Amazon Photos left on</item>
+    <item quantity="other">Debloat\'s safe list - %1$d switched off. Alexa and Amazon Photos left on</item>
+  </plurals>
+  <plurals name="onb_clean_partial">
+    <item quantity="one">Debloat\'s safe list - %1$d of %2$d switched off; Fire OS protects the rest</item>
+    <item quantity="other">Debloat\'s safe list - %1$d of %2$d switched off; Fire OS protects the rest</item>
+  </plurals>
   <string name="onb_clean_failed">Could not connect to run Debloat\'s safe list - try again</string>
   <string name="onb_clean_no_link">Safe list not run: it needs the connection from Set it up</string>
   <string name="onb_menu_done">✓ That\'s it - on the home screen, five Menu presses open Settings.</string>
@@ -279,7 +288,10 @@
   <string name="health_p_choice">Left on by choice (marked caution)</string>
   <string name="health_open_debloat">Open Debloat</string>
   <string name="health_p_all_off">Everything on the list that Fire OS lets an app switch off is off.</string>
-  <string name="health_p_some_left">%1$d of the listed packages can still be switched off. Debloat can switch them off one at a time or all at once, and put them back the same way. Packages Fire OS refuses are counted as protected once Debloat has tried them.</string>
+  <plurals name="health_p_some_left">
+    <item quantity="one">%1$d of the listed packages can still be switched off. Debloat can switch them off one at a time or all at once, and put them back the same way. Packages Fire OS refuses are counted as protected once Debloat has tried them.</item>
+    <item quantity="other">%1$d of the listed packages can still be switched off. Debloat can switch them off one at a time or all at once, and put them back the same way. Packages Fire OS refuses are counted as protected once Debloat has tried them.</item>
+  </plurals>
   <string name="health_p_protected_note">A few telemetry packages are protected by Fire OS and cannot be switched off by any app, even with the privacy switches above off.</string>
   <string name="health_resources">Resources</string>
   <string name="health_mem">Free memory</string>
@@ -323,7 +335,10 @@
   <string name="db_x_off">%1$s switched off</string>
   <string name="db_x_restored">%1$s restored</string>
   <string name="db_not_present">not present</string>
-  <string name="db_n_off">%1$d of %2$d switched off</string>
+  <plurals name="db_n_off">
+    <item quantity="one">%1$d of %2$d switched off</item>
+    <item quantity="other">%1$d of %2$d switched off</item>
+  </plurals>
   <string name="db_already">already done</string>
   <string name="db_working_on">working on %1$d...</string>
   <string name="db_every_app">Every system app</string>

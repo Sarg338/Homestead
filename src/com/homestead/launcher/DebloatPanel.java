@@ -275,7 +275,7 @@ public final class DebloatPanel {
                     result.setValueColor(BAD);
                 } else {
                     // Fire OS refuses some of these outright, so report a count.
-                    result.setValue(c.getString(R.string.db_n_off, done, total));
+                    result.setValue(c.getResources().getQuantityString(R.plurals.db_n_off, done, done, total));
                     result.setValueColor(done == total ? OK : WARN);
                 }
                 refreshAll.run();

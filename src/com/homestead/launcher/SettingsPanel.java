@@ -471,7 +471,7 @@ public final class SettingsPanel {
         if (row.equals(Prefs.ROW_SHORTCUTS)) {
             int place = Prefs.shortcutsPlace(c);
             return place == Prefs.SHORTCUTS_BAR ? c.getString(R.string.ro_in_bar)
-                    : place == Prefs.SHORTCUTS_OFF ? c.getString(R.string.v_off) : "";
+                    : place == Prefs.SHORTCUTS_OFF ? c.getString(R.string.ftv_place_off) : "";
         }
         if (row.equals(Prefs.ROW_INPUTS)) return Prefs.showInputs(c) ? "" : c.getString(R.string.ro_hidden);
         if (row.equals(Prefs.ROW_NONTV)) return Prefs.showNonTv(c) ? "" : c.getString(R.string.ro_hidden);

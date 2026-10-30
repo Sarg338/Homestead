@@ -93,7 +93,6 @@
   <string name="set_clock_24">24 h</string>
   <string name="set_clock_12">12 h</string>
   <string name="set_off">Désactivé</string>
-  <string name="set_sections">Sections</string>
   <string name="set_tvfirst">TV en direct d\'abord</string>
   <string name="set_show_section">Afficher « %1$s »</string>
   <string name="set_sections_help">Les Réglages et la Santé de la TV restent toujours accessibles, même avec « %1$s » désactivé. Le mode simple les masque ; appuyez cinq fois sur MENU sur l\'écran d\'accueil pour revenir ici.</string>
@@ -419,6 +418,9 @@
   <string name="upd_http">GitHub a répondu HTTP %1$d.</string>
   <string name="upd_check_timeout">La recherche de mise à jour a expiré.</string>
   <string name="upd_check_failed">Échec de la recherche de mise à jour : %1$s</string>
+  <string name="upd_too_large">le téléchargement dépasse la taille annoncée par la version</string>
+  <string name="upd_no_cache">aucun dossier de cache pour le téléchargement</string>
+  <string name="upd_info_too_large">les informations de la version sont trop volumineuses</string>
 
   <!-- Choix de photo -->
   <string name="photo_sub">Images du dossier Téléchargements de la TV</string>
@@ -620,8 +622,6 @@
   <string name="ftv_rest_go">L\'activer et ouvrir les paramètres</string>
   <string name="ftv_cancel">Annuler</string>
   <string name="ftv_place_off">désactivée</string>
-  <string name="ftv_place_top">au-dessus des applis</string>
-  <string name="ftv_place_bottom">sous les applis</string>
   <string name="ftv_place_bar">barre du haut</string>
   <string name="ftv_h_network">Wi-Fi, Ethernet et ajout d\'un réseau.</string>
   <string name="ftv_h_display">Résolution, HDR, audio, contrôle des appareils HDMI, mode ambiant.</string>

@@ -116,7 +116,7 @@ public final class UpdateChecker {
                     } else if (code != 200) {
                         err = app.getString(R.string.upd_http, code);
                     } else {
-                        u = parse(app, read(conn.getInputStream()));
+                        u = parse(app, read(app, conn.getInputStream()));
                     }
                 } catch (Throwable t) {
                     Log.w(TAG, "update check failed: " + t);
@@ -208,7 +208,7 @@ public final class UpdateChecker {
 
     // ---------------------------------------------------------------- helpers
 
-    private static String read(InputStream in) throws Exception {
+    private static String read(Context c, InputStream in) throws Exception {
         BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8"));
         StringBuilder sb = new StringBuilder();
         char[] buf = new char[4096];
@@ -217,7 +217,7 @@ public final class UpdateChecker {
             sb.append(buf, 0, n);
             if (sb.length() > MAX_BODY_CHARS) {
                 r.close();
-                throw new Exception("the release information is too large");
+                throw new Exception(c.getString(R.string.upd_info_too_large));
             }
         }
         r.close();

@@ -96,7 +96,6 @@
   <string name="set_clock_24">24-hour</string>
   <string name="set_clock_12">12-hour</string>
   <string name="set_off">Off</string>
-  <string name="set_sections">Sections</string>
   <string name="set_tvfirst">Live TV first</string>
   <string name="set_show_section">Show \"%1$s\"</string>
   <string name="set_sections_help">Settings and TV Health always stay reachable, even with \"%1$s\" switched off. Simple mode hides them; press MENU five times on the home screen to come back here.</string>
@@ -423,6 +422,9 @@
   <string name="upd_http">GitHub returned HTTP %1$d.</string>
   <string name="upd_check_timeout">The update check timed out.</string>
   <string name="upd_check_failed">Update check failed: %1$s</string>
+  <string name="upd_too_large">the download is larger than the release says</string>
+  <string name="upd_no_cache">no cache directory for the download</string>
+  <string name="upd_info_too_large">the release information is too large</string>
 
   <!-- Photo picker -->
   <string name="photo_sub">Pictures in the TV\'s Download folder</string>
@@ -624,8 +626,6 @@
   <string name="ftv_rest_go">Switch it on and open the settings</string>
   <string name="ftv_cancel">Cancel</string>
   <string name="ftv_place_off">off</string>
-  <string name="ftv_place_top">above the apps</string>
-  <string name="ftv_place_bottom">below the apps</string>
   <string name="ftv_place_bar">top bar</string>
   <string name="ftv_h_network">Wi-Fi, Ethernet and adding a network.</string>
   <string name="ftv_h_display">Resolution, HDR, audio, HDMI device control, ambient mode.</string>

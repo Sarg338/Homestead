@@ -106,7 +106,7 @@ public final class UpdateInstaller {
         // them via UpdateFileProvider, so nothing needs shared storage. Shared storage is also
         // writable by other apps, which could swap the file after the signature check.
         File dir = c.getCacheDir();
-        if (dir == null) throw new Exception("no cache directory for the download");
+        if (dir == null) throw new Exception(c.getString(R.string.upd_no_cache));
         dir.mkdirs();
         File out = new File(dir, "homestead-update.apk");
         if (out.exists()) out.delete();
@@ -132,7 +132,7 @@ public final class UpdateInstaller {
                 while ((n = in.read(buf)) > 0) {
                     got += n;
                     if (got > limit) {
-                        throw new Exception("the download is larger than the release says");
+                        throw new Exception(c.getString(R.string.upd_too_large));
                     }
                     fos.write(buf, 0, n);
                     if (total > 0) {

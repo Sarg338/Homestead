@@ -52,6 +52,8 @@ public final class UpdateChecker {
 
     private static final int CONNECT_TIMEOUT_MS = 8000;
     private static final int READ_TIMEOUT_MS = 12000;
+    /** Far more than a release's JSON ever is; a reply past this is not read any further. */
+    private static final int MAX_BODY_CHARS = 1024 * 1024;
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
@@ -211,7 +213,13 @@ public final class UpdateChecker {
         StringBuilder sb = new StringBuilder();
         char[] buf = new char[4096];
         int n;
-        while ((n = r.read(buf)) > 0) sb.append(buf, 0, n);
+        while ((n = r.read(buf)) > 0) {
+            sb.append(buf, 0, n);
+            if (sb.length() > MAX_BODY_CHARS) {
+                r.close();
+                throw new Exception("the release information is too large");
+            }
+        }
         r.close();
         return sb.toString();
     }

@@ -44,16 +44,15 @@ public final class UpdateFileProvider extends ContentProvider {
                 .build();
     }
 
-    private File cacheDir() {
-        Context c = getContext();
-        File dir = c.getCacheDir();
-        if (dir == null) dir = c.getExternalCacheDir();
-        return dir;
-    }
-
-    /** Only ever resolves to the one known file, regardless of what the URI path claims. */
+    /**
+     * Only ever resolves to the one known file in the internal cache, regardless of what the
+     * URI path claims; null if there is no cache. Never shared storage, which other apps can
+     * write to.
+     */
     private File resolve() {
-        return new File(cacheDir(), FILE_NAME);
+        Context c = getContext();
+        File dir = (c == null) ? null : c.getCacheDir();
+        return (dir == null) ? null : new File(dir, FILE_NAME);
     }
 
     @Override
@@ -62,7 +61,7 @@ public final class UpdateFileProvider extends ContentProvider {
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         File f = resolve();
-        if (!f.exists()) throw new FileNotFoundException("no update file");
+        if (f == null || !f.exists()) throw new FileNotFoundException("no update file");
         return ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY);
     }
 
@@ -76,7 +75,7 @@ public final class UpdateFileProvider extends ContentProvider {
         Object[] row = new Object[cols.length];
         for (int i = 0; i < cols.length; i++) {
             if (OpenableColumns.DISPLAY_NAME.equals(cols[i])) row[i] = FILE_NAME;
-            else if (OpenableColumns.SIZE.equals(cols[i])) row[i] = f.length();
+            else if (OpenableColumns.SIZE.equals(cols[i])) row[i] = (f == null) ? 0L : f.length();
             else row[i] = null;
         }
         cur.addRow(row);

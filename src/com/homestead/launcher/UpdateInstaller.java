@@ -45,6 +45,13 @@ public final class UpdateInstaller {
     private static final String TAG = "Homestead";
     private static final int CONNECT_TIMEOUT_MS = 8000;
     private static final int READ_TIMEOUT_MS = 20000;
+    /**
+     * The server is trusted for what it sends, not for how much of the disk it may fill: the
+     * download stops a little past the size the release declared, or at this ceiling when
+     * it declared none.
+     */
+    private static final long MAX_DOWNLOAD_BYTES = 64L * 1024L * 1024L;
+    private static final long SIZE_SLACK_BYTES = 1024L * 1024L;
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
@@ -95,11 +102,12 @@ public final class UpdateInstaller {
     // ---------------------------------------------------------------- download
 
     private static File download(Context c, UpdateChecker.Update u, Progress p) throws Exception {
-        // Internal cache is enough: the tunnel streams the bytes to pm and the intent path
-        // serves them via UpdateFileProvider, so nothing needs world-readable storage.
+        // Internal cache only: the tunnel streams the bytes to pm and the intent path serves
+        // them via UpdateFileProvider, so nothing needs shared storage. Shared storage is also
+        // writable by other apps, which could swap the file after the signature check.
         File dir = c.getCacheDir();
-        if (dir == null) dir = c.getExternalCacheDir();
-        if (dir != null) dir.mkdirs();
+        if (dir == null) throw new Exception("no cache directory for the download");
+        dir.mkdirs();
         File out = new File(dir, "homestead-update.apk");
         if (out.exists()) out.delete();
 
@@ -108,10 +116,12 @@ public final class UpdateInstaller {
         conn.setRequestProperty("User-Agent", "Homestead-Updater");
         conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
         conn.setReadTimeout(READ_TIMEOUT_MS);
+        boolean complete = false;
         try {
             int code = conn.getResponseCode();
             if (code != 200) throw new Exception("HTTP " + code + " while downloading the update");
             long total = u.apkSize > 0 ? u.apkSize : conn.getContentLength();
+            long limit = u.apkSize > 0 ? u.apkSize + SIZE_SLACK_BYTES : MAX_DOWNLOAD_BYTES;
             InputStream in = conn.getInputStream();
             FileOutputStream fos = new FileOutputStream(out);
             try {
@@ -120,8 +130,11 @@ public final class UpdateInstaller {
                 int n;
                 int lastPct = -1;
                 while ((n = in.read(buf)) > 0) {
-                    fos.write(buf, 0, n);
                     got += n;
+                    if (got > limit) {
+                        throw new Exception("the download is larger than the release says");
+                    }
+                    fos.write(buf, 0, n);
                     if (total > 0) {
                         int pct = (int) (got * 100L / total);
                         if (pct != lastPct) { progress(p, pct); lastPct = pct; }
@@ -130,12 +143,15 @@ public final class UpdateInstaller {
                     }
                 }
                 fos.flush();
+                complete = true;
             } finally {
                 try { fos.close(); } catch (Throwable ignored) { }
                 try { in.close(); } catch (Throwable ignored) { }
             }
         } finally {
             conn.disconnect();
+            // A cut-off or oversized download is not left behind in the cache.
+            if (!complete) try { out.delete(); } catch (Throwable ignored) { }
         }
         return out;
     }

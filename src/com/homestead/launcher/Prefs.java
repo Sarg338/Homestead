@@ -41,6 +41,7 @@ public final class Prefs {
     private static final String K_BACKGROUND = "background";
     private static final String K_BACKGROUND_ID = "background_id";
     private static final String K_PHOTO_DIM = "photo_dim";
+    private static final String K_SHARED_PHOTO = "shared_photo_adopted";
     private static final String K_ADB = "adb_enabled";
     private static final String K_TUNNEL = "adb_tunnel_enabled";
     private static final String K_REAPPLY = "adb_reapply_on_boot";
@@ -145,6 +146,12 @@ public final class Prefs {
     /** Index into Backgrounds.DIM_NAMES. Light by default, so labels stay readable. */
     public static int photoDim(Context c) { return sp(c).getInt(K_PHOTO_DIM, 1); }
     public static void setPhotoDim(Context c, int v) { sp(c).edit().putInt(K_PHOTO_DIM, v).apply(); }
+
+    /** Whether a photo from the old shared-storage folder has been looked for once (1.7.2). */
+    public static boolean sharedPhotoAdopted(Context c) { return sp(c).getBoolean(K_SHARED_PHOTO, false); }
+    public static void setSharedPhotoAdopted(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_SHARED_PHOTO, v).apply();
+    }
 
     public static int clockMode(Context c) { return sp(c).getInt(K_CLOCK, CLOCK_24H); }
     public static void setClockMode(Context c, int v) { sp(c).edit().putInt(K_CLOCK, v).apply(); }

@@ -31,10 +31,14 @@ import android.util.Log;
 import java.io.File;
 
 /**
- * The home screen's background: a preset, or a photo copied into the app's own folder on
- * external storage, which needs no permission. Each look also sets the header and
- * focus-ring colours, since a dark ring vanishes on a dark background and white text on a
- * light one.
+ * The home screen's background: a preset, or a photo in the app's private storage, put
+ * there through BackgroundProvider (from a computer or from PhotoPanel). Each look also sets
+ * the header and focus-ring colours, since a dark ring vanishes on a dark background and
+ * white text on a light one.
+ *
+ * Up to 1.7.1 a photo was also read from the app's folder on shared storage. Any app with
+ * the storage permission can write there, so that folder is no longer read; a photo already
+ * in it is copied into private storage once (adoptSharedPhotoOnce).
  */
 final class Backgrounds {
 
@@ -158,22 +162,58 @@ final class Backgrounds {
         return DIM_NAMES[(d < 0 || d >= DIM.length) ? 1 : d];
     }
 
-    /**
-     * The photo, or null: one received through BackgroundProvider (any Fire OS), else one
-     * pushed into the app's folder on external storage (Fire OS 7 only).
-     */
+    /** The photo received through BackgroundProvider, or null. Private storage only. */
     static File photoFile(Context c) {
         try {
             File own = BackgroundProvider.photoFile(c);
             if (own.isFile() && own.length() > 0) return own;
-            File dir = c.getExternalFilesDir(null);
-            if (dir == null) return null;
-            for (int i = 0; i < FILES.length; i++) {
-                File f = new File(dir, FILES[i]);
-                if (f.isFile() && f.length() > 0) return f;
-            }
         } catch (Throwable ignored) { }
         return null;
+    }
+
+    /**
+     * Once per install: a photo that 1.7.1 and earlier read from the app's folder on shared
+     * storage is copied into private storage, so nobody loses one, and that folder is never
+     * read again. A photo already in private storage is kept as it is.
+     */
+    static void adoptSharedPhotoOnce(Context c) {
+        if (Prefs.sharedPhotoAdopted(c)) return;
+        try {
+            File dest = BackgroundProvider.photoFile(c);
+            if (!(dest.isFile() && dest.length() > 0)) {
+                File dir = c.getExternalFilesDir(null);
+                for (int i = 0; dir != null && i < FILES.length; i++) {
+                    File f = new File(dir, FILES[i]);
+                    if (f.isFile() && f.length() > 0 && f.length() <= MAX_FILE) {
+                        copy(f, dest);
+                        Log.i(TAG, "background photo moved into private storage");
+                        break;
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "shared-storage photo not adopted: " + t);
+        }
+        Prefs.setSharedPhotoAdopted(c, true);
+    }
+
+    /** Through a temporary file, so a failed copy leaves no half photo. */
+    private static void copy(File src, File dest) throws java.io.IOException {
+        File part = new File(dest.getPath() + ".part");
+        java.io.FileInputStream in = new java.io.FileInputStream(src);
+        java.io.FileOutputStream out = new java.io.FileOutputStream(part);
+        try {
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        } finally {
+            try { in.close(); } catch (Throwable ignored) { }
+            try { out.close(); } catch (Throwable ignored) { }
+        }
+        if (!part.renameTo(dest)) {
+            part.delete();
+            throw new java.io.IOException("cannot rename " + part);
+        }
     }
 
     /** Identifies one version of the file, so a replaced photo is noticed. */
@@ -262,14 +302,6 @@ final class Backgrounds {
         int a = dimAlpha(c);
         if (a == 0) return img;
         return new LayerDrawable(new Drawable[]{ img, new ColorDrawable(a << 24) });
-    }
-
-    /**
-     * Create the app's folder on external storage, so a custom background can be copied
-     * there with adb push. Android only creates it once something asks for it.
-     */
-    static void ensureFolder(Context c) {
-        try { c.getExternalFilesDir(null); } catch (Throwable ignored) { }
     }
 
     static GradientDrawable drawable(Preset p) {

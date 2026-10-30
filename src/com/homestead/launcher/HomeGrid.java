@@ -284,7 +284,7 @@ public class HomeGrid implements SettingsPanel.Host {
         root.addView(head, hlp);
 
         AppModel.ensureLoaded(c);
-        Backgrounds.ensureFolder(c);
+        Backgrounds.adoptSharedPhotoOnce(c);
         applyBackground();
         build();
         updateClock();

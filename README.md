@@ -184,9 +184,10 @@ Light is the default.
 - Run the second command on the TV, as shown, rather than piping the file from your
   computer (`adb shell "content write …" < background.jpg`): piped from a Windows computer,
   the file arrived damaged in testing.
-- On Fire OS 7 only, copying the file straight into Homestead's folder also works:
-  `adb push background.jpg /sdcard/Android/data/com.homestead.launcher/files/`. Fire OS 8
-  refuses that folder to adb. A picture sent with the commands above takes precedence.
+- Up to 1.7.1 a picture could also be copied straight into Homestead's folder on the TV's
+  shared storage. That folder is no longer read, because any app with the storage permission
+  can write to it. A picture already there is kept: the first time 1.7.2 starts it is copied
+  into Homestead's private storage.
 
 The picture is removed when Homestead is uninstalled.
 

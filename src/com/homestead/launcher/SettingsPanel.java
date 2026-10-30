@@ -426,7 +426,7 @@ public final class SettingsPanel {
         }
         paint.run();
 
-        p.addRow("Reset to the usual order", "", new Runnable() {
+        p.addRow("Reset to Default", "", new Runnable() {
             public void run() {
                 order.clear();
                 order.addAll(Prefs.usualRowOrder());

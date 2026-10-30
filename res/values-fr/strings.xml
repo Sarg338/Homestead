@@ -54,6 +54,16 @@
   <string name="opt_wide_help">Comme l\'accueil de Fire TV : l\'icône de chaque appli sur une tuile de la taille d\'une bannière, dans une grille comme les applis TV.</string>
   <string name="opt_fire">Icônes système Fire TV</string>
   <string name="opt_fire_help">Accueil Amazon, Réglages et Santé de la TV utilisent les icônes de l\'accueil et des Paramètres de Fire OS, lues sur cette TV. Si l\'une manque, l\'icône habituelle reste.</string>
+  <string name="opt_design">Design</string>
+  <string name="opt_design_help">Classique : les sections, chacune sous son titre. Dock : les applis les plus utilisées sur un bandeau en bas du premier écran, avec un halo de la couleur de l\'appli sélectionnée, tout le reste dans une seule grille en dessous, et l\'horloge et les Réglages dans une barre en haut (d\'après la pull request #27).</string>
+  <string name="opt_design_classic">Classique</string>
+  <string name="opt_design_dock">Dock</string>
+  <string name="opt_dock_size">Taille du dock</string>
+  <string name="opt_dock_size_help">La taille des tuiles du dock. Les plus grandes tailles défilent sur le côté quand elles ne tiennent pas toutes.</string>
+  <string name="opt_dock_s">Petite</string>
+  <string name="opt_dock_m">Moyenne</string>
+  <string name="opt_dock_l">Grande</string>
+  <string name="opt_dock_xl">Très grande</string>
 
   <!-- Réglages -->
   <string name="set_title">Réglages</string>
@@ -461,6 +471,16 @@
   <string name="bg_ember">Braise</string>
   <string name="bg_deepsea">Grand bleu</string>
   <string name="bg_list_help">Choisissez-en un pour l\'utiliser. L\'écran d\'accueil à côté de cette page change aussitôt.</string>
+  <string name="bg_landscapes">Paysages</string>
+  <string name="bg_landscapes_help">Met ce paysage en fond d\'écran photo, à la place de toute photo envoyée avant. L\'assombrissement ci-dessus s\'y applique aussi.</string>
+  <string name="ls_drawn_dusk">Montagnes au crépuscule (dessin)</string>
+  <string name="ls_drawn_lake">Lac de montagne (dessin)</string>
+  <string name="ls_drawn_forest">Forêt dans la brume (dessin)</string>
+  <string name="ls_drawn_dunes">Dunes (dessin)</string>
+  <string name="ls_photo_ciucas">Pic Ciucaș, Roumanie (photo)</string>
+  <string name="ls_photo_crete">Mont Ida, Crète (photo)</string>
+  <string name="ls_photo_sanjuan">Vallée de San Juan (photo)</string>
+  <string name="ls_photo_scuol">Alpes au-dessus des nuages, Scuol (photo)</string>
   <string name="bg_black_help">Noir convient aux écrans OLED et à la nuit.</string>
   <string name="bg_photo_help">Choisissez ci-dessous une image enregistrée sur la TV (il faut le tunnel sur l\'appareil), ou envoyez un JPEG ou un PNG depuis un ordinateur :</string>
   <string name="bg_in_use">utilisé</string>

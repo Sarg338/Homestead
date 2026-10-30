@@ -29,6 +29,8 @@ public final class SettingsPanel {
     /** Implemented by HomeGrid so a panel can push another panel or apply changes. */
     public interface Host {
         void rebuildGrid();
+        /** Scroll the grid to a row (Prefs.ROW_*), so a change to it can be seen. */
+        void showRow(String row);
         void showPanel(View v);
         void closePanel();
     }
@@ -45,7 +47,7 @@ public final class SettingsPanel {
 
         final Panel.Row home = p.addRow("Home screen", homeSummary(c), null).opens();
         home.setValueColor(0xFF8FA3B8);
-        home.setHelp("Hidden tiles, sorting, grid columns, the clock and the sections.");
+        home.setHelp("Hidden tiles, sorting, grid columns, the clock, and the rows and their order.");
         final Panel.Row look = p.addRow("Background", Backgrounds.label(c), null).opens();
         look.setValueColor(0xFF8FA3B8);
         look.setHelp("The colour or photo behind the home screen.");
@@ -282,7 +284,18 @@ public final class SettingsPanel {
         fire.setHelp("Amazon Home, Settings and TV Health use the icons of Fire OS's own home and "
                 + "Settings, read from this TV. Where one is missing, the usual icon stays.");
 
-        p.addHeader("Sections");
+        p.addHeader("Rows");
+
+        final Panel.Row order = p.addRow("Row order", orderSummary(c), null).opens();
+        order.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { host.showPanel(buildRowOrder(c, host)); }
+        });
+        order.setHelp("Which row comes first on the home screen, and the order of the rest.");
+        // The order changes on the page this row opens; repaint it on the way back.
+        order.cell.setOnFocusChangeListener(chain(order.cell.getOnFocusChangeListener(),
+                new Runnable() {
+                    public void run() { order.setValue(orderSummary(c)); }
+                }));
 
         // Only offered on a TV that has the Live TV tile.
         if (AppModel.hasLiveTv()) {
@@ -295,8 +308,8 @@ public final class SettingsPanel {
                     host.rebuildGrid();
                 }
             });
-            tvFirst.setHelp("A large Live TV tile on top, then TV apps, then inputs; Home always "
-                    + "lands on Live TV.");
+            tvFirst.setHelp("A large Live TV tile above all the rows, and Home always lands on "
+                    + "it. The rows below follow Row order.");
         }
 
         final Panel.Row secIn = p.addRow("Show \"Inputs & System\"", onOff(Prefs.showInputs(c)), null).asSwitch();
@@ -335,6 +348,146 @@ public final class SettingsPanel {
             public void run() { host.closePanel(); }
         });
         return p.root;
+    }
+
+    // ---------------------------------------------------------------- row order
+
+    /**
+     * The home screen's rows, top to bottom. OK picks a row up, Up and Down move it, and OK
+     * or Back puts it down. The grid behind the sheet follows each move.
+     */
+    private static View buildRowOrder(final Context c, final Host host) {
+        final Panel p = new Panel(c, "Row order", null, Panel.SHEET);
+        final List<String> order = Prefs.rowOrder(c);
+        final Panel.Row[] slots = new Panel.Row[order.size()];
+        final int[] lifted = { -1 };
+
+        // Shows the order on the rows, and which of them is picked up.
+        final Runnable paint = new Runnable() {
+            public void run() {
+                for (int i = 0; i < slots.length; i++) {
+                    String row = order.get(i);
+                    boolean up = i == lifted[0];
+                    slots[i].setLabel(rowName(c, row));
+                    String off = rowOff(c, row);
+                    slots[i].setValue(up ? "moving" : off);
+                    slots[i].setValueColor(up ? LIFT_VALUE : off.length() > 0 ? MUTED : OK);
+                    slots[i].setLifted(up);
+                    slots[i].setHelp(up ? "Up and Down move it. OK or Back puts it down."
+                            : "Press OK to pick this row up, then move it with Up and Down. "
+                            + "The home screen changes as you go."
+                            + (off.length() > 0 ? " Rows that are not shown keep their place "
+                            + "for when they come back." : ""));
+                }
+            }
+        };
+        final Runnable drop = new Runnable() {
+            public void run() {
+                lifted[0] = -1;
+                paint.run();
+            }
+        };
+
+        p.addHeader("Top to bottom");
+        for (int i = 0; i < slots.length; i++) {
+            final int at = i;
+            slots[i] = p.addRow(rowName(c, order.get(i)), "", null);
+            slots[i].cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    lifted[0] = lifted[0] == at ? -1 : at;
+                    paint.run();
+                }
+            });
+            slots[i].cell.setOnKeyListener(new View.OnKeyListener() {
+                public boolean onKey(View v, int code, android.view.KeyEvent e) {
+                    if (lifted[0] != at) return false;
+                    boolean up = code == android.view.KeyEvent.KEYCODE_DPAD_UP;
+                    boolean down = code == android.view.KeyEvent.KEYCODE_DPAD_DOWN;
+                    if (!up && !down) {
+                        // Left and Right would leave the row with it still picked up.
+                        return code == android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                                || code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT;
+                    }
+                    int to = at + (up ? -1 : 1);
+                    if (e.getAction() != android.view.KeyEvent.ACTION_DOWN
+                            || to < 0 || to >= slots.length) {
+                        return true;
+                    }
+                    Collections.swap(order, at, to);
+                    Prefs.setRowOrder(c, order);
+                    lifted[0] = to;
+                    paint.run();
+                    slots[to].cell.requestFocus();
+                    host.rebuildGrid();
+                    host.showRow(order.get(to));
+                    return true;
+                }
+            });
+        }
+        paint.run();
+
+        p.addRow("Reset to the usual order", "", new Runnable() {
+            public void run() {
+                order.clear();
+                order.addAll(Prefs.usualRowOrder());
+                Prefs.setRowOrder(c, order);
+                drop.run();
+                host.rebuildGrid();
+                host.showRow(order.get(0));
+            }
+        }).setHelp("Fire TV settings shortcuts, Inputs & System, Non-TV Applications, then "
+                + "TV Applications.");
+        p.addRow("Back", "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+
+        // Back puts a picked-up row down first; the next Back closes the page.
+        p.root.setTag(new HomeGrid.BackHandler() {
+            public boolean onBack() {
+                if (lifted[0] < 0) return false;
+                drop.run();
+                return true;
+            }
+        });
+        return p.root;
+    }
+
+    private static final int OK = 0xFFA7D28F, MUTED = 0xFF7F8FA0, LIFT_VALUE = 0xFF7FA8D8;
+
+    /** A row's name, as its header reads on the home screen. */
+    private static String rowName(Context c, String row) {
+        if (row.equals(Prefs.ROW_SHORTCUTS)) return c.getString(R.string.home_sec_settings);
+        if (row.equals(Prefs.ROW_INPUTS)) return c.getString(R.string.home_sec_inputs);
+        if (row.equals(Prefs.ROW_NONTV)) return c.getString(R.string.home_sec_nontv);
+        return c.getString(R.string.home_sec_tv);
+    }
+
+    /** Why a row is not on the home screen, or "" when it is. */
+    private static String rowOff(Context c, String row) {
+        if (row.equals(Prefs.ROW_SHORTCUTS)) {
+            int place = Prefs.shortcutsPlace(c);
+            return place == Prefs.SHORTCUTS_BAR ? "in the top bar"
+                    : place == Prefs.SHORTCUTS_OFF ? "off" : "";
+        }
+        if (row.equals(Prefs.ROW_INPUTS)) return Prefs.showInputs(c) ? "" : "hidden";
+        if (row.equals(Prefs.ROW_NONTV)) return Prefs.showNonTv(c) ? "" : "hidden";
+        return "";
+    }
+
+    /** "TV Applications first": the top row of those shown. */
+    private static String orderSummary(Context c) {
+        List<String> order = Prefs.rowOrder(c);
+        for (int i = 0; i < order.size(); i++) {
+            if (rowOff(c, order.get(i)).length() == 0) return shortName(order.get(i)) + " first";
+        }
+        return "";
+    }
+
+    private static String shortName(String row) {
+        if (row.equals(Prefs.ROW_SHORTCUTS)) return "Shortcuts";
+        if (row.equals(Prefs.ROW_INPUTS)) return "Inputs";
+        if (row.equals(Prefs.ROW_NONTV)) return "Non-TV apps";
+        return "TV apps";
     }
 
     private static String homeSummary(Context c) {

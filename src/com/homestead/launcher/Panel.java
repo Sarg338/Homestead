@@ -51,6 +51,8 @@ public class Panel {
     private static final int HEAD = 0xFF7FA8D8, ROW_BG = 0x10FFFFFF, PANE_BG = 0x12FFFFFF;
     private static final int FOCUS_BG = 0xFFE8EEF6, FOCUS_TEXT = 0xFF0B1F38;
     private static final int DEFAULT_VALUE = 0xFFA7D28F;
+    /** The outline of a row picked up to be moved. */
+    private static final int LIFT = 0xFF2E7BD6;
 
     public final FrameLayout root;
     private final Context ctx;
@@ -508,7 +510,7 @@ public class Panel {
         private final TextView chevron;
         private final Section section;
         private int valueColor = DEFAULT_VALUE;
-        private boolean focused, isSwitch, status;
+        private boolean focused, isSwitch, status, lifted;
         private String help;
 
         Row(Panel panel, View cell, TextView label, TextView value, TextView badge,
@@ -548,6 +550,12 @@ public class Panel {
         /** Draw an "on"/"off" value as a switch; other values still show as text. */
         public Row asSwitch() { isSwitch = true; paint(); return this; }
 
+        /** Picked up to be moved: outlined until put down. */
+        public void setLifted(boolean l) {
+            lifted = l;
+            paint();
+        }
+
         /** Mark a row that opens another page. */
         public Row opens() {
             if (chevron != null) chevron.setVisibility(View.VISIBLE);
@@ -573,6 +581,7 @@ public class Panel {
             GradientDrawable bg = new GradientDrawable();
             bg.setCornerRadius(panel.dp(12));
             bg.setColor(focused ? FOCUS_BG : ROW_BG);
+            if (lifted) bg.setStroke(panel.dp(3), LIFT);
             cell.setBackground(bg);
 
             label.setTextColor(focused ? FOCUS_TEXT : TEXT);

@@ -13,7 +13,9 @@ Both pictures are from the same TV, a few minutes apart.
 ## What it does
 
 - **A home screen without the ads.** Your inputs, your TV apps and everything else, in
-  three sections. No sponsored rows, no auto-playing trailers, no promoted tiles.
+  three sections. No sponsored rows, no auto-playing trailers, no promoted tiles. **Row
+  order** (Settings → Home screen) puts the rows in the order you want, TV apps first for
+  example.
 - **The Home button comes here.** Pressing Home opens Homestead in about 170 ms instead of
   Amazon's home screen.
 - **HDMI and Composite inputs as tiles**, so switching source is one press from home.

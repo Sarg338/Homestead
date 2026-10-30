@@ -15,8 +15,11 @@ package com.homestead.launcher;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -43,6 +46,7 @@ public final class Prefs {
     private static final String K_REAPPLY = "adb_reapply_on_boot";
     private static final String K_RESTORE_WATCH = "restore_watch";
     private static final String K_SHORTCUTS_PLACE = "shortcuts_place";
+    private static final String K_ROW_ORDER = "row_order";
     private static final String K_SHORTCUTS = "shortcuts";
     private static final String K_DISABLED = "disabled_by_us";
     private static final String K_REFUSED = "refused_by_fire_os";
@@ -202,8 +206,9 @@ public final class Prefs {
     }
 
     /**
-     * Live TV first: a large Live TV tile on top, then TV apps, then inputs; Home lands on
-     * Live TV. Off by default; it only changes anything on a TV with a tuner.
+     * Live TV first: a large Live TV tile above the rows; Home lands on it. Off by default;
+     * it only changes anything on a TV with a tuner. Up to 1.7.1 it also put the TV apps
+     * above the inputs, which rowOrder() keeps for anyone who had it on.
      */
     public static boolean liveTvFirst(Context c) { return sp(c).getBoolean(K_TV_FIRST, false); }
     public static void setLiveTvFirst(Context c, boolean v) {
@@ -226,18 +231,68 @@ public final class Prefs {
     public static boolean fireOsIcons(Context c) { return sp(c).getBoolean(K_FIRE_ICONS, false); }
     public static void setFireOsIcons(Context c, boolean v) { sp(c).edit().putBoolean(K_FIRE_ICONS, v).apply(); }
 
-    /** The Fire TV settings shortcuts row: where it goes on the home screen, and what is in it. */
+    /**
+     * The Fire TV settings shortcuts: off, a row on the home screen (placed among the other
+     * rows by rowOrder), or buttons in the top bar. What is in them is shortcuts().
+     */
     public static final int SHORTCUTS_OFF = 0;
-    public static final int SHORTCUTS_TOP = 1;
-    public static final int SHORTCUTS_BOTTOM = 2;
+    public static final int SHORTCUTS_ROW = 1;
+    /** Up to 1.7.1, a row below the apps; read once into the row order, then a plain row. */
+    private static final int SHORTCUTS_BELOW_OLD = 2;
     public static final int SHORTCUTS_BAR = 3;
 
     public static int shortcutsPlace(Context c) {
         int n = sp(c).getInt(K_SHORTCUTS_PLACE, SHORTCUTS_OFF);
+        if (n == SHORTCUTS_BELOW_OLD) {
+            if (!sp(c).contains(K_ROW_ORDER)) firstRowOrder(c);
+            return SHORTCUTS_ROW;
+        }
         return (n < SHORTCUTS_OFF || n > SHORTCUTS_BAR) ? SHORTCUTS_OFF : n;
     }
     public static void setShortcutsPlace(Context c, int v) {
         sp(c).edit().putInt(K_SHORTCUTS_PLACE, v).apply();
+    }
+
+    /** The home screen's rows, as rowOrder() names them. */
+    public static final String ROW_SHORTCUTS = "shortcuts", ROW_INPUTS = "inputs",
+            ROW_NONTV = "nontv", ROW_TV = "tv";
+    private static final String[] ROWS_USUAL = { ROW_SHORTCUTS, ROW_INPUTS, ROW_NONTV, ROW_TV };
+
+    /**
+     * The home screen's rows, top to bottom; every row once, shown or not, so a row switched
+     * off keeps its place. The restore tile and the Live TV first tile sit above them all.
+     */
+    public static List<String> rowOrder(Context c) {
+        String s = sp(c).getString(K_ROW_ORDER, null);
+        if (s == null) s = firstRowOrder(c);
+        List<String> out = new ArrayList<String>();
+        for (String k : s.split(",")) {
+            if (Arrays.asList(ROWS_USUAL).contains(k) && !out.contains(k)) out.add(k);
+        }
+        for (String k : ROWS_USUAL) if (!out.contains(k)) out.add(k);
+        return out;
+    }
+    public static void setRowOrder(Context c, List<String> order) {
+        StringBuilder b = new StringBuilder();
+        for (String k : order) b.append(b.length() == 0 ? "" : ",").append(k);
+        sp(c).edit().putString(K_ROW_ORDER, b.toString()).apply();
+    }
+    public static List<String> usualRowOrder() {
+        return new ArrayList<String>(Arrays.asList(ROWS_USUAL));
+    }
+
+    /**
+     * Up to 1.7.1 the order was fixed: Live TV first put the TV apps above the inputs, and the
+     * shortcuts row went above or below the apps. The first read keeps that layout.
+     */
+    private static String firstRowOrder(Context c) {
+        boolean below = sp(c).getInt(K_SHORTCUTS_PLACE, SHORTCUTS_OFF) == SHORTCUTS_BELOW_OLD;
+        String apps = liveTvFirst(c) ? "tv,inputs,nontv" : "inputs,nontv,tv";
+        String s = below ? apps + ",shortcuts" : "shortcuts," + apps;
+        SharedPreferences.Editor e = sp(c).edit().putString(K_ROW_ORDER, s);
+        if (below) e.putInt(K_SHORTCUTS_PLACE, SHORTCUTS_ROW);
+        e.apply();
+        return s;
     }
 
     /** Screen ids (FireTvSettingsPanel) in the row; the four that open from here until chosen. */

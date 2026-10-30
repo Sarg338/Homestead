@@ -104,6 +104,8 @@ public class HomeGrid implements SettingsPanel.Host {
      * overlay's handoff. Kept apart from cellsByKey, whose cells get the tile look on restyle.
      */
     private final Map<String, View> pillsByKey = new HashMap<String, View>();
+    /** Each shown row's header by Prefs.ROW_* name, for showRow(). */
+    private final Map<String, View> rowHeaders = new HashMap<String, View>();
     /** The horizontally scrolling section rows, in build order. */
     private final List<HorizontalScrollView> rows = new ArrayList<HorizontalScrollView>();
     private View focusedCell;
@@ -603,6 +605,7 @@ public class HomeGrid implements SettingsPanel.Host {
         HomeGrid grid;
         PanelHost(HomeGrid g) { grid = g; }
         public void rebuildGrid() { grid.rebuildGrid(); }
+        public void showRow(String row) { grid.showRow(row); }
         public void showPanel(View v) { grid.showPanel(v); }
         public void closePanel() { grid.closePanel(); }
     }
@@ -613,6 +616,23 @@ public class HomeGrid implements SettingsPanel.Host {
         AppModel.invalidateMetrics();
         applyBackground();
         rebuild();
+    }
+
+    public void showRow(final String row) {
+        // Two posts: after both of applyScroll's, which put the old scroll position back
+        // once a rebuild is laid out.
+        scroll.post(new Runnable() {
+            public void run() {
+                scroll.post(new Runnable() {
+                    public void run() {
+                        View h = rowHeaders.get(row);
+                        if (h != null) {
+                            scroll.smoothScrollTo(0, Math.max(0, h.getTop() - dp(HEADER_TOP_DP)));
+                        }
+                    }
+                });
+            }
+        });
     }
 
     /** Carried across the overlay -> activity handoff so the highlight does not jump. */
@@ -723,6 +743,7 @@ public class HomeGrid implements SettingsPanel.Host {
     private void buildFallback() {
         column.removeAllViews();
         cellsByKey.clear();
+        rowHeaders.clear();
         rows.clear();
         focusedCell = null;
         raisedRow = null;
@@ -745,6 +766,7 @@ public class HomeGrid implements SettingsPanel.Host {
     private void buildSections() {
         column.removeAllViews();
         cellsByKey.clear();
+        rowHeaders.clear();
         rows.clear();
         focusedCell = null;
         raisedRow = null;
@@ -816,25 +838,33 @@ public class HomeGrid implements SettingsPanel.Host {
         String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
         String tvTitle = ctx.getString(R.string.home_sec_tv);
         String shortcutsTitle = ctx.getString(R.string.home_sec_settings);
-        boolean scTop = !shortcuts.isEmpty() && Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_TOP;
-        boolean scBottom = !shortcuts.isEmpty()
-                && Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_BOTTOM;
+        if (Prefs.shortcutsPlace(ctx) != Prefs.SHORTCUTS_ROW) shortcuts.clear();
         boolean first = true;
         if (restore != null) { addRestoreTile(restore); first = false; }
-        if (tvFirst) {
-            if (liveTv != null)    { addLiveTvTile(liveTv); first = false; }
-            if (scTop)             { addHeader(shortcutsTitle, first); first = false; addCardRow(shortcuts); }
-            if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
-            if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-            if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
-            if (scBottom)          { addHeader(shortcutsTitle, first); addCardRow(shortcuts); }
-            return;
+        if (liveTv != null)  { addLiveTvTile(liveTv); first = false; }
+        // The rows in the order chosen in Settings; an empty or switched-off one is skipped.
+        List<String> order = Prefs.rowOrder(ctx);
+        for (int i = 0; i < order.size(); i++) {
+            String row = order.get(i);
+            if (row.equals(Prefs.ROW_SHORTCUTS)) {
+                if (shortcuts.isEmpty()) continue;
+                rowHeaders.put(row, addHeader(shortcutsTitle, first));
+                addCardRow(shortcuts);
+            } else if (row.equals(Prefs.ROW_INPUTS)) {
+                if (inputs.isEmpty()) continue;
+                rowHeaders.put(row, addHeader(inputsTitle, first));
+                addCardRow(inputs);
+            } else if (row.equals(Prefs.ROW_NONTV)) {
+                if (nonTv.isEmpty()) continue;
+                rowHeaders.put(row, addHeader(nonTvTitle, first));
+                addNonTv(nonTv);
+            } else {
+                if (tv.isEmpty()) continue;
+                rowHeaders.put(row, addHeader(tvTitle, first));
+                addTileGrid(tv);
+            }
+            first = false;
         }
-        if (scTop)             { addHeader(shortcutsTitle, first); first = false; addCardRow(shortcuts); }
-        if (!inputs.isEmpty()) { addHeader(inputsTitle, first); first = false; addCardRow(inputs); }
-        if (!nonTv.isEmpty())  { addHeader(nonTvTitle, first); first = false; addNonTv(nonTv); }
-        if (!tv.isEmpty())     { addHeader(tvTitle, first); first = false; addTileGrid(tv); }
-        if (scBottom)          { addHeader(shortcutsTitle, first); addCardRow(shortcuts); }
     }
 
     /** Live TV first: one large tile, two banner cells wide, on its own row. */
@@ -1278,7 +1308,7 @@ public class HomeGrid implements SettingsPanel.Host {
         });
     }
 
-    private void addHeader(String text, boolean first) {
+    private TextView addHeader(String text, boolean first) {
         TextView h = new TextView(ctx);
         h.setText(text);
         paintText(h);
@@ -1289,6 +1319,7 @@ public class HomeGrid implements SettingsPanel.Host {
         lp.topMargin = first ? 0 : dp(HEADER_TOP_DP);
         lp.bottomMargin = dp(HEADER_BOTTOM_DP);
         column.addView(h, lp);
+        return h;
     }
 
     /** Cards, or banner tiles made from the icons when "Wide tiles" is on (AppModel builds them). */

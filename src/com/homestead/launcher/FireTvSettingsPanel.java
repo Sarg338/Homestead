@@ -145,16 +145,19 @@ public final class FireTvSettingsPanel {
         final Panel.Row place = p.addRow("Shortcuts row", placeLabel(Prefs.shortcutsPlace(c)), null);
         place.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                int n = (Prefs.shortcutsPlace(c) + 1) % 4;
+                int now = Prefs.shortcutsPlace(c);
+                int n = now == Prefs.SHORTCUTS_OFF ? Prefs.SHORTCUTS_ROW
+                        : now == Prefs.SHORTCUTS_ROW ? Prefs.SHORTCUTS_BAR : Prefs.SHORTCUTS_OFF;
                 Prefs.setShortcutsPlace(c, n);
                 place.setValue(placeLabel(n));
                 AppModel.reload(c);
                 host.rebuildGrid();
             }
         });
-        place.setHelp("Settings shortcuts on the home screen: a row above the apps, a row "
-                + "below them, or small buttons beside the clock. The top bar shows the first "
-                + "three you chose, then More settings and Settings. Not in Simple mode.");
+        place.setHelp("Settings shortcuts on the home screen: a row, placed with the others in "
+                + "Settings, Home screen, Row order, or small buttons beside the clock. The top "
+                + "bar shows the first three you chose, then More settings and Settings. Not in "
+                + "Simple mode.");
         p.addRow("Choose shortcuts", "", new Runnable() {
             public void run() { host.showPanel(buildChoose(c, host)); }
         }).opens().setHelp("Which screens go in the row.");
@@ -284,8 +287,7 @@ public final class FireTvSettingsPanel {
     // ---------------------------------------------------------------- small helpers
 
     private static String placeLabel(int place) {
-        if (place == Prefs.SHORTCUTS_TOP) return "above the apps";
-        if (place == Prefs.SHORTCUTS_BOTTOM) return "below the apps";
+        if (place == Prefs.SHORTCUTS_ROW) return "row";
         if (place == Prefs.SHORTCUTS_BAR) return "top bar";
         return "off";
     }

@@ -490,9 +490,21 @@ public class HomeGrid implements SettingsPanel.Host {
         return true;
     }
 
+    /**
+     * Whether the D-pad can reach the grid: its tiles and the top bar's pills. The top bar sits
+     * beside the scroll, not in it, so it is blocked separately. Back on, each gets its default
+     * again: the scroll's is AFTER_DESCENDANTS, so the scroll itself never takes focus instead
+     * of a tile (Down from a pill landed on it, with no tile lit).
+     */
+    private void gridFocusable(boolean on) {
+        int block = ViewGroup.FOCUS_BLOCK_DESCENDANTS;
+        scroll.setDescendantFocusability(on ? ViewGroup.FOCUS_AFTER_DESCENDANTS : block);
+        topBar.setDescendantFocusability(on ? ViewGroup.FOCUS_BEFORE_DESCENDANTS : block);
+    }
+
     public void showPanel(final View v) {
         // Stop the grid, and any panel underneath, from stealing D-pad focus.
-        scroll.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        gridFocusable(false);
         View under = panels.isEmpty() ? null : panels.get(panels.size() - 1);
         // Taken first: blocking and hiding the page below can clear its focus.
         if (under != null) panelFocus.set(panelFocus.size() - 1, under.findFocus());
@@ -514,7 +526,7 @@ public class HomeGrid implements SettingsPanel.Host {
         panelFocus.remove(panelFocus.size() - 1);
         root.removeView(top);
         if (panels.isEmpty()) {
-            scroll.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+            gridFocusable(true);
             takeFocus();
             // The restore tile was under the page; its time on screen starts now.
             if (restoreSlot != null) {
@@ -568,7 +580,7 @@ public class HomeGrid implements SettingsPanel.Host {
         View top = from.panels.get(from.panels.size() - 1);
         // Taken first: leaving its window clears the focus.
         View focus = top.findFocus();
-        scroll.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        gridFocusable(false);
         for (int i = 0; i < from.panels.size(); i++) {
             View v = from.panels.get(i);
             from.root.removeView(v);
@@ -579,7 +591,7 @@ public class HomeGrid implements SettingsPanel.Host {
         }
         from.panels.clear();
         from.panelFocus.clear();
-        from.scroll.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+        from.gridFocusable(true);
         from.panelHost.grid = this;
         from.panelHost = new PanelHost(from);
         if (focus == null || !focus.requestFocus()) top.requestFocus();

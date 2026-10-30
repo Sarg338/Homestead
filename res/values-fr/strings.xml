@@ -351,7 +351,7 @@
   <string name="db_r_core">composant essentiel du système</string>
   <string name="db_r_live">utilisé par le système</string>
   <string name="db_g_home">Écran d\'accueil d\'Amazon</string>
-  <string name="db_r_home_unknown">gestion d\'Accueil inconnue</string>
+  <string name="db_r_home_unknown">Accueil non vérifiable</string>
   <string name="db_r_home_fireos">Fire OS prendrait Accueil</string>
   <string name="db_r_home_other">autre appli d\'accueil</string>
   <string name="db_r_home_shared">Accueil partagé avec %1$s</string>

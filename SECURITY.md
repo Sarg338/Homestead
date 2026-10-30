@@ -25,8 +25,9 @@ The app has exactly two network behaviours, and no others:
   whenever you press *Check for updates* in Settings, one unauthenticated HTTPS GET to
   `https://api.github.com/repos/Sarg338/Homestead/releases/latest`. It carries no token, no
   device identifier and nothing about your TV beyond what any HTTPS request carries. The
-  APK itself is downloaded only when you choose *Install now*, and it is refused unless it is
-  signed by the same certificate as the installed app.
+  APK itself is downloaded only when you choose *Install now*, into the app's private storage;
+  the download stops if it grows past the size the release declared, and the file is refused
+  unless it is signed by the same certificate as the installed app.
 - **The ADB client.** Connects only to this television's own `adbd`, directly or through
   a local tunnel on the TV. It never leaves the device. The tunnel is a VPN that routes only
   its own private subnet. Updates and re-apply after reboot do not start it while another
@@ -57,8 +58,10 @@ Be clear about what that permission is: `READ_LOGS` lets an app read the TV's wh
 log, which can include details from other apps. Homestead asks `logcat` for only the
 `ActivityManager` lines in the `system` buffer, acts only on a HOME intent started by the
 system itself or by the app in front (some Amazon apps, such as Luna, pass Home on that
-way), and does not keep, store or send any of it. Nothing is read when the
-permission is not granted. To take it away:
+way), and does not keep, store or send any of it. Any app can write a line that looks like
+one of these, so the text alone is not trusted: the system stamps every log entry with the
+identity of the process that wrote it, and only entries written by the system's own process
+count. Nothing is read when the permission is not granted. To take it away:
 
     adb shell pm revoke com.homestead.launcher android.permission.READ_LOGS
 
@@ -85,8 +88,8 @@ you want it.
 
 ## Package changes
 
-The app only ever runs `pm disable-user --user 0` and `pm enable`. It does not call
-`pm uninstall` anywhere, and it does not clear app data. Every change is reversible, and
+The only package-state changes the app makes are `pm disable-user --user 0` and `pm enable`.
+It does not call `pm uninstall` anywhere, and it does not clear app data. Every change is reversible, and
 Setup records which packages *this app* disabled so "undo everything" restores exactly
 those and nothing else.
 
@@ -112,13 +115,16 @@ shell runs as its own user, and it limits itself instead:
   `/photo` fails, so nothing can be read back through it.
 - A transfer goes to a temporary file and replaces the photo only if it arrives within
   25 MB and decodes as an image; anything else is discarded.
-- The photo is kept in the app's private storage, which only Homestead can read.
+- The photo is kept in the app's private storage, which only Homestead can read. Up to 1.7.1
+  a photo was also read from the app's folder on shared storage, which any app holding the
+  storage permission can write to; that folder is no longer read. A photo already in it is
+  copied into private storage once, the first time 1.7.2 starts.
 
 **Choose a photo on this TV** uses the same endpoint from inside the app. Homestead holds no
 storage permission, so it runs two commands through its on-device tunnel: `ls` of
 `/sdcard/Download`, and `content write` of the chosen file into the endpoint. A file name is
-used only if it consists of letters, numbers, spaces, dots, dashes, brackets and `+` and
-ends in `.jpg`, `.jpeg` or `.png`, and it is single-quoted in the command; any other name
+used only if it consists of letters, numbers, spaces, dots, dashes, underscores, brackets and
+`+` and ends in `.jpg`, `.jpeg` or `.png`, and it is single-quoted in the command; any other name
 is left out, so a file name cannot add to the command. Like every tunnel use, the tunnel
 is up only while this runs and for the short idle period after.
 

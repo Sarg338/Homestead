@@ -38,6 +38,11 @@ import java.io.InputStreamReader;
  * applied only when a process starts, so this runs in its own process: binding after the
  * grant starts a fresh one that can read the log straight away. Only ActivityManager and
  * ActivityTaskManager lines from the system buffer are read, and nothing is kept.
+ *
+ * Any app can write a line with any tag to any log buffer, so the text of a line proves
+ * nothing. What it cannot fake is the uid the log daemon stamps on the entry from the
+ * writer's own credentials, which "-v uid" prints: only entries written by the system's
+ * process (uid 1000, where ActivityManager lives) count as a Home press.
  */
 public class HomeKeyWatcher extends Service {
 
@@ -47,11 +52,17 @@ public class HomeKeyWatcher extends Service {
 
     private static final String TAG = "Homestead";
     private static final String PERM = "android.permission.READ_LOGS";
+    /** "-v uid" exists from Android 7. Fire OS 5 has no uid stamp to check. */
+    private static final boolean UID_FIELD = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N;
+    /** The uid of the process that logs ActivityManager lines: the system itself. */
+    private static final String SYSTEM_UID = String.valueOf(Process.SYSTEM_UID);
 
     private volatile Messenger client;
     private volatile boolean running;
     private volatile java.lang.Process proc;
     private Thread reader;
+    /** Set to false if this TV's logcat refuses "-v uid"; the lines are then read as before. */
+    private boolean uidField = UID_FIELD;
 
     private final Messenger me = new Messenger(new Handler(Looper.getMainLooper()) {
         public void handleMessage(Message m) {
@@ -94,21 +105,26 @@ public class HomeKeyWatcher extends Service {
         long backoff = 2000L;
         while (running) {
             long started = System.currentTimeMillis();
+            long lines = 0;
             try {
                 // -T 1 follows from the newest line, so there is no backlog to skip.
                 // Android 9 (Fire OS 7) logs activity starts as ActivityManager; Android 10
                 // and later (Fire OS 8) as ActivityTaskManager. Fire OS 5 (Android 5.1) has
                 // no "-v epoch", so it reads local times instead.
                 String format = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? "epoch" : "time";
-                proc = new ProcessBuilder("logcat", "-b", "system", "-v", format, "-T", "1",
-                        "ActivityManager:I", "ActivityTaskManager:I", "*:S")
-                        .redirectErrorStream(true).start();
+                java.util.List<String> cmd = new java.util.ArrayList<String>(java.util.Arrays.asList(
+                        "logcat", "-b", "system", "-v", format));
+                if (uidField) { cmd.add("-v"); cmd.add("uid"); }
+                cmd.addAll(java.util.Arrays.asList("-T", "1",
+                        "ActivityManager:I", "ActivityTaskManager:I", "*:S"));
+                proc = new ProcessBuilder(cmd).redirectErrorStream(true).start();
                 BufferedReader r = new BufferedReader(
                         new InputStreamReader(proc.getInputStream()));
-                Log.i(TAG, "watching for Home presses");
+                Log.i(TAG, "watching for Home presses" + (uidField ? "" : " (no uid stamp)"));
                 String line;
                 while (running && (line = r.readLine()) != null) {
-                    int uid = homeStartUid(line, started);
+                    lines++;
+                    int uid = homeStartUid(line, started, uidField);
                     if (uid >= 0) send(uid);
                 }
             } catch (Throwable t) {
@@ -119,6 +135,13 @@ public class HomeKeyWatcher extends Service {
                 proc = null;
             }
             if (!running) return;
+            // A logcat that quits at once having printed nothing did not understand its
+            // arguments: this TV has no "-v uid". Read the lines as before, without the check.
+            if (uidField && lines == 0 && System.currentTimeMillis() - started < 3000L) {
+                Log.w(TAG, "logcat refused -v uid; reading without the uid stamp");
+                uidField = false;
+                continue;
+            }
             // logcat exited; a run that lasted a while starts the backoff over.
             if (System.currentTimeMillis() - started > 60000L) backoff = 2000L;
             try { Thread.sleep(backoff); } catch (InterruptedException e) { return; }
@@ -130,10 +153,14 @@ public class HomeKeyWatcher extends Service {
      * The uid that started a HOME intent, or -1 if the line is not one. Which uids count as
      * a Home press is up to HomeRedirectService. Our "Amazon Home" tile has no HOME
      * category, so it never matches.
+     *
+     * @param uidField the line carries the writer's uid after the time ("-v uid"); the line
+     *                 then counts only if the system's own process wrote it
      */
-    static int homeStartUid(String line, long notBefore) {
+    static int homeStartUid(String line, long notBefore, boolean uidField) {
         if (line.indexOf("START u0 {") < 0) return -1;
         if (line.indexOf("cat=[android.intent.category.HOME]") < 0) return -1;
+        if (uidField && !writtenBySystem(line)) return -1;
         int u = line.indexOf(" from uid ");
         if (u < 0) return -1;
         int s = u + 10, e = s;
@@ -144,6 +171,24 @@ public class HomeKeyWatcher extends Service {
             if (lineTime(line.trim(), System.currentTimeMillis()) < notBefore) return -1;
         } catch (Throwable ignored) { }
         try { return Integer.parseInt(line.substring(s, e)); } catch (Throwable t) { return -1; }
+    }
+
+    /**
+     * True if the entry's uid stamp, the second field of a "-v epoch -v uid" line, is the
+     * system's. logcat prints the uid as a number, or as a short account name; "system" is
+     * accepted too in case a build names it.
+     */
+    static boolean writtenBySystem(String line) {
+        String t = line.trim();
+        int a = t.indexOf(' ');
+        if (a < 0) return false;
+        int b = a;
+        while (b < t.length() && t.charAt(b) == ' ') b++;
+        int e = t.indexOf(' ', b);
+        if (e < 0) return false;
+        String uid = t.substring(b, e);
+        if (uid.endsWith(":")) uid = uid.substring(0, uid.length() - 1);
+        return uid.equals(SYSTEM_UID) || uid.equals("system");
     }
 
     /**

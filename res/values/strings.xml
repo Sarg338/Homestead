@@ -273,7 +273,12 @@
   <string name="health_c_pact">PACT usage collection</string>
   <string name="health_c_limit_platform">Limit ad tracking (platform)</string>
   <string name="health_c_limit_3p">Limit ad tracking (3rd party)</string>
-  <string name="health_c_screensaver">Screensaver</string>
+  <string name="health_saver_hdr">Screensaver</string>
+  <string name="health_saver_row">In use</string>
+  <string name="health_saver_basic">basic colours</string>
+  <string name="health_saver_default">TV default (Amazon\'s)</string>
+  <string name="health_saver_default_off">TV default, package off</string>
+  <string name="health_saver_help">Basic colours, or the TV\'s default: Amazon\'s screensaver, which shows its picture collection with sponsored images, or your own Amazon Photos album if you set one up. Press to switch between the two. Not part of \"Apply all of the above\". The default needs the Amazon screensaver package switched on in Debloat.</string>
   <string name="health_ads_privacy">Ads &amp; privacy</string>
   <string name="health_apply_all">Apply all of the above</string>
   <string name="health_n_set">%1$d of %2$d set</string>
@@ -501,8 +506,8 @@
   <string name="db_shop2_n">Fire TV variant of the same shopping row.</string>
   <string name="db_minitv_t">Amazon MiniTV</string>
   <string name="db_minitv_n">Ad-supported free channel that appears as a row and an app.</string>
-  <string name="db_adsaver_t">Amazon ad screensaver</string>
-  <string name="db_adsaver_n">Replaces the idle screensaver with sponsored imagery.</string>
+  <string name="db_adsaver_t">Amazon screensaver</string>
+  <string name="db_adsaver_n">Amazon\'s picture collection with sponsored images, and your own Amazon Photos album if you set one up. Off, your album no longer shows either.</string>
   <string name="db_deeplink_t">Advertising deep-link handler</string>
   <string name="db_deeplink_n">Handles taps on Fire TV ads. Fire OS usually refuses to disable this one; if the row stays enabled, that is why.</string>
   <string name="db_blackbird_t">Sponsored-content ad sync</string>

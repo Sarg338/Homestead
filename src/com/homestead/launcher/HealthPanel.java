@@ -36,6 +36,12 @@ public final class HealthPanel {
 
     private static final String PERM_WSS = "android.permission.WRITE_SECURE_SETTINGS";
 
+    /** The screensaver in use: Android's basic colours, or unset for the TV's default. */
+    private static final String SAVER_KEY = "screensaver_components";
+    private static final String SAVER_BASIC = "com.android.dreams.basic/.Colors";
+    /** Amazon's screensaver, the TV's default: its picture collection, or the user's own album. */
+    private static final String SAVER_PKG = "com.amazon.ftv.screensaver";
+
     private static final int OK = 0xFFA7D28F;
     private static final int WARN = 0xFFE8C468;
     private static final int BAD = 0xFFE89A8A;
@@ -112,8 +118,6 @@ public final class HealthPanel {
         checks.add(Check.secure("pact_usage_collection_enabled", "0", R.string.health_c_pact));
         checks.add(Check.secure("limit_ad_tracking", "1", R.string.health_c_limit_platform));
         checks.add(Check.secure("non_amz_limit_ad_tracking", "1", R.string.health_c_limit_3p));
-        checks.add(Check.secure("screensaver_components", "com.android.dreams.basic/.Colors",
-                R.string.health_c_screensaver));
 
         for (int i = 0; i < checks.size(); i++) {
             if (i == 3) p.addHeader(c.getString(R.string.health_ads_privacy));
@@ -161,6 +165,26 @@ public final class HealthPanel {
         } else if (!canWriteSettings(c)) {
             p.addNote(c.getString(R.string.health_adb_note));
         }
+
+        // ---------------------------------------------------------- screensaver
+        // A choice, not a fix: Amazon's screensaver shows sponsored pictures, but also the
+        // user's own Amazon Photos album, so it is not part of "Apply all". Before 1.8.1 the
+        // row set the basic colours and then offered no way back.
+        p.addHeader(c.getString(R.string.health_saver_hdr));
+        final Panel.Row saver = p.addRow(c.getString(R.string.health_saver_row), "", null);
+        paintSaver(c, saver);
+        saver.setHelp(c.getString(R.string.health_saver_help));
+        saver.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (!canApply(c)) return;
+                // Unset puts the TV back on its default screensaver.
+                final String next = SAVER_BASIC.equals(readSecure(c, SAVER_KEY)) ? null : SAVER_BASIC;
+                saver.setValue(c.getString(R.string.setup_log_working));
+                writeSecure(c, SAVER_KEY, next, new Runnable() {
+                    public void run() { paintSaver(c, saver); }
+                });
+            }
+        });
 
         // ---------------------------------------------------------- packages
         p.addHeader(c.getString(R.string.health_packages));
@@ -232,7 +256,7 @@ public final class HealthPanel {
      * the ADB link (which also grants it). Calls back on the main thread.
      */
     private static void apply(final Context c, final Check[] checks, final Runnable after) {
-        // Only what is not already fine, so a screensaver the user picked is left alone.
+        // Only what is not already fine.
         if (canWriteSettings(c)) {
             for (int i = 0; i < checks.length; i++) {
                 if (!checks[i].isGood(checks[i].read(c))) checks[i].applyDirect(c);
@@ -260,9 +284,56 @@ public final class HealthPanel {
     private static String describe(Context c, Check ck, String cur) {
         cur = ck.effective(cur);
         if (cur == null || cur.isEmpty()) return c.getString(R.string.health_unset);
-        // What is set, not the target: a picked screensaver is fine but is not the target.
+        // What is set, not the target.
         if (ck.isGood(cur)) return ck.abbreviate(c, cur);
         return ck.abbreviate(c, cur) + " -> " + ck.shortWant(c);
+    }
+
+    // ---------------------------------------------------------------- screensaver
+
+    private static String readSecure(Context c, String key) {
+        try { return Settings.Secure.getString(c.getContentResolver(), key); }
+        catch (Throwable t) { return null; }
+    }
+
+    /** What the TV uses now. Both choices are fine; only a default whose package is off is flagged. */
+    private static void paintSaver(Context c, Panel.Row row) {
+        String cur = readSecure(c, SAVER_KEY);
+        if (SAVER_BASIC.equals(cur)) {
+            row.setValue(c.getString(R.string.health_saver_basic));
+            row.setValueColor(OK);
+        } else if (cur == null || cur.isEmpty() || cur.contains(SAVER_PKG)) {
+            boolean off = Debloat.stateOf(c, SAVER_PKG) == Debloat.DISABLED;
+            row.setValue(c.getString(off ? R.string.health_saver_default_off : R.string.health_saver_default));
+            row.setValueColor(off ? WARN : OK);
+        } else {
+            // Another screensaver the user picked: named by its package, left alone until pressed.
+            int slash = cur.indexOf('/');
+            String pkg = slash > 0 ? cur.substring(0, slash) : cur;
+            int dot = pkg.lastIndexOf('.');
+            row.setValue(dot > 0 ? pkg.substring(dot + 1) : pkg);
+            row.setValueColor(OK);
+        }
+    }
+
+    /**
+     * One secure setting, in-process when WRITE_SECURE_SETTINGS is held, else through the
+     * ADB link (which also grants it). A null value removes the setting.
+     */
+    private static void writeSecure(final Context c, String key, String value, final Runnable after) {
+        if (canWriteSettings(c)) {
+            try { Settings.Secure.putString(c.getContentResolver(), key, value); }
+            catch (Throwable t) { /* not granted after all; nothing to do */ }
+            after.run();
+            return;
+        }
+        if (!AdbBridge.canRun(c)) { after.run(); return; }
+        String cmd = value == null ? "settings delete secure " + key
+                : "settings put secure " + key + " '" + value + "'";
+        AdbBridge.run(new String[]{ cmd, "pm grant " + c.getPackageName() + " " + PERM_WSS },
+                new AdbBridge.Callback() {
+                    public void onDone(boolean ok, String out) { after.run(); }
+                });
     }
 
     // ---------------------------------------------------------------- detection
@@ -321,11 +392,6 @@ public final class HealthPanel {
             cur = effective(cur);
             if (cur == null) return false;
             if (want.equals(cur)) return true;
-            // Any screensaver the user picked is fine but Amazon's, which shows ads. None
-            // picked (empty) leaves the TV's default, so it still counts as not fine.
-            if ("screensaver_components".equals(key)) {
-                return !cur.isEmpty() && !cur.contains("com.amazon.ftv.screensaver");
-            }
             // Animation scales come back as "0.0" against a wanted "0".
             try { return Float.parseFloat(cur) == Float.parseFloat(want); }
             catch (Throwable t) { return false; }

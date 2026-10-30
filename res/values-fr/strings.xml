@@ -269,7 +269,12 @@
   <string name="health_c_pact">Collecte d\'usage PACT</string>
   <string name="health_c_limit_platform">Limiter le suivi publicitaire (système)</string>
   <string name="health_c_limit_3p">Limiter le suivi publicitaire (tiers)</string>
-  <string name="health_c_screensaver">Économiseur d\'écran</string>
+  <string name="health_saver_hdr">Économiseur d\'écran</string>
+  <string name="health_saver_row">Utilisé</string>
+  <string name="health_saver_basic">couleurs de base</string>
+  <string name="health_saver_default">défaut de la TV (Amazon)</string>
+  <string name="health_saver_default_off">défaut (paquet désactivé)</string>
+  <string name="health_saver_help">Des couleurs de base, ou le défaut de la TV : l\'économiseur d\'Amazon, qui montre sa collection d\'images avec des images sponsorisées, ou votre propre album Amazon Photos si vous en avez créé un. Appuyez pour passer de l\'un à l\'autre. Ne fait pas partie de « Tout appliquer ci-dessus ». Le défaut demande que le paquet Économiseur d\'écran Amazon soit activé dans le Nettoyage.</string>
   <string name="health_ads_privacy">Publicité et confidentialité</string>
   <string name="health_apply_all">Tout appliquer ci-dessus</string>
   <string name="health_n_set">%1$d sur %2$d réglés</string>
@@ -497,8 +502,8 @@
   <string name="db_shop2_n">Variante Fire TV de la même rangée shopping.</string>
   <string name="db_minitv_t">Amazon MiniTV</string>
   <string name="db_minitv_n">Chaîne gratuite financée par la publicité, qui apparaît en rangée et en appli.</string>
-  <string name="db_adsaver_t">Économiseur d\'écran publicitaire Amazon</string>
-  <string name="db_adsaver_n">Remplace l\'économiseur d\'écran par des images sponsorisées.</string>
+  <string name="db_adsaver_t">Économiseur d\'écran Amazon</string>
+  <string name="db_adsaver_n">La collection d\'images d\'Amazon avec des images sponsorisées, et votre propre album Amazon Photos si vous en avez créé un. Désactivé, votre album ne s\'affiche plus non plus.</string>
   <string name="db_deeplink_t">Gestionnaire de liens publicitaires</string>
   <string name="db_deeplink_n">Gère les clics sur les publicités Fire TV. Fire OS refuse généralement de le désactiver ; si la ligne reste activée, c\'est pour cela.</string>
   <string name="db_blackbird_t">Synchro publicitaire du contenu sponsorisé</string>

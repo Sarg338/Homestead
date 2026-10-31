@@ -28,6 +28,9 @@
   <string name="home_sc_account">Amazon-Konto</string>
   <string name="home_sc_account_short">Konto</string>
   <string name="home_sc_device">Mein Fire TV</string>
+  <string name="home_sc_equipment">Gerätesteuerung</string>
+  <string name="home_sc_equipment_short">Geräte</string>
+  <string name="home_sc_help">Hilfe</string>
   <string name="home_sc_more">Weitere Einstellungen</string>
   <string name="home_sc_settings">Einstellungen</string>
   <string name="home_airplay_hint">Bild &amp; Ton öffnen, dann Apple AirPlay und HomeKit</string>
@@ -355,13 +358,13 @@
   <string name="db_g_extras">Extras</string>
   <string name="db_r_nopkg">kein Paket</string>
   <string name="db_r_self">dieser Launcher</string>
-  <string name="db_r_ceviche">Deaktivieren lässt den Startbildschirm abstürzen</string>
+  <string name="db_r_ceviche">lässt Home dauerhaft abstürzen</string>
   <string name="db_r_core">zentrale Systemkomponente</string>
-  <string name="db_r_live">wird gerade vom System genutzt</string>
+  <string name="db_r_live">gerade vom System genutzt</string>
   <string name="db_g_home">Amazons Startbildschirm</string>
-  <string name="db_r_home_unknown">konnte nicht prüfen, was Home übernimmt</string>
+  <string name="db_r_home_unknown">Home-Übernahme nicht prüfbar</string>
   <string name="db_r_home_fireos">Fire OS würde Home übernehmen</string>
-  <string name="db_r_home_other">eine andere Home-App ist installiert</string>
+  <string name="db_r_home_other">andere Home-App installiert</string>
   <string name="db_r_home_shared">Home gemeinsam mit %1$s</string>
   <string name="db_launcher_t">Amazons Launcher</string>
   <string name="db_launcher_n">Home öffnet Homestead direkt, ohne Overlay und ohne kurzes Aufblitzen von Amazons Bildschirm. Alles, was nur auf Amazons Startbildschirm existierte, etwa dessen Eingangsbildschirm, funktioniert nicht mehr, bis Sie dies wieder einschalten. Ein Firmware-Update kann es von selbst wieder einschalten.</string>
@@ -552,7 +555,7 @@
   <string name="db_vizzini_n">Der zentrale Alexa-Prozess. Er schaltet sich nach einem Neustart selbst wieder ein; lassen Sie „Nach Neustart erneut anwenden“ in der Einrichtung an, damit er aus bleibt.</string>
   <string name="db_aca_t">Alexa-Begleitagent</string>
   <string name="db_aca_n">Meldet Konto- und Medienstatus an Alexa.</string>
-  <string name="db_amp_t">Alexa-Laufzeitumgebung für Medienwiedergabe</string>
+  <string name="db_amp_t">Alexa-Medienwiedergabe</string>
   <string name="db_amp_n">Ermöglicht Alexa die Steuerung der Wiedergabe.</string>
   <string name="db_adata_t">Alexa-Datenspeicher</string>
   <string name="db_adata_n">Lokaler Speicher für den Alexa-Zustand.</string>
@@ -576,7 +579,7 @@
   <string name="db_airplay_n">Bildschirmspiegelung von Apple-Geräten.</string>
   <string name="db_whad_t">Wireless-Home-Audio-Daemon</string>
   <string name="db_whad_n">Kopplung mit Echo-Lautsprechern für den TV-Ton.</string>
-  <string name="db_whaset_t">Einstellungen für Wireless Home Audio</string>
+  <string name="db_whaset_t">Wireless-Home-Audio-Einstellungen</string>
   <string name="db_whaset_n">Der Einstellungsbildschirm für das Vorherige.</string>
   <string name="db_ffs_t">Frustration-Free-Setup-Client</string>
   <string name="db_ffs_n">Automatische Einrichtung neuer Amazon-Geräte von diesem aus.</string>
@@ -598,7 +601,7 @@
   <string name="db_livetab_n">Der Live-Tab, der Programmführer und der Live-TV-Player. Ausschalten entfernt alle drei und damit auch Homesteads Live-TV-Kachel.</string>
   <string name="db_matter_t">Matter-Smart-Home-Hub</string>
   <string name="db_matter_n">Ermöglicht dem TV, als Matter-Smart-Home-Steuerung zu dienen.</string>
-  <string name="db_ffsprov_t">Frustration-Free-Setup-Bereitstellung</string>
+  <string name="db_ffsprov_t">Frustration-Free Setup (FFS)</string>
   <string name="db_ffsprov_n">Richtet andere Amazon-Geräte von diesem TV aus über WLAN ein.</string>
   <string name="db_kids_t">Amazon Kids</string>
   <string name="db_kids_n">Amazon-Kids-Profile (FreeTime) und Kindersicherung.</string>
@@ -642,6 +645,8 @@
   <string name="ftv_h_data">Von Apps und Video verwendete Daten.</string>
   <string name="ftv_h_account">Das Konto, mit dem dieser TV angemeldet ist.</string>
   <string name="ftv_h_device">Info zu diesem TV, Software-Updates, Entwickleroptionen und ADB-Debugging.</string>
+  <string name="ftv_h_equipment">Eine Soundbar, einen Receiver oder eine Set-Top-Box mit der Fire-TV-Fernbedienung steuern.</string>
+  <string name="ftv_h_help">Amazons Hilfevideos, Anleitungen und Kontaktmöglichkeiten.</string>
 
   <!-- Amazons Launcher ausgeschaltet (1.7.0) -->
   <string name="lo_title">Amazons Launcher ist aus</string>

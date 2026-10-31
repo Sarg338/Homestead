@@ -21,9 +21,14 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -105,12 +110,12 @@ public final class AppModel {
         public String pkg;
         public String cls;
         public String inputId;
+        public String scId;
         public String label;
         /**
          * Declares LEANBACK_LAUNCHER or has banner art. Many Fire OS apps declare only
          * LAUNCHER plus android:banner, and still belong on the banner grid.
          */
-        public String scId;
         public boolean tvApp;
         public Bitmap banner;
         public Bitmap icon;
@@ -593,7 +598,10 @@ public final class AppModel {
     /**
      * A banner for an app that has none, the way Fire TV's own home draws one: the icon's art
      * at full height, its outer columns stretched to the sides. An icon with a transparent
-     * edge (round, or a glyph) sits whole on a neutral card instead.
+     * edge (round, or a glyph) sits whole on a neutral card instead. One that is opaque at
+     * its edge but empty around its shape (a circle, Android's adaptive-icon mask) sits on a
+     * tile of its edge colour, the way every icon did before 1.9.0: stretching it would copy
+     * the empty corners out to the sides.
      */
     private static Bitmap iconTile(Context c, Drawable ic, int w, int h) {
         // Drawn at up to twice the tile size and in its own shape, then scaled down: squeezed
@@ -608,34 +616,49 @@ public final class AppModel {
             float r = dp(c, CORNER_DP);
             clip.addRoundRect(new RectF(0, 0, w, h), r, r, Path.Direction.CW);
             cv.clipPath(clip);
+            Paint smooth = new Paint(Paint.FILTER_BITMAP_FLAG);
             int edge = icon.getPixel(1, icon.getHeight() / 2);
             // A round or transparent icon has no edge colour; use a neutral card instead.
             if ((edge >>> 24) < 0x80) {
                 cv.drawColor(0xFF2A333D);
-                float k = Math.min((float) h / icon.getHeight(), (float) w / icon.getWidth());
-                float iw = icon.getWidth() * k, ih = icon.getHeight() * k;
-                cv.drawBitmap(icon, null, new RectF((w - iw) / 2f, (h - ih) / 2f, (w + iw) / 2f,
-                        (h + ih) / 2f), new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG));
+                drawFitted(cv, icon, w, h, smooth);
                 return bmp;
             }
             // Fire TV's home fills the tile with the art: drop the icon's transparent margin
             // and rounded corners, fit it to the tile height (wide art then covers the tile),
             // and stretch its outer columns to the sides so no seam shows.
-            android.graphics.Rect art = opaqueBounds(icon);
+            int iw = icon.getWidth(), ih = icon.getHeight();
+            int[] px = new int[iw * ih];
+            icon.getPixels(px, 0, iw, 0, 0, iw, ih);
+            Rect art = opaqueBounds(px, iw, ih);
             // Rounded corners only reach the top and bottom rows; trimming the sides could cut
             // into a logo that runs to the edge, which the stretch would then smear.
             art.inset(0, Math.min(art.width(), art.height()) / 12);
-            Bitmap core = Bitmap.createBitmap(icon, art.left, art.top, art.width(), art.height());
+            // The columns to be stretched have to be opaque from top to bottom, or what is left
+            // of a corner's curve becomes a see-through strip beside the art. Step in past the
+            // rounding, but only a little: a shape that is empty around its edge (a circle, an
+            // adaptive icon's mask) would lose its sides, so it keeps a solid tile instead.
+            int limit = art.width() / 8;
+            int left = art.left, right = art.right;
+            while (left < art.left + limit && !opaqueColumn(px, iw, left, art.top, art.bottom)) left++;
+            while (right > art.right - limit && !opaqueColumn(px, iw, right - 1, art.top, art.bottom)) right--;
+            if (art.height() <= 0 || right - left < art.width() / 2
+                    || !opaqueColumn(px, iw, left, art.top, art.bottom)
+                    || !opaqueColumn(px, iw, right - 1, art.top, art.bottom)) {
+                cv.drawColor(edge | 0xFF000000);
+                drawFitted(cv, icon, w, h, smooth);
+                return bmp;
+            }
+            Bitmap core = Bitmap.createBitmap(icon, left, art.top, right - left, art.height());
             float s = (float) h / core.getHeight();
-            android.graphics.Matrix m = new android.graphics.Matrix();
+            Matrix m = new Matrix();
             m.setScale(s, s);
             m.postTranslate((w - core.getWidth() * s) / 2f, 0);
-            android.graphics.BitmapShader sh = new android.graphics.BitmapShader(core,
-                    android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP);
+            BitmapShader sh = new BitmapShader(core, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
             sh.setLocalMatrix(m);
-            android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
-            p.setShader(sh);
-            cv.drawRect(0, 0, w, h, p);
+            smooth.setShader(sh);
+            cv.drawRect(0, 0, w, h, smooth);
+            if (core != icon) core.recycle();
             return bmp;
         } catch (Throwable t) {
             return null;
@@ -644,11 +667,15 @@ public final class AppModel {
         }
     }
 
-    /** The box around the pixels that are more than half opaque; the whole bitmap if none. */
-    private static android.graphics.Rect opaqueBounds(Bitmap b) {
-        int w = b.getWidth(), h = b.getHeight();
-        int[] px = new int[w * h];
-        b.getPixels(px, 0, w, 0, 0, w, h);
+    /** The icon whole, as large as fits, centred. */
+    private static void drawFitted(Canvas cv, Bitmap icon, int w, int h, Paint p) {
+        float k = Math.min((float) h / icon.getHeight(), (float) w / icon.getWidth());
+        float iw = icon.getWidth() * k, ih = icon.getHeight() * k;
+        cv.drawBitmap(icon, null, new RectF((w - iw) / 2f, (h - ih) / 2f, (w + iw) / 2f, (h + ih) / 2f), p);
+    }
+
+    /** The box around the pixels that are at least half opaque; the whole bitmap if none. */
+    private static Rect opaqueBounds(int[] px, int w, int h) {
         int l = w, t = h, r = -1, btm = -1;
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
@@ -659,7 +686,14 @@ public final class AppModel {
                 if (y > btm) btm = y;
             }
         }
-        return r < 0 ? new android.graphics.Rect(0, 0, w, h) : new android.graphics.Rect(l, t, r + 1, btm + 1);
+        return r < 0 ? new Rect(0, 0, w, h) : new Rect(l, t, r + 1, btm + 1);
+    }
+
+    /** Whether column x is at least half opaque on every row from top to bottom (exclusive). */
+    private static boolean opaqueColumn(int[] px, int w, int x, int top, int bottom) {
+        if (x < 0 || x >= w) return false;
+        for (int y = top; y < bottom; y++) if ((px[y * w + x] >>> 24) < 0x80) return false;
+        return true;
     }
 
     /**

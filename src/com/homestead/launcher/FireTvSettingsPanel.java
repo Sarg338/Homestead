@@ -52,7 +52,8 @@ public final class FireTvSettingsPanel {
                     "Resolution, HDR, audio, HDMI device control, ambient mode." },
             { "controllers", "Controllers & Bluetooth", A + "CONTROLLERS",
                     "Pair a remote, a game controller or any Bluetooth device." },
-            { "accessibility", "Accessibility", A + "ACCESSIBILITY",
+            // The standard action: Amazon's own one needs its permission on Fire OS 8.
+            { "accessibility", "Accessibility", "android.settings.ACCESSIBILITY_SETTINGS",
                     "Captions, audio description, screen reader." },
             { "applications", "Applications", A + "APPLICATIONS",
                     "Installed apps, storage and permissions." },
@@ -63,6 +64,12 @@ public final class FireTvSettingsPanel {
             { "account", "Amazon account", A + "MY_ACCOUNT", "The account this TV is signed in to." },
             { "device", "My Fire TV", A + "DEVICE",
                     "About this TV, software updates, Developer options and ADB debugging." },
+            // Not in the Settings app: these two are screens of their own apps, by component.
+            { "equipment", "Equipment control",
+                    "com.amazon.tv.devicecontrolsettings/.screens.main_menu.OzOobeSettingsActivity",
+                    "Control a soundbar, receiver or set-top box with the Fire TV remote." },
+            { "help", "Help", "com.amazon.tv.csapp/.activity.CSLandingActivity",
+                    "Amazon's help videos, guides and contact options." },
     };
 
     /** The home screen's names for SCREENS, row for row, in the TV's language: tile, pill. */
@@ -77,6 +84,8 @@ public final class FireTvSettingsPanel {
             { R.string.home_sc_data, R.string.home_sc_data_short },
             { R.string.home_sc_account, R.string.home_sc_account_short },
             { R.string.home_sc_device, R.string.home_sc_device },
+            { R.string.home_sc_equipment, R.string.home_sc_equipment_short },
+            { R.string.home_sc_help, R.string.home_sc_help },
     };
 
     /** What each screen holds, row for row with SCREENS, in the TV's language. */
@@ -84,7 +93,7 @@ public final class FireTvSettingsPanel {
             R.string.ftv_h_network, R.string.ftv_h_display, R.string.ftv_h_controllers,
             R.string.ftv_h_accessibility, R.string.ftv_h_applications, R.string.ftv_h_language,
             R.string.ftv_h_preferences, R.string.ftv_h_data, R.string.ftv_h_account,
-            R.string.ftv_h_device,
+            R.string.ftv_h_device, R.string.ftv_h_equipment, R.string.ftv_h_help,
     };
 
     private FireTvSettingsPanel() { }
@@ -106,6 +115,9 @@ public final class FireTvSettingsPanel {
     }
 
     static Intent intentFor(String action) {
+        if (action.indexOf('/') > 0) {
+            return new Intent().setComponent(android.content.ComponentName.unflattenFromString(action));
+        }
         Intent i = new Intent(action);
         i.setPackage(SETTINGS_PKG);
         return i;
@@ -120,7 +132,8 @@ public final class FireTvSettingsPanel {
         List<String[]> out = new ArrayList<String[]>();
         for (int i = 0; i < SCREENS.length; i++) {
             ResolveInfo ri = c.getPackageManager().resolveActivity(intentFor(SCREENS[i][ACTION]), 0);
-            if (ri == null || ri.activityInfo == null) continue;
+            // An explicit component resolves even when it is not exported; it would then throw.
+            if (ri == null || ri.activityInfo == null || !ri.activityInfo.exported) continue;
             String need = ri.activityInfo.permission;
             // checkPermission, not checkSelfPermission: the latter is Android 6+ only.
             if (need != null && c.checkPermission(need, android.os.Process.myPid(),

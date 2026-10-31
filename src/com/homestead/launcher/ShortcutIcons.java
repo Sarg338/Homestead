@@ -105,6 +105,16 @@ final class ShortcutIcons {
                         cx + dx * s * 0.40f, cy + dy * s * 0.40f, line);
             }
             c.drawCircle(cx, cy, s * 0.28f, line);
+        } else if ("equipment".equals(id)) {
+            // A TV with a soundbar under it.
+            c.drawRoundRect(new RectF(s * 0.14f, s * 0.14f, s * 0.86f, s * 0.58f), s * 0.05f, s * 0.05f, line);
+            c.drawRoundRect(new RectF(s * 0.22f, s * 0.72f, s * 0.78f, s * 0.86f), s * 0.05f, s * 0.05f, line);
+            for (int i = 0; i < 3; i++) c.drawCircle(s * (0.38f + i * 0.12f), s * 0.79f, s * 0.02f, fill);
+        } else if ("help".equals(id)) {
+            c.drawCircle(s * 0.5f, s * 0.5f, s * 0.36f, line);
+            c.drawArc(new RectF(s * 0.38f, s * 0.26f, s * 0.62f, s * 0.5f), 180f, 270f, false, line);
+            c.drawLine(s * 0.5f, s * 0.5f, s * 0.5f, s * 0.58f, line);
+            c.drawCircle(s * 0.5f, s * 0.7f, s * 0.025f, fill);
         } else if ("account".equals(id)) {
             c.drawCircle(s * 0.5f, s * 0.34f, s * 0.14f, line);
             c.drawArc(new RectF(s * 0.2f, s * 0.58f, s * 0.8f, s * 1.1f), 200f, 140f, false, line);

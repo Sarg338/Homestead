@@ -28,6 +28,9 @@
   <string name="home_sc_account">Amazon account</string>
   <string name="home_sc_account_short">Account</string>
   <string name="home_sc_device">My Fire TV</string>
+  <string name="home_sc_equipment">Equipment control</string>
+  <string name="home_sc_equipment_short">Equipment</string>
+  <string name="home_sc_help">Help</string>
   <string name="home_sc_more">More settings</string>
   <string name="home_sc_settings">Settings</string>
   <string name="home_airplay_hint">Open Display &amp; Sounds, then Apple AirPlay and HomeKit</string>
@@ -642,6 +645,8 @@
   <string name="ftv_h_data">Data used by apps and video.</string>
   <string name="ftv_h_account">The account this TV is signed in to.</string>
   <string name="ftv_h_device">About this TV, software updates, Developer options and ADB debugging.</string>
+  <string name="ftv_h_equipment">Control a soundbar, receiver or set-top box with the Fire TV remote.</string>
+  <string name="ftv_h_help">Amazon\'s help videos, guides and contact options.</string>
 
   <!-- Amazon's launcher switched off (1.7.0) -->
   <string name="lo_title">Amazon\'s launcher is off</string>

@@ -26,6 +26,9 @@
   <string name="home_sc_account">Compte Amazon</string>
   <string name="home_sc_account_short">Compte</string>
   <string name="home_sc_device">Ma Fire TV</string>
+  <string name="home_sc_equipment">Contrôle de l\'équipement</string>
+  <string name="home_sc_equipment_short">Équipement</string>
+  <string name="home_sc_help">Aide</string>
   <string name="home_sc_more">Plus de paramètres</string>
   <string name="home_sc_settings">Paramètres</string>
   <string name="home_airplay_hint">Ouvrez Affichage et sons, puis Apple AirPlay et HomeKit</string>
@@ -638,6 +641,8 @@
   <string name="ftv_h_data">Les données utilisées par les applis et la vidéo.</string>
   <string name="ftv_h_account">Le compte connecté sur cette TV.</string>
   <string name="ftv_h_device">À propos de cette TV, mises à jour, Options pour les développeurs et débogage ADB.</string>
+  <string name="ftv_h_equipment">Commander une barre de son, un ampli ou un décodeur avec la télécommande Fire TV.</string>
+  <string name="ftv_h_help">Les vidéos d\'aide, guides et moyens de contact d\'Amazon.</string>
 
   <!-- Lanceur d'Amazon désactivé (1.7.0) -->
   <string name="lo_title">Le lanceur d\'Amazon est désactivé</string>

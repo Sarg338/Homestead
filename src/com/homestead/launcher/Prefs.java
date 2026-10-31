@@ -242,6 +242,19 @@ public final class Prefs {
     public static String language(Context c) { return sp(c).getString(K_LANGUAGE, ""); }
     public static void setLanguage(Context c, String v) { sp(c).edit().putString(K_LANGUAGE, v).apply(); }
 
+    /** The home screen's layout: the sections, or the dock design from PR #27. */
+    public static final int DESIGN_CLASSIC = 0;
+    public static final int DESIGN_DOCK = 1;
+    public static int design(Context c) { return sp(c).getInt("home_design", DESIGN_CLASSIC); }
+    public static void setDesign(Context c, int v) { sp(c).edit().putInt("home_design", v).apply(); }
+
+    /** The dock's tile size, 0 (small) to 3 (extra large); medium by default. */
+    public static int dockSize(Context c) {
+        int n = sp(c).getInt("dock_size", 1);
+        return (n < 0 || n > 3) ? 1 : n;
+    }
+    public static void setDockSize(Context c, int v) { sp(c).edit().putInt("dock_size", v).apply(); }
+
     /**
      * The Fire TV settings shortcuts: off, a row on the home screen (placed among the other
      * rows by rowOrder), or buttons in the top bar. What is in them is shortcuts().

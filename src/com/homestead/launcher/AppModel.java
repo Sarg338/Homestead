@@ -115,6 +115,8 @@ public final class AppModel {
         public int glyph;
         /** Inputs: the TV reports a device on this input. */
         public boolean connected;
+        /** The banner's dominant colour, for the dock design's glow; 0 without a banner. */
+        public int accent;
 
         /** Stable across a re-sort; the handoff carries this, never an index. */
         public String key() {
@@ -282,12 +284,17 @@ public final class AppModel {
                 a.banner = toBitmap(c, raw, cellW, cellH, true);
                 raw = null;
                 a.tvApp = (ci == 0) || a.banner != null;
+                if (a.banner != null) a.accent = dominantColor(a.banner);
                 // Icons are only shown when there is no banner, so only decode them then.
                 if (a.banner == null) {
                     Drawable ic = null;
                     try { ic = ri.loadIcon(pm); } catch (Throwable t) { ic = null; }
-                    if (wide) a.banner = iconTile(c, ic, cellW, cellH);
-                    else a.icon = toBitmap(c, ic, ICON_PX, ICON_PX, false);
+                    if (wide) {
+                        a.banner = iconTile(c, ic, cellW, cellH);
+                        if (a.banner != null) a.accent = dominantColor(a.banner);
+                    } else {
+                        a.icon = toBitmap(c, ic, ICON_PX, ICON_PX, false);
+                    }
                     ic = null;
                 }
                 ITEMS.add(a);
@@ -573,6 +580,37 @@ public final class AppModel {
             return d;
         } catch (Throwable t) {
             return null;
+        }
+    }
+
+    /**
+     * One colour for the dock design's glow (from PR #27): the average of a 6x6 grid of
+     * samples, pushed to a minimum saturation and brightness so it reads on a dark screen.
+     */
+    private static int dominantColor(Bitmap bmp) {
+        try {
+            int w = bmp.getWidth(), h = bmp.getHeight();
+            long r = 0, g = 0, b = 0;
+            int n = 0;
+            for (int yi = 0; yi < 6; yi++) {
+                int y = Math.min(h - 1, (int) ((yi + 0.5f) * h / 6));
+                for (int xi = 0; xi < 6; xi++) {
+                    int p = bmp.getPixel(Math.min(w - 1, (int) ((xi + 0.5f) * w / 6)), y);
+                    if ((p >>> 24) < 32) continue;
+                    r += (p >> 16) & 0xFF;
+                    g += (p >> 8) & 0xFF;
+                    b += p & 0xFF;
+                    n++;
+                }
+            }
+            if (n == 0) return 0;
+            float[] hsv = new float[3];
+            android.graphics.Color.RGBToHSV((int) (r / n), (int) (g / n), (int) (b / n), hsv);
+            hsv[1] = Math.max(hsv[1], 0.55f);
+            hsv[2] = Math.max(hsv[2], 0.55f);
+            return android.graphics.Color.HSVToColor(hsv);
+        } catch (Throwable t) {
+            return 0;
         }
     }
 

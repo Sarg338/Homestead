@@ -59,7 +59,10 @@ public final class AppModel {
     public static final int TYPE_LIVETV = 5;
     /** Offers to switch off again what a system update switched back on. */
     public static final int TYPE_RESTORE = 6;
-    /** One of Amazon's settings screens, in the optional shortcuts row. cls holds its action. */
+    /**
+     * One of Amazon's settings screens, in the optional shortcuts row. cls holds its action,
+     * scId its id in FireTvSettingsPanel.SCREENS (null for the top bar's own pills).
+     */
     public static final int TYPE_SHORTCUT = 7;
 
     static final String LIVETV_PKG = "com.amazon.tv.livetv";
@@ -107,6 +110,7 @@ public final class AppModel {
          * Declares LEANBACK_LAUNCHER or has banner art. Many Fire OS apps declare only
          * LAUNCHER plus android:banner, and still belong on the banner grid.
          */
+        public String scId;
         public boolean tvApp;
         public Bitmap banner;
         public Bitmap icon;
@@ -402,7 +406,8 @@ public final class AppModel {
             Item it = new Item();
             it.type = TYPE_SHORTCUT;
             it.cls = s[FireTvSettingsPanel.ACTION];
-            it.label = FireTvSettingsPanel.homeLabel(c, it.cls, false);
+            it.scId = s[FireTvSettingsPanel.ID];
+            it.label = FireTvSettingsPanel.homeLabel(c, it.scId, false);
             it.icon = ShortcutIcons.render(s[FireTvSettingsPanel.ID], ICON_PX);
             ITEMS.add(it);
         }

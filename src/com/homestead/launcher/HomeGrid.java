@@ -1048,7 +1048,7 @@ public class HomeGrid implements SettingsPanel.Host {
 
     /** Pills are small: the long screen names lose their second half. */
     private String shortLabel(AppModel.Item it) {
-        String s = FireTvSettingsPanel.homeLabel(ctx, it.cls, true);
+        String s = FireTvSettingsPanel.homeLabel(ctx, it.scId, true);
         return s != null ? s : it.label;
     }
 

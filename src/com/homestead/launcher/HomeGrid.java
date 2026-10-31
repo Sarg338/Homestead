@@ -207,6 +207,19 @@ public class HomeGrid implements SettingsPanel.Host {
         scroll = new ScrollView(c) {
             // Only the top edge fades under the top bar; the bottom row is not dimmed.
             @Override protected float getBottomFadingEdgeStrength() { return 0f; }
+
+            // As in CardRow: ScrollView moves the focus for Up and Down itself and reports the
+            // key handled, so the system's navigation click never played on those moves.
+            @Override public boolean arrowScroll(int direction) {
+                View before = findFocus();
+                boolean handled = super.arrowScroll(direction);
+                View after = findFocus();
+                if (handled && after != null && after != before && after != this) {
+                    playSoundEffect(android.view.SoundEffectConstants
+                            .getContantForFocusDirection(direction));
+                }
+                return handled;
+            }
         };
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setClipChildren(false);

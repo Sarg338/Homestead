@@ -27,7 +27,7 @@
   <string name="home_sc_account_short">Compte</string>
   <string name="home_sc_device">Ma Fire TV</string>
   <string name="home_sc_more">Plus de paramètres</string>
-  <string name="home_sc_settings">Paramètres</string>
+  <string name="home_sc_settings">Réglages</string>
   <string name="home_airplay_hint">Ouvrez Affichage et sons, puis Apple AirPlay et HomeKit</string>
   <string name="home_profile_hint">Ouvrez Paramètres du compte et du profil, puis Profils</string>
   <string name="home_kids_hint">Ouvrez Paramètres du compte et du profil, puis Paramètres Kids</string>
@@ -697,7 +697,7 @@
   <!-- Ordre des rangées (1.7.1) -->
   <string name="set_home_help">Tuiles masquées, tri, colonnes de la grille, l\'horloge, et les rangées et leur ordre.</string>
   <string name="set_tvfirst_help">Une grande tuile TV en direct au-dessus de toutes les rangées, et Accueil y revient toujours. Les rangées en dessous suivent l\'Ordre des rangées.</string>
-  <string name="ftv_sc_row_help">Des raccourcis vers les paramètres sur l\'écran d\'accueil : une rangée, placée avec les autres dans Réglages, Écran d\'accueil, Ordre des rangées, ou de petits boutons à côté de l\'horloge. La barre du haut affiche les trois premiers choisis, puis Plus de paramètres et Paramètres. Pas en mode simple.</string>
+  <string name="ftv_sc_row_help">Des raccourcis vers les paramètres sur l\'écran d\'accueil : une rangée, placée avec les autres dans Réglages, Écran d\'accueil, Ordre des rangées, ou de petits boutons à côté de l\'horloge. La barre du haut affiche les trois premiers choisis, puis Plus de paramètres et Réglages. Pas en mode simple.</string>
   <string name="ftv_place_row">rangée</string>
   <string name="set_rows">Rangées</string>
   <string name="set_row_order">Ordre des rangées</string>

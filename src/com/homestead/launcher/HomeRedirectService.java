@@ -767,11 +767,17 @@ public class HomeRedirectService extends AccessibilityService {
             return;
         }
 
+        // Amazon's launcher also holds screens other apps open on purpose, such as the
+        // Appstore's text search (its deeplink activities): those are not its home screen.
+        boolean amazon = AMAZON.contentEquals(p);
+        CharSequence shown = e.getClassName();
+        boolean amazonHome = amazon && (shown == null || !shown.toString().contains(".deeplink."));
+
         // Another app took the screen: remove the overlay so it does not cover it.
-        if (!AMAZON.contentEquals(p)) {
+        if (!amazonHome) {
             boolean ours = getPackageName().contentEquals(p);
             // Usage tracking comes from these events, so PACKAGE_USAGE_STATS is not needed.
-            if (!ours && AppModel.hasApp(p.toString())) {
+            if (!ours && !amazon && AppModel.hasApp(p.toString())) {
                 UsageTracker.record(this, p.toString());
                 handler.removeCallbacks(quietResort);
                 handler.postDelayed(quietResort, 1500L);

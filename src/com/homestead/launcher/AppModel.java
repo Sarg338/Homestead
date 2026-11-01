@@ -85,6 +85,10 @@ public final class AppModel {
     static final String PROFILE_PICKER_PKG = "com.amazon.ftv.profilepicker";
     static final String AMAZON_KIDS_PKG = "com.amazon.tahoe";
     static final String WSIW_PKG = "com.amazon.vizzini.ftvcds";
+
+    /** The Appstore, and the store's own home screen (its launcher entry is not the store). */
+    static final String APPSTORE_PKG = "com.amazon.venezia";
+    static final String APPSTORE_HOME = "com.amazon.venezia.ade.ADEHomeActivity";
     /** Prime Video on Fire TV. */
     static final String PRIME_VIDEO_PKG = "com.amazon.firebat";
     /**

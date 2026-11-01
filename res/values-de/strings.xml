@@ -15,12 +15,12 @@
   <string name="home_sec_settings">Fire-TV-Einstellungen</string>
   <!-- Verknüpfungen zu den Fire-TV-Einstellungen: der Name auf einer Kachel und der kürzere auf einer Pille der oberen Leiste. -->
   <string name="home_sc_network">Netzwerk</string>
-  <string name="home_sc_display">Bild &amp; Ton</string>
+  <string name="home_sc_display">Töne und Bildschirm</string>
   <string name="home_sc_display_short">Bild</string>
   <string name="home_sc_controllers">Controller &amp; Bluetooth</string>
   <string name="home_sc_controllers_short">Controller</string>
-  <string name="home_sc_accessibility">Bedienungshilfen</string>
-  <string name="home_sc_applications">Anwendungen</string>
+  <string name="home_sc_accessibility">Barrierefreiheit</string>
+  <string name="home_sc_applications">Apps</string>
   <string name="home_sc_language">Sprache</string>
   <string name="home_sc_preferences">Voreinstellungen</string>
   <string name="home_sc_data">Datenüberwachung</string>
@@ -33,7 +33,7 @@
   <string name="home_sc_help">Hilfe</string>
   <string name="home_sc_more">Weitere Einstellungen</string>
   <string name="home_sc_settings">Einstellungen</string>
-  <string name="home_airplay_hint">Bild &amp; Ton öffnen, dann Apple AirPlay und HomeKit</string>
+  <string name="home_airplay_hint">Töne und Bildschirm öffnen, dann Apple AirPlay und HomeKit</string>
   <string name="home_profile_hint">Konto- und Profileinstellungen öffnen, dann Profile</string>
   <string name="home_kids_hint">Konto- und Profileinstellungen öffnen, dann Kindereinstellungen</string>
   <string name="home_wsiw_hint">Fragen Sie Alexa: „Was soll ich ansehen?“</string>
@@ -123,7 +123,7 @@
   <string name="setup_sub">Was dieser Launcher braucht und wie man ihn einschaltet</string>
   <string name="setup_status">Status</string>
   <string name="setup_svc">Home-Tasten-Umleitung</string>
-  <string name="setup_svc_help">Fire OS führt Homestead nicht unter Einstellungen > Bedienungshilfen auf, deshalb wird die Umleitung über die Debugging-Verbindung des TVs eingeschaltet: von diesem TV mit „Einrichtung automatisch abschließen“ unten oder von einem Computer mit „Befehle für einen Computer“.\n\nOhne sie funktioniert Homestead weiterhin als App, die Sie selbst öffnen; nur die Home-Taste braucht sie.\n\nFalls die Home-Taste je wieder zu Amazons Startbildschirm führt, etwa nach einem Update, „Einrichtung automatisch abschließen“ erneut ausführen.</string>
+  <string name="setup_svc_help">Fire OS führt Homestead nicht unter Einstellungen > Barrierefreiheit auf, deshalb wird die Umleitung über die Debugging-Verbindung des TVs eingeschaltet: von diesem TV mit „Einrichtung automatisch abschließen“ unten oder von einem Computer mit „Befehle für einen Computer“.\n\nOhne sie funktioniert Homestead weiterhin als App, die Sie selbst öffnen; nur die Home-Taste braucht sie.\n\nFalls die Home-Taste je wieder zu Amazons Startbildschirm führt, etwa nach einem Update, „Einrichtung automatisch abschließen“ erneut ausführen.</string>
   <string name="setup_ovl">Startbildschirm ohne Umwege</string>
   <string name="setup_use">App-Reihenfolge</string>
   <string name="setup_adb">Diesen TV konfigurieren</string>
@@ -206,7 +206,7 @@
   <string name="onb_card_simple_pill">Für jemand anderen</string>
   <string name="onb_continue">Weiter</string>
   <string name="onb_home_title">Startbildschirm einschalten</string>
-  <string name="onb_home_body">Fire OS führt Homestead nicht in seinem Menü für Bedienungshilfen auf, deshalb schaltet die App es selbst ein, über den Debugging-Dienst des TVs. Kein Computer nötig.</string>
+  <string name="onb_home_body">Fire OS führt Homestead nicht in seinem Menü für Barrierefreiheit auf, deshalb schaltet die App es selbst ein, über den Debugging-Dienst des TVs. Kein Computer nötig.</string>
   <string name="onb_home_step1">ADB-Debugging einschalten: Einstellungen, Mein Fire TV, Entwickleroptionen</string>
   <string name="onb_home_step2">„Einrichten“ drücken und zwei Abfragen bestätigen: einen VPN-Hinweis, dann die Schlüsselabfrage des TVs. Bei der zweiten „Immer zulassen“ ankreuzen</string>
   <string name="onb_home_note">Androids VPN-Hinweis besagt, dass die App den Netzwerkverkehr überwachen könnte; bei Homestead wird darüber nur die Debugging-Verbindung des TVs selbst übertragen, und nichts verlässt den TV. Drücken Sie in jeder Abfrage „Unten“, um „OK“ zu erreichen. Keine Entwickleroptionen? Mein Fire TV öffnen, dann „Info“, und siebenmal „Auswählen“ auf dem Gerätenamen drücken. Um das später zu erledigen, „Weiter“ drücken; Homestead lässt sich weiterhin aus Amazons App-Zeile öffnen.</string>
@@ -403,7 +403,7 @@
   <string name="upd_downloading_pct">wird heruntergeladen: %1$d%%</string>
   <string name="upd_in_installer">im Installer</string>
   <string name="upd_needs_permission">braucht eine Berechtigung</string>
-  <string name="upd_not_allowed">Fire OS muss Homestead zuerst das Installieren von Apps erlauben. Öffnen Sie in den Einstellungen des TVs „Gerät &amp; Software“ (bei manchen Modellen Mein Fire TV), dann Entwickleroptionen, dann „Unbekannte Apps installieren“, und schalten Sie Homestead ein. Kehren Sie hierher zurück und wählen Sie erneut „Jetzt installieren“. Mit eingerichtetem Gerätetunnel entfällt das.</string>
+  <string name="upd_not_allowed">Fire OS muss Homestead zuerst das Installieren von Apps erlauben. Öffnen Sie in den Einstellungen des TVs „Gerät und Software“ (bei manchen Modellen Mein Fire TV), dann Entwickleroptionen, dann „Unbekannte Apps installieren“, und schalten Sie Homestead ein. Kehren Sie hierher zurück und wählen Sie erneut „Jetzt installieren“. Mit eingerichtetem Gerätetunnel entfällt das.</string>
   <string name="upd_failed_short">fehlgeschlagen</string>
   <string name="upd_later">Später</string>
   <string name="upd_skip">Diese Version überspringen</string>
@@ -665,12 +665,12 @@
   <string name="lo_network">Netzwerkdetails</string>
   <string name="lo_network_v">Netzwerk in den Fire-TV-Einstellungen</string>
   <string name="lo_network_help">amazon.net.UNIFIED_NETWORK. Der Bildschirm Netzwerk öffnet sich über Einstellungen &gt; System &gt; Fire-TV-Einstellungen.</string>
-  <string name="lo_lang">Sprache, Bedienungshilfen</string>
+  <string name="lo_lang">Sprache, Barrierefreiheit</string>
   <string name="lo_lang_v">Alle Einstellungen</string>
   <string name="lo_lang_help">Amazons Einstellungs-App öffnet diese nur für Amazons eigenen Launcher. „Alle Amazon-Einstellungen“ in den Fire-TV-Einstellungen schaltet den Launcher kurz ein, um sie zu erreichen.</string>
   <string name="lo_remote">Einstellungstaste der Fernbedienung</string>
   <string name="lo_remote_v">Konto, Apps, Bild, Ton</string>
-  <string name="lo_remote_help">Sie öffnet Amazons Schnelleinstellungen. Sprache und Bedienungshilfen sind nicht dabei.</string>
+  <string name="lo_remote_help">Sie öffnet Amazons Schnelleinstellungen. Sprache und Barrierefreiheit sind nicht dabei.</string>
   <string name="lo_still">Funktioniert weiterhin</string>
   <string name="lo_still_note">Amazons Einstellungs-App (com.amazon.tv.settings.v2) ist ein eigenes Paket und funktioniert weiter. Einstellungen &gt; System &gt; Fire-TV-Einstellungen öffnet ihre Bildschirme direkt.</string>
   <string name="lo_back_on">Um Amazons Launcher wieder einzuschalten: Bereinigung, „Amazons Launcher“, oder adb shell pm enable --user 0 com.amazon.tv.launcher</string>

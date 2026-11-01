@@ -1757,6 +1757,15 @@ public class HomeGrid implements SettingsPanel.Host {
             return;
         }
         AppModel.noteLaunched(ctx, it);
+        // The Appstore's launcher entry (the "Your apps" grid) hands straight to Amazon's home
+        // screen, which the Home redirect then sends back here: open the store itself.
+        if (AppModel.APPSTORE_PKG.equals(it.pkg)) {
+            try {
+                ctx.startActivity(new Intent().setClassName(it.pkg, AppModel.APPSTORE_HOME)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            } catch (Throwable t) { }
+        }
         try {
             Intent i = new Intent(Intent.ACTION_MAIN);
             i.setClassName(it.pkg, it.cls);

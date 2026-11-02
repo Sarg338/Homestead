@@ -747,6 +747,9 @@ public class HomeRedirectService extends AccessibilityService {
 
     // ---------------------------------------------------------------- events
 
+    /** True while the launcher's foreground activity is one of its deeplink screens. */
+    private boolean amazonDeeplink;
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent e) {
         if (e == null) return;
@@ -769,9 +772,14 @@ public class HomeRedirectService extends AccessibilityService {
 
         // Amazon's launcher also holds screens other apps open on purpose, such as the
         // Appstore's text search (its deeplink activities): those are not its home screen.
+        // A dialog over one of them reports a plain Android class (android.app.AlertDialog),
+        // so the last launcher activity seen decides until the next one comes up.
         boolean amazon = AMAZON.contentEquals(p);
         CharSequence shown = e.getClassName();
-        boolean amazonHome = amazon && (shown == null || !shown.toString().contains(".deeplink."));
+        if (amazon && shown != null && shown.toString().startsWith(AMAZON + ".")) {
+            amazonDeeplink = shown.toString().contains(".deeplink.");
+        }
+        boolean amazonHome = amazon && !amazonDeeplink;
 
         // Another app took the screen: remove the overlay so it does not cover it.
         if (!amazonHome) {

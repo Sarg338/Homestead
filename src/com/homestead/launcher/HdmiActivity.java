@@ -186,7 +186,10 @@ public class HdmiActivity extends Activity {
 
     /**
      * Opens the input in Amazon's own player through KaminoInputSwitchService, which takes
-     * the input's hardware number ("inputType"). Returns false when the service is missing or
+     * the input's hardware number ("inputType") and, optionally, the TV input to tune
+     * ("tifId"). Tuning the HDMI-CEC device on the port rather than the bare port makes the
+     * TV send Set Stream Path, which wakes a sleeping source such as an Apple TV; with only
+     * the port, a sleeping source stays black. Returns false when the service is missing or
      * the number is unknown, so the caller shows the input in the TvView instead.
      */
     private boolean openWithKamino(String inputId) {
@@ -196,8 +199,11 @@ public class HdmiActivity extends Activity {
         try {
             if (getPackageManager().resolveService(i, 0) == null) return false;
             i.putExtra("inputType", hw);
+            String tune = cecDevice(inputId);
+            if (tune != null) i.putExtra("tifId", tune);
             if (startService(i) == null) return false;
-            Log.i(TAG, "opened " + inputId + " through KaminoInputSwitchService, inputType=" + hw);
+            Log.i(TAG, "opened " + inputId + " through KaminoInputSwitchService, inputType=" + hw
+                    + ", tifId=" + tune);
             return true;
         } catch (Throwable t) {
             Log.w(TAG, "KaminoInputSwitchService failed: " + t);
@@ -218,6 +224,23 @@ public class HdmiActivity extends Activity {
         } catch (Throwable t) { }
         Matcher m = HW_NUMBER.matcher(id);
         return m.find() ? Integer.parseInt(m.group(1)) : -1;
+    }
+
+    /**
+     * The HDMI-CEC device to tune for this input: the input itself when it is one (it has a
+     * parent port), otherwise a CEC device that sits on this port, or null if there is none.
+     */
+    private String cecDevice(String inputId) {
+        try {
+            TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+            if (tim == null) return null;
+            TvInputInfo self = tim.getTvInputInfo(inputId);
+            if (self != null && self.getParentId() != null) return inputId;
+            for (TvInputInfo info : tim.getTvInputList()) {
+                if (inputId.equals(info.getParentId())) return info.getId();
+            }
+        } catch (Throwable t) { }
+        return null;
     }
 
     /** Hand off to Amazon's Inputs screen, standing the Home redirect down first. */

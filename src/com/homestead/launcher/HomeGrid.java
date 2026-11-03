@@ -1228,9 +1228,13 @@ public class HomeGrid implements SettingsPanel.Host {
         topBar.addView(spacer, slp);
 
         List<AppModel.Item> pills = new ArrayList<AppModel.Item>();
-        List<AppModel.Item> all = AppModel.visibleItems(ctx);
-        for (int i = 0; i < all.size() && pills.size() < BAR_MAX - 2; i++) {
-            if (all.get(i).type == AppModel.TYPE_SHORTCUT) pills.add(all.get(i));
+        // Shortcuts are pills only when placed in the bar. The dock design keeps the bar up
+        // whatever the placement, and shortcuts placed as a row are cards in its grid.
+        if (Prefs.shortcutsPlace(ctx) == Prefs.SHORTCUTS_BAR) {
+            List<AppModel.Item> all = AppModel.visibleItems(ctx);
+            for (int i = 0; i < all.size() && pills.size() < BAR_MAX - 2; i++) {
+                if (all.get(i).type == AppModel.TYPE_SHORTCUT) pills.add(all.get(i));
+            }
         }
         pills.add(barItem(AppModel.SC_MORE, ctx.getString(R.string.home_sc_more), "more"));
         pills.add(barItem(AppModel.SC_SETTINGS, ctx.getString(R.string.home_sc_settings), "settings"));

@@ -58,6 +58,7 @@ New-Item -ItemType Directory -Force classes, dex, 'res\drawable-nodpi' | Out-Nul
 
 Write-Host '==> artwork'
 Run 'java' @('tools\MakeArt.java', 'res\drawable-nodpi') | Out-Null
+Run 'java' @('tools\MakeLandscapes.java', 'assets') | Out-Null
 
 Write-Host '==> aapt2 compile'
 Run "$BT\aapt2.exe" @('compile', '--dir', 'res', '-o', 'compiled.flata')
@@ -66,7 +67,7 @@ Write-Host '==> aapt2 link'
 Run "$BT\aapt2.exe" @('link', '-o', 'app-unsigned.apk', '-I', $ANDROID_JAR,
     '--manifest', 'AndroidManifest.xml', '-R', 'compiled.flata',
     '--min-sdk-version', "$MIN_SDK", '--target-sdk-version', "$TARGET_SDK",
-    '--java', 'gen', '--auto-add-overlay')
+    '-A', 'assets', '--java', 'gen', '--auto-add-overlay')
 
 Write-Host '==> javac'
 Get-ChildItem -Recurse src, gen -Filter *.java | ForEach-Object { '"' + ($_.FullName -replace '\\', '/') + '"' } |

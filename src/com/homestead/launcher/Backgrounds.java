@@ -229,6 +229,74 @@ final class Backgrounds {
         }
     }
 
+    /**
+     * The landscapes shipped in the app: assets named landscape_*, sorted. At the assets root,
+     * since aapt2 on Windows stores a subfolder's files with a backslash Android cannot find.
+     */
+    static String[] landscapes(Context c) {
+        try {
+            java.util.List<String> out = new java.util.ArrayList<String>();
+            for (String n : c.getAssets().list("")) if (n.startsWith("landscape_")) out.add(n);
+            java.util.Collections.sort(out);
+            return out.toArray(new String[out.size()]);
+        } catch (Throwable t) {
+            return new String[0];
+        }
+    }
+
+    /** A landscape's name: string ls_<file name, no prefix or .jpg>, else that name. */
+    static String landscapeName(Context c, String file) {
+        String base = file.replaceFirst("^landscape_", "").replaceFirst("\\.[a-z]+$", "");
+        int id = c.getResources().getIdentifier("ls_" + base, "string", c.getPackageName());
+        return id == 0 ? base : c.getString(id);
+    }
+
+    /** A small copy for the row's swatch; null if it cannot be read. */
+    static Bitmap landscapeThumb(Context c, String file) {
+        java.io.InputStream in = null;
+        try {
+            in = c.getAssets().open(file);
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inSampleSize = 16;
+            return BitmapFactory.decodeStream(in, null, o);
+        } catch (Throwable t) {
+            return null;
+        } finally {
+            if (in != null) try { in.close(); } catch (Throwable ignored) { }
+        }
+    }
+
+    /**
+     * Use a shipped landscape as the photo: copied where a photo sent from a computer goes,
+     * so it is shown, dimmed and replaced exactly the same way. False if the copy failed,
+     * in which case the current photo is left as it was.
+     */
+    static boolean useLandscape(Context c, String file) {
+        File dest = BackgroundProvider.photoFile(c);
+        File part = new File(dest.getPath() + ".part");
+        java.io.InputStream in = null;
+        java.io.FileOutputStream out = null;
+        boolean ok = false;
+        try {
+            in = c.getAssets().open(file);
+            out = new java.io.FileOutputStream(part);
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            out.close();
+            out = null;
+            ok = part.renameTo(dest);
+        } catch (Throwable t) {
+            Log.w("Homestead", "landscape not copied: " + t);
+        } finally {
+            if (in != null) try { in.close(); } catch (Throwable ignored) { }
+            if (out != null) try { out.close(); } catch (Throwable ignored) { }
+            if (!ok) part.delete();
+        }
+        if (ok) choose(c, PHOTO_ID);
+        return ok;
+    }
+
     /** Identifies one version of the file, so a replaced photo is noticed. */
     static String keyOf(File f) {
         return (f == null) ? null : f.getName() + "|" + f.length() + "|" + f.lastModified();

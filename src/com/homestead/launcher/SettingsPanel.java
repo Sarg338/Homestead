@@ -229,6 +229,35 @@ public final class SettingsPanel {
             }
         });
 
+        final int[] designs = { R.string.opt_design_classic, R.string.opt_design_dock };
+        final int[] sizes = { R.string.opt_dock_s, R.string.opt_dock_m, R.string.opt_dock_l, R.string.opt_dock_xl };
+        final Panel.Row design = p.addRow(c.getString(R.string.opt_design),
+                c.getString(designs[Prefs.design(c)]), null);
+        final Panel.Row dockSize = p.addRow(c.getString(R.string.opt_dock_size),
+                c.getString(sizes[Prefs.dockSize(c)]), null);
+        dockSize.cell.setVisibility(Prefs.design(c) == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
+        design.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.design(c) + 1) % designs.length;
+                Prefs.setDesign(c, n);
+                design.setValue(c.getString(designs[n]));
+                dockSize.cell.setVisibility(n == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
+                host.rebuildGrid();
+                changed.run();
+            }
+        });
+        design.setHelp(c.getString(R.string.opt_design_help));
+        dockSize.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.dockSize(c) + 1) % sizes.length;
+                Prefs.setDockSize(c, n);
+                dockSize.setValue(c.getString(sizes[n]));
+                host.rebuildGrid();
+            }
+        });
+        dockSize.setHelp(c.getString(R.string.opt_dock_size_help));
+
+
         final Panel.Row clock = p.addRow(c.getString(R.string.set_clock), clockLabel(c), null);
         clock.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -574,6 +603,25 @@ public final class SettingsPanel {
         p.addRow(c.getString(R.string.set_photo_pick), "", new Runnable() {
             public void run() { host.showPanel(PhotoPanel.build(c, host)); }
         }).opens().setHelp(c.getString(R.string.set_photo_pick_help));
+
+        // Landscapes shipped in the app: one press makes it the photo, no computer needed.
+        String[] scenes = Backgrounds.landscapes(c);
+        if (scenes.length > 0) p.addHeader(c.getString(R.string.bg_landscapes));
+        for (int i = 0; i < scenes.length; i++) {
+            final String file = scenes[i];
+            final Panel.Row r = p.addRow(Backgrounds.landscapeName(c, file), "", null);
+            android.graphics.Bitmap thumb = Backgrounds.landscapeThumb(c, file);
+            if (thumb != null) r.setSwatch(new android.graphics.drawable.BitmapDrawable(c.getResources(), thumb));
+            r.setHelp(c.getString(R.string.bg_landscapes_help));
+            r.cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    if (!Backgrounds.useLandscape(c, file)) return;
+                    mark.run();
+                    host.rebuildGrid();
+                    changed.run();
+                }
+            });
+        }
 
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }

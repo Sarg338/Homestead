@@ -60,6 +60,16 @@
   <string name="opt_wide_help">Wie Fire TVs eigener Startbildschirm: das Symbol jeder App auf einer bannerbreiten Kachel, in einem Raster wie die TV-Apps.</string>
   <string name="opt_fire">Fire-TV-Systemsymbole</string>
   <string name="opt_fire_help">Amazon Home, Einstellungen und TV-Zustand nutzen die Symbole von Fire OS und seinen Einstellungen, ausgelesen von diesem TV. Fehlt eines, bleibt das übliche Symbol.</string>
+  <string name="opt_design">Design</string>
+  <string name="opt_design_help">Klassisch: die Bereiche, jeder unter seiner Überschrift. Dock: die ersten Ihrer TV-Apps in ihrer Sortierreihenfolge auf einem Band unten auf dem ersten Bildschirm, mit einem Leuchten in der Farbe der gewählten App, alles andere in einem Raster darunter, und Uhr und Einstellungen in einer Leiste oben.</string>
+  <string name="opt_design_classic">Klassisch</string>
+  <string name="opt_design_dock">Dock</string>
+  <string name="opt_dock_size">Dockgröße</string>
+  <string name="opt_dock_size_help">Wie groß die Kacheln im Dock sind. Bei den größeren Größen passen weniger hinein.</string>
+  <string name="opt_dock_s">Klein</string>
+  <string name="opt_dock_m">Mittel</string>
+  <string name="opt_dock_l">Groß</string>
+  <string name="opt_dock_xl">Sehr groß</string>
 
   <!-- Einstellungen -->
   <string name="set_title">Einstellungen</string>
@@ -468,6 +478,16 @@
   <string name="bg_ember">Glut</string>
   <string name="bg_deepsea">Tiefsee</string>
   <string name="bg_list_help">Eines auswählen, um es zu verwenden. Der Startbildschirm neben dieser Seite ändert sich sofort.</string>
+  <string name="bg_landscapes">Landschaften</string>
+  <string name="bg_landscapes_help">Macht diese Landschaft zum Hintergrund. Ein gesendetes Foto bleibt erhalten; wählen Sie „Foto“, um dorthin zurückzukehren. Das Abdunkeln oben gilt auch hier.</string>
+  <string name="ls_drawn_dusk">Berge im Abendlicht (gezeichnet)</string>
+  <string name="ls_drawn_lake">Bergsee (gezeichnet)</string>
+  <string name="ls_drawn_forest">Wald im Nebel (gezeichnet)</string>
+  <string name="ls_drawn_dunes">Dünen (gezeichnet)</string>
+  <string name="ls_photo_ciucas">Ciucaș-Gipfel, Rumänien (Foto)</string>
+  <string name="ls_photo_crete">Ida-Gebirge, Kreta (Foto)</string>
+  <string name="ls_photo_sanjuan">San-Juan-Tal (Foto)</string>
+  <string name="ls_photo_scuol">Alpen über den Wolken, Scuol (Foto)</string>
   <string name="bg_black_help">Schwarz eignet sich für OLED-Bildschirme und nächtliches Ansehen.</string>
   <string name="bg_photo_help">Wählen Sie unten ein auf dem TV gespeichertes Bild (benötigt den Gerätetunnel) oder senden Sie ein JPEG oder PNG von einem Computer:</string>
   <string name="bg_in_use">in Verwendung</string>

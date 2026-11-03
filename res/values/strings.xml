@@ -61,11 +61,11 @@
   <string name="opt_fire">Fire TV system icons</string>
   <string name="opt_fire_help">Amazon Home, Settings and TV Health use the icons of Fire OS\'s own home and Settings, read from this TV. Where one is missing, the usual icon stays.</string>
   <string name="opt_design">Design</string>
-  <string name="opt_design_help">Classic: the sections, each under its heading. Dock: the most-used apps on a band at the bottom of the first screen with a glow in the selected app\'s colour, everything else in one grid below, and the clock and Settings in a bar at the top (from pull request #27).</string>
+  <string name="opt_design_help">Classic: the sections, each under its heading. Dock: the first of your TV apps, in their sort order, on a band at the bottom of the first screen, with a glow in the selected app\'s colour, everything else in one grid below, and the clock and Settings in a bar at the top.</string>
   <string name="opt_design_classic">Classic</string>
   <string name="opt_design_dock">Dock</string>
   <string name="opt_dock_size">Dock size</string>
-  <string name="opt_dock_size_help">How big the tiles in the dock are. The larger sizes scroll sideways when they do not all fit.</string>
+  <string name="opt_dock_size_help">How big the tiles in the dock are. Fewer fit at the larger sizes.</string>
   <string name="opt_dock_s">Small</string>
   <string name="opt_dock_m">Medium</string>
   <string name="opt_dock_l">Large</string>
@@ -479,7 +479,7 @@
   <string name="bg_deepsea">Deep sea</string>
   <string name="bg_list_help">Select one to use it. The home screen beside this page changes straight away.</string>
   <string name="bg_landscapes">Landscapes</string>
-  <string name="bg_landscapes_help">Makes this landscape the photo background, in place of any photo sent before. The dimming above applies to it too.</string>
+  <string name="bg_landscapes_help">Makes this landscape the background. A photo you sent is kept; choose \"Photo\" to go back to it. The dimming above applies here too.</string>
   <string name="ls_drawn_dusk">Mountains at dusk (drawn)</string>
   <string name="ls_drawn_lake">Mountain lake (drawn)</string>
   <string name="ls_drawn_forest">Forest in the mist (drawn)</string>

@@ -189,8 +189,45 @@ public final class SettingsPanel {
 
     // ---------------------------------------------------------------- home screen
 
+    /** The dock layout is what the home screen draws: Dock chosen, and not Simple mode. */
+    private static boolean dockLayout(Context c) {
+        return Prefs.design(c) == Prefs.DESIGN_DOCK && !Prefs.simpleMode(c);
+    }
+
     private static View buildHome(final Context c, final Host host, final Runnable changed) {
         final Panel p = new Panel(c, c.getString(R.string.set_home), null, Panel.SHEET);
+
+        // The design first: it decides what the rest of the page means. Dock size shows
+        // only with Dock, and Row order (further down) only with Classic, which has rows.
+        final int[] designs = { R.string.opt_design_classic, R.string.opt_design_dock };
+        final int[] sizes = { R.string.opt_dock_s, R.string.opt_dock_m, R.string.opt_dock_l, R.string.opt_dock_xl };
+        final Panel.Row[] orderRow = new Panel.Row[1];
+        final Panel.Row design = p.addRow(c.getString(R.string.opt_design),
+                c.getString(designs[Prefs.design(c)]), null);
+        final Panel.Row dockSize = p.addRow(c.getString(R.string.opt_dock_size),
+                c.getString(sizes[Prefs.dockSize(c)]), null);
+        dockSize.cell.setVisibility(Prefs.design(c) == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
+        design.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.design(c) + 1) % designs.length;
+                Prefs.setDesign(c, n);
+                design.setValue(c.getString(designs[n]));
+                dockSize.cell.setVisibility(n == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
+                if (orderRow[0] != null) orderRow[0].cell.setVisibility(dockLayout(c) ? View.GONE : View.VISIBLE);
+                host.rebuildGrid();
+                changed.run();
+            }
+        });
+        design.setHelp(c.getString(R.string.opt_design_help));
+        dockSize.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                int n = (Prefs.dockSize(c) + 1) % sizes.length;
+                Prefs.setDockSize(c, n);
+                dockSize.setValue(c.getString(sizes[n]));
+                host.rebuildGrid();
+            }
+        });
+        dockSize.setHelp(c.getString(R.string.opt_dock_size_help));
 
         final Panel.Row hidden = p.addRow(c.getString(R.string.set_hidden),
                 String.valueOf(Prefs.hiddenCount(c)), null).opens();
@@ -228,35 +265,6 @@ public final class SettingsPanel {
                 changed.run();
             }
         });
-
-        final int[] designs = { R.string.opt_design_classic, R.string.opt_design_dock };
-        final int[] sizes = { R.string.opt_dock_s, R.string.opt_dock_m, R.string.opt_dock_l, R.string.opt_dock_xl };
-        final Panel.Row design = p.addRow(c.getString(R.string.opt_design),
-                c.getString(designs[Prefs.design(c)]), null);
-        final Panel.Row dockSize = p.addRow(c.getString(R.string.opt_dock_size),
-                c.getString(sizes[Prefs.dockSize(c)]), null);
-        dockSize.cell.setVisibility(Prefs.design(c) == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
-        design.cell.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                int n = (Prefs.design(c) + 1) % designs.length;
-                Prefs.setDesign(c, n);
-                design.setValue(c.getString(designs[n]));
-                dockSize.cell.setVisibility(n == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
-                host.rebuildGrid();
-                changed.run();
-            }
-        });
-        design.setHelp(c.getString(R.string.opt_design_help));
-        dockSize.cell.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                int n = (Prefs.dockSize(c) + 1) % sizes.length;
-                Prefs.setDockSize(c, n);
-                dockSize.setValue(c.getString(sizes[n]));
-                host.rebuildGrid();
-            }
-        });
-        dockSize.setHelp(c.getString(R.string.opt_dock_size_help));
-
 
         final Panel.Row clock = p.addRow(c.getString(R.string.set_clock), clockLabel(c), null);
         clock.cell.setOnClickListener(new View.OnClickListener() {
@@ -329,6 +337,9 @@ public final class SettingsPanel {
             public void onClick(View v) { host.showPanel(buildRowOrder(c, host)); }
         });
         order.setHelp(c.getString(R.string.set_row_order_help));
+        // One grid in Dock, so there is no row order to set; Simple mode keeps the rows.
+        order.cell.setVisibility(dockLayout(c) ? View.GONE : View.VISIBLE);
+        orderRow[0] = order;
         // The order changes on the page this row opens; repaint it on the way back.
         order.cell.setOnFocusChangeListener(chain(order.cell.getOnFocusChangeListener(),
                 new Runnable() {

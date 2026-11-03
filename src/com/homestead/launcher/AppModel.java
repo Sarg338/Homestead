@@ -629,6 +629,8 @@ public final class AppModel {
             if (n == 0) return 0;
             float[] hsv = new float[3];
             android.graphics.Color.RGBToHSV((int) (r / n), (int) (g / n), (int) (b / n), hsv);
+            // Colourless art (a black-and-white banner) has no hue to push: no glow, not red.
+            if (hsv[1] < 0.12f) return 0;
             hsv[1] = Math.max(hsv[1], 0.55f);
             hsv[2] = Math.max(hsv[2], 0.55f);
             return android.graphics.Color.HSVToColor(hsv);

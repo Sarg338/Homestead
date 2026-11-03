@@ -17,6 +17,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Build;
 import android.view.View;
 import android.widget.Toast;
 
@@ -165,8 +166,8 @@ public final class FireTvSettingsPanel {
             // without it opens the screen all the same; the row then carries that action.
             String alt = fallbackFor(SCREENS[i][ID]);
             ResolveInfo ar = alt == null ? null : pm.resolveActivity(intentFor(alt), 0);
-            if (opens(ar) && sameScreen(ri.activityInfo, ar.activityInfo)
-                    && granted(c, ar.activityInfo.permission)) {
+            if (opens(ar) && granted(c, ar.activityInfo.permission)
+                    && (sameScreen(ri.activityInfo, ar.activityInfo) || forwards(ar.activityInfo))) {
                 String[] row = SCREENS[i].clone();
                 row[ACTION] = alt;
                 out.add(row);
@@ -185,6 +186,18 @@ public final class FireTvSettingsPanel {
     private static boolean granted(Context c, String permission) {
         return permission == null || c.checkPermission(permission, android.os.Process.myPid(),
                 android.os.Process.myUid()) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * The standard action can land on a compliance stub of the settings app instead of the
+     * screen. On Fire OS 8 (Android 11) that stub passes the press on to the real screen,
+     * so the row works there (seen on an AFTBR92D74, 8.1.8.5); on Fire OS 7 (Android 9)
+     * the stub of the same name opens nothing (seen on an AFTDCT31). The stub counts only
+     * from Android 11 up.
+     */
+    private static boolean forwards(ActivityInfo ai) {
+        return Build.VERSION.SDK_INT >= 30 && SETTINGS_PKG.equals(ai.packageName)
+                && ai.name.endsWith(".compliance.CTSDummyIntentHandler");
     }
 
     /** The same activity, counting an alias as the activity it stands for. */

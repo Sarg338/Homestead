@@ -794,8 +794,14 @@ public class HomeGrid implements SettingsPanel.Host {
         boolean wasDock = dock;
         build();
         // The rows differ between the designs (the dock is the first in one, the inputs row
-        // in the other), so a scroll kept across a switch would land on the wrong row.
-        if (dock != wasDock) { y = 0; rx = null; }
+        // in the other), and so does what a page offset means, so a switch starts the page at
+        // the top: the saved values are dropped and the page itself is scrolled back, since
+        // applyScroll leaves a zero alone.
+        if (dock != wasDock) {
+            y = 0;
+            rx = null;
+            keepAtTop();
+        }
         // Leave focus alone while a panel is open, or the grid would take it from the panel.
         if (panels.isEmpty()) {
             if (keep == null || !selectKey(keep)) takeFocus();

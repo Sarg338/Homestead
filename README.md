@@ -26,14 +26,17 @@ Both pictures are from the same TV, a few minutes apart.
 - **A Live TV tile** on TVs with a built-in tuner, while Amazon's Live TV app is switched
   on. It opens Live TV on the last channel you watched. **Live TV first** (Settings → Home
   screen) makes it a large tile at the top, and the Home button always lands on it.
-- **Apps in the order you use them**, counted on the TV itself.
-- **Hide anything** you do not want to see: press MENU on a tile, or hold Select.
+- **Apps in the order you use them**, counted on the TV itself, or A–Z. **Pin** the ones
+  you want first: press MENU on a tile (or hold Select) for its menu, then **Pin to front**
+  or **Move**. Pinned tiles lead their row in the order you set; the rest follow the sort.
+- **Hide anything** you do not want to see, from the same menu.
 - **Pick a background** in Settings: the blue gradient, a few darker ones, plain black for
   OLED screens and night viewing, eight built-in **landscapes** (four drawn, four photos),
   or [your own photo](#your-own-background-photo).
 - **Optional extras** on the Settings → Home screen page, all off until you switch them on: a
-  greeting and the date at the top, non-TV apps as wide tiles, and Fire TV's own icons for
-  Amazon Home, Settings and TV Health.
+  greeting and the date at the top, non-TV apps as wide tiles, all apps in one row instead
+  of TV apps and the rest apart, and Fire TV's own icons for Amazon Home, Settings and TV
+  Health.
 - **Fire TV's own settings screens** (Settings → Fire TV settings): Network, Controllers &
   Bluetooth, Applications, My Fire TV, Equipment control, Help and the rest, each opened
   straight from Homestead where the TV allows it, with optional shortcuts to them on the home

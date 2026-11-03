@@ -567,7 +567,8 @@ public final class SettingsPanel {
             boolean photo = i == Backgrounds.PRESETS.length;
             final Backgrounds.Preset look = photo ? Backgrounds.PHOTO_LOOK : Backgrounds.PRESETS[i];
             final Panel.Row r = p.addRow(Backgrounds.name(c, look), "", null);
-            android.graphics.Bitmap shot = photo ? Backgrounds.lastPhoto() : null;
+            // The decoded picture may be a landscape; the Photo row shows only the photo.
+            android.graphics.Bitmap shot = photo && Backgrounds.photoChosen(c) ? Backgrounds.lastPhoto() : null;
             r.setSwatch(shot != null
                     ? new android.graphics.drawable.BitmapDrawable(c.getResources(), shot)
                     : swatch(c, look));
@@ -604,7 +605,8 @@ public final class SettingsPanel {
             public void run() { host.showPanel(PhotoPanel.build(c, host)); }
         }).opens().setHelp(c.getString(R.string.set_photo_pick_help));
 
-        // Landscapes shipped in the app: one press makes it the photo, no computer needed.
+        // Landscapes shipped in the app: a look of its own each, no computer needed, and the
+        // photo sent before stays where it is.
         String[] scenes = Backgrounds.landscapes(c);
         if (scenes.length > 0) p.addHeader(c.getString(R.string.bg_landscapes));
         for (int i = 0; i < scenes.length; i++) {
@@ -615,13 +617,16 @@ public final class SettingsPanel {
             r.setHelp(c.getString(R.string.bg_landscapes_help));
             r.cell.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-                    if (!Backgrounds.useLandscape(c, file)) return;
+                    Backgrounds.choose(c, Backgrounds.landscapeId(file));
                     mark.run();
                     host.rebuildGrid();
                     changed.run();
                 }
             });
+            rows.add(r);
+            ids.add(Backgrounds.landscapeId(file));
         }
+        mark.run();
 
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }

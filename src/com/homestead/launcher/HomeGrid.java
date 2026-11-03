@@ -363,7 +363,21 @@ public class HomeGrid implements SettingsPanel.Host {
         Backgrounds.Preset p = Backgrounds.current(ctx);
         Bitmap photo = null;
         String state = p.name;
-        if (!Backgrounds.photoChosen(ctx)) {
+        String id = Backgrounds.currentId(ctx);
+        if (Backgrounds.isLandscape(id)) {
+            // A shipped landscape: read from the assets, cached and dimmed like the photo.
+            String file = Backgrounds.landscapeFile(ctx, id);
+            String key = Backgrounds.assetKey(file);
+            photo = Backgrounds.photoFor(key);
+            if (file != null && photo == null) {
+                Backgrounds.loadAsset(ctx, file, new Runnable() {
+                    public void run() { applyBackground(); }
+                });
+                photo = Backgrounds.lastPhoto();
+                key = "loading";
+            }
+            state = "photo|" + (photo == null ? "none" : key) + "|" + Backgrounds.dimAlpha(ctx);
+        } else if (!Backgrounds.photoChosen(ctx)) {
             Backgrounds.drop();
         } else {
             java.io.File f = Backgrounds.photoFile(ctx);

@@ -99,7 +99,7 @@
   <string name="set_close">Close</string>
   <string name="set_back">Back</string>
   <string name="set_hidden">Hidden tiles</string>
-  <string name="set_hidden_note">Press the MENU button on any tile to hide it (long-press works too; not in Simple mode). Hiding only changes what this launcher draws - nothing is disabled or uninstalled, and the app still works everywhere else.</string>
+  <string name="set_hidden_note">Press MENU on a tile (or hold Select) for its menu: pin it to the front of its row, move it, or hide it. Not in Simple mode. Hiding only changes what this launcher draws - nothing is disabled or uninstalled, and the app still works everywhere else.</string>
   <string name="set_sort">Sort apps by</string>
   <string name="set_sort_az">A – Z</string>
   <string name="set_sort_last">Last used</string>
@@ -120,7 +120,7 @@
   <string name="set_photo_pick">Choose a photo on this TV</string>
   <string name="set_photo_pick_help">Lists the pictures in the TV\'s Download folder. Needs the on-device tunnel.</string>
   <string name="set_hidden_sub">Select one to show it on the home screen again</string>
-  <string name="set_hidden_none">Nothing is hidden. Press MENU on a tile (or long-press it) to hide it.</string>
+  <string name="set_hidden_none">Nothing is hidden. Press MENU on a tile (or hold Select) and choose Hide.</string>
   <string name="set_hidden_value">hidden</string>
   <string name="set_shown_value">shown</string>
   <string name="set_show_all">Show all hidden tiles</string>
@@ -725,4 +725,25 @@
   <string name="ro_s_inputs">Inputs</string>
   <string name="ro_s_nontv">Non-TV apps</string>
   <string name="ro_s_tv">TV apps</string>
+
+  <!-- 2.1.0: the tile menu, pinned tiles, apps in one row -->
+  <string name="home_sec_apps">Apps</string>
+  <string name="tm_pin">Pin to front</string>
+  <string name="tm_pin_help">Pinned tiles come first in their row, in the order they were pinned. The rest of the row keeps the sort order.</string>
+  <string name="tm_unpin">Unpin</string>
+  <string name="tm_unpin_help">Back to its place in the sort order.</string>
+  <string name="tm_move">Move</string>
+  <string name="tm_move_help">Left and Right move it one place, Up and Down one line. OK or Back puts it down. A tile that is not pinned is pinned first.</string>
+  <string name="tm_hide">Hide</string>
+  <string name="tm_hide_help">Only this launcher stops drawing it; nothing is disabled or uninstalled. Hidden tiles are listed under Settings → Home screen.</string>
+  <string name="tm_moving">Moving %1$s: Left and Right move it, OK or Back puts it down.</string>
+  <string name="set_pinned">Pinned tiles</string>
+  <string name="set_pinned_sub">First in their row, in this order. Select one to unpin it.</string>
+  <string name="set_pinned_none">Nothing is pinned. Press MENU on a tile (or hold Select) and choose Pin to front.</string>
+  <string name="set_pinned_value">pinned</string>
+  <string name="set_unpinned_value">unpinned</string>
+  <string name="set_unpin_all">Unpin all</string>
+  <string name="set_apps_one">Apps in one row</string>
+  <string name="set_apps_one_help">TV apps and the other apps together in one grid, sorted as one list. The other apps get wide tiles made from their icons.</string>
+  <string name="ro_in_apps">in Apps</string>
 </resources>

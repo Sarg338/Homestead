@@ -240,6 +240,16 @@ public final class SettingsPanel {
                     public void run() { hidden.setValue(String.valueOf(Prefs.hiddenCount(c))); }
                 }));
 
+        final Panel.Row pinnedRow = p.addRow(c.getString(R.string.set_pinned),
+                String.valueOf(Prefs.pinnedCount(c)), null).opens();
+        pinnedRow.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { host.showPanel(buildPinnedList(c, host)); }
+        });
+        pinnedRow.cell.setOnFocusChangeListener(chain(pinnedRow.cell.getOnFocusChangeListener(),
+                new Runnable() {
+                    public void run() { pinnedRow.setValue(String.valueOf(Prefs.pinnedCount(c))); }
+                }));
+
         p.addNote(c.getString(R.string.set_hidden_note));
 
         final Panel.Row sort = p.addRow(c.getString(R.string.set_sort), sortLabel(c), null);
@@ -317,6 +327,23 @@ public final class SettingsPanel {
             }
         });
         wide.setHelp(c.getString(R.string.opt_wide_help));
+        // One row means wide tiles for the other apps, so that switch steps aside; so does
+        // the switch for their row (further down), which the one row replaces.
+        final Panel.Row[] secNonRow = new Panel.Row[1];
+        final Panel.Row oneRow = p.addRow(c.getString(R.string.set_apps_one), onOff(Prefs.appsOneRow(c)), null).asSwitch();
+        oneRow.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean n = !Prefs.appsOneRow(c);
+                Prefs.setAppsOneRow(c, n);
+                oneRow.setValue(onOff(n));
+                wide.cell.setVisibility(n ? View.GONE : View.VISIBLE);
+                if (secNonRow[0] != null) secNonRow[0].cell.setVisibility(n ? View.GONE : View.VISIBLE);
+                AppModel.reload(c);
+                host.rebuildGrid();
+            }
+        });
+        oneRow.setHelp(c.getString(R.string.set_apps_one_help));
+        wide.cell.setVisibility(Prefs.appsOneRow(c) ? View.GONE : View.VISIBLE);
 
         final Panel.Row fire = p.addRow(c.getString(R.string.opt_fire), onOff(Prefs.fireOsIcons(c)), null).asSwitch();
         fire.cell.setOnClickListener(new View.OnClickListener() {
@@ -381,6 +408,8 @@ public final class SettingsPanel {
                 host.rebuildGrid();
             }
         });
+        secNon.cell.setVisibility(Prefs.appsOneRow(c) ? View.GONE : View.VISIBLE);
+        secNonRow[0] = secNon;
 
         p.addSectionHelp(c.getString(R.string.set_sections_help, c.getString(R.string.home_sec_inputs)));
 
@@ -503,7 +532,8 @@ public final class SettingsPanel {
         if (row.equals(Prefs.ROW_SHORTCUTS)) return c.getString(R.string.home_sec_settings);
         if (row.equals(Prefs.ROW_INPUTS)) return c.getString(R.string.home_sec_inputs);
         if (row.equals(Prefs.ROW_NONTV)) return c.getString(R.string.home_sec_nontv);
-        return c.getString(R.string.home_sec_tv);
+        // With Apps in one row, the TV apps' row holds every app and is headed Apps.
+        return c.getString(Prefs.appsOneRow(c) ? R.string.home_sec_apps : R.string.home_sec_tv);
     }
 
     /** Why a row is not on the home screen, or "" when it is. */
@@ -514,7 +544,10 @@ public final class SettingsPanel {
                     : place == Prefs.SHORTCUTS_OFF ? c.getString(R.string.ftv_place_off) : "";
         }
         if (row.equals(Prefs.ROW_INPUTS)) return Prefs.showInputs(c) ? "" : c.getString(R.string.ro_hidden);
-        if (row.equals(Prefs.ROW_NONTV)) return Prefs.showNonTv(c) ? "" : c.getString(R.string.ro_hidden);
+        if (row.equals(Prefs.ROW_NONTV)) {
+            if (Prefs.appsOneRow(c)) return c.getString(R.string.ro_in_apps);
+            return Prefs.showNonTv(c) ? "" : c.getString(R.string.ro_hidden);
+        }
         return "";
     }
 
@@ -531,7 +564,7 @@ public final class SettingsPanel {
         if (row.equals(Prefs.ROW_SHORTCUTS)) return c.getString(R.string.ro_s_shortcuts);
         if (row.equals(Prefs.ROW_INPUTS)) return c.getString(R.string.ro_s_inputs);
         if (row.equals(Prefs.ROW_NONTV)) return c.getString(R.string.ro_s_nontv);
-        return c.getString(R.string.ro_s_tv);
+        return c.getString(Prefs.appsOneRow(c) ? R.string.home_sec_apps : R.string.ro_s_tv);
     }
 
     private static String homeSummary(Context c) {
@@ -712,6 +745,51 @@ public final class SettingsPanel {
             p.addRow(c.getString(R.string.set_show_all), "", new Runnable() {
                 public void run() {
                     Prefs.clearHidden(c);
+                    host.rebuildGrid();
+                    host.closePanel();
+                }
+            });
+        }
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
+    }
+
+    // ---------------------------------------------------------------- pinned list
+
+    /** The pinned tiles in their order, each unpinned with a press; the grid follows. */
+    private static View buildPinnedList(final Context c, final Host host) {
+        final Panel p = new Panel(c, c.getString(R.string.set_pinned),
+                c.getString(R.string.set_pinned_sub), Panel.SHEET);
+
+        List<String> keys = Prefs.pinned(c);
+        if (keys.isEmpty()) {
+            p.addNote(c.getString(R.string.set_pinned_none));
+        } else {
+            List<AppModel.Item> all = AppModel.allItems();
+            for (int i = 0; i < keys.size(); i++) {
+                final String key = keys.get(i);
+                String label = key;
+                for (int j = 0; j < all.size(); j++) {
+                    if (key.equals(all.get(j).key())) { label = all.get(j).label; break; }
+                }
+                if (label.equals(AppModel.LIVETV_KEY)) label = c.getString(R.string.home_livetv);
+                final Panel.Row r = p.addRow(label, c.getString(R.string.set_pinned_value), null);
+                r.cell.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        Prefs.unpin(c, key);
+                        r.setValue(c.getString(R.string.set_unpinned_value));
+                        r.cell.setEnabled(false);
+                        AppModel.resort(c);
+                        host.rebuildGrid();
+                    }
+                });
+            }
+            p.addRow(c.getString(R.string.set_unpin_all), "", new Runnable() {
+                public void run() {
+                    Prefs.clearPinned(c);
+                    AppModel.resort(c);
                     host.rebuildGrid();
                     host.closePanel();
                 }

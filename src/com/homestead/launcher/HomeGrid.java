@@ -143,6 +143,10 @@ public class HomeGrid implements SettingsPanel.Host {
     private View raisedRow;
     /** The Live TV first tile, or null when that layout is not in use. */
     private View topTile;
+    /** The tile picked up with Move in its menu (its key); the D-pad shifts it. Null: none. */
+    private String moving;
+    /** The ring of a picked-up tile: warm, so it reads on every look and over any banner. */
+    private static final int MOVE_RING = 0xFFE8C468;
     /** AppModel.order() as of the last build, to spot a re-sort done by the other grid. */
     private String builtOrder;
     private boolean restoreShown;
@@ -215,12 +219,33 @@ public class HomeGrid implements SettingsPanel.Host {
                     }
                     return true;
                 }
-                // Menu hides the focused tile, matching the stock Fire TV launcher's
-                // convention (long-press also works). In Simple mode it hides nothing, and
+                // A tile picked up from its menu: the D-pad moves it, OK or Back puts it down.
+                if (moving != null && panels.isEmpty()) {
+                    int code = e.getKeyCode();
+                    if (code == android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                            || code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+                            || code == android.view.KeyEvent.KEYCODE_DPAD_UP
+                            || code == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                        if (e.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                            int step = moveStep(code);
+                            if (step != 0) moveTile(moving, step);
+                        }
+                        return true;
+                    }
+                    if (code == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                            || code == android.view.KeyEvent.KEYCODE_ENTER
+                            || code == android.view.KeyEvent.KEYCODE_BACK
+                            || code == android.view.KeyEvent.KEYCODE_MENU) {
+                        if (e.getAction() == android.view.KeyEvent.ACTION_UP) stopMoving();
+                        return true;
+                    }
+                }
+                // Menu opens the focused tile's menu (pin, move, hide), as the stock Fire TV
+                // launcher does (long-press also works). In Simple mode it opens nothing, and
                 // five presses in a row open Settings instead.
                 if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_MENU && panels.isEmpty()) {
                     if (e.getAction() == android.view.KeyEvent.ACTION_UP) {
-                        if (!Prefs.simpleMode(ctx)) hideFocused();
+                        if (!Prefs.simpleMode(ctx)) showTileMenu();
                         else if (menuTaps.tap()) {
                             logOpen("Settings (Menu x" + MenuTaps.COUNT + ")");
                             showPanel(SettingsPanel.build(ctx, panelHost));
@@ -495,6 +520,7 @@ public class HomeGrid implements SettingsPanel.Host {
 
     /** Focus for a fresh Home press: Live TV when it comes first, else as takeFocus(). */
     public void takeStartFocus() {
+        stopMoving();
         // The restore tile is the one thing worth seeing before anything else.
         if (AppModel.restorePopupLive() && selectKey(AppModel.RESTORE_KEY)) {
             scroll.scrollTo(0, 0);
@@ -553,13 +579,7 @@ public class HomeGrid implements SettingsPanel.Host {
         for (int i = 0; i < all.size(); i++) {
             if (focusedKey.equals(all.get(i).key())) { target = all.get(i); break; }
         }
-        if (target == null) return false;
-        // Settings and TV Health stay reachable so hidden tiles can always be restored. The
-        // settings shortcuts come and go with "Choose shortcuts" instead.
-        if (target.type == AppModel.TYPE_SETTINGS || target.type == AppModel.TYPE_HEALTH
-                || target.type == AppModel.TYPE_RESTORE || target.type == AppModel.TYPE_SHORTCUT) {
-            return false;
-        }
+        if (target == null || !hideable(target)) return false;
         Prefs.setHidden(ctx, target.key(), true);
         try {
             android.widget.Toast.makeText(ctx,
@@ -569,6 +589,191 @@ public class HomeGrid implements SettingsPanel.Host {
         layoutGen++;
         rebuild();
         return true;
+    }
+
+    /**
+     * Settings and TV Health stay, so hidden tiles can always be restored; the restore tile
+     * leaves by itself and the settings shortcuts come and go with "Choose shortcuts".
+     */
+    private static boolean hideable(AppModel.Item it) {
+        return it.type != AppModel.TYPE_SETTINGS && it.type != AppModel.TYPE_HEALTH
+                && it.type != AppModel.TYPE_RESTORE && it.type != AppModel.TYPE_SHORTCUT;
+    }
+
+    /** The model's item with this key, hidden or not; null if it has gone. */
+    private static AppModel.Item itemFor(String key) {
+        if (key == null) return null;
+        List<AppModel.Item> all = AppModel.allItems();
+        for (int i = 0; i < all.size(); i++) {
+            if (key.equals(all.get(i).key())) return all.get(i);
+        }
+        return null;
+    }
+
+    // ---------------------------------------------------------------- tile menu
+
+    /**
+     * Menu or a held Select on a tile: a small sheet to pin it to the front of its row, move
+     * it, or hide it. Not in Simple mode, not for the bar's pills, nor for the restore tile.
+     * @return true if the sheet opened.
+     */
+    private boolean showTileMenu() {
+        if (focusedKey == null || Prefs.simpleMode(ctx) || pillsByKey.containsKey(focusedKey)) {
+            return false;
+        }
+        final AppModel.Item it = itemFor(focusedKey);
+        if (it == null || it.type == AppModel.TYPE_RESTORE || !cellsByKey.containsKey(focusedKey)) {
+            return false;
+        }
+        final String key = it.key();
+        final boolean pinned = Prefs.isPinned(ctx, key);
+        logOpen("tile menu, " + it.label);
+        final Panel p = new Panel(ctx, it.label, null, Panel.SHEET);
+        p.addRow(ctx.getString(pinned ? R.string.tm_unpin : R.string.tm_pin), "", new Runnable() {
+            public void run() {
+                if (pinned) Prefs.unpin(ctx, key); else Prefs.pin(ctx, key);
+                closePanel();
+                reorder(key);
+            }
+        }).setHelp(ctx.getString(pinned ? R.string.tm_unpin_help : R.string.tm_pin_help));
+        p.addRow(ctx.getString(R.string.tm_move), "", new Runnable() {
+            public void run() {
+                closePanel();
+                startMoving(key, it.label);
+            }
+        }).setHelp(ctx.getString(R.string.tm_move_help));
+        if (hideable(it)) {
+            p.addRow(ctx.getString(R.string.tm_hide), "", new Runnable() {
+                public void run() {
+                    closePanel();
+                    hideFocused();
+                }
+            }).setHelp(ctx.getString(R.string.tm_hide_help));
+        }
+        p.addRow(ctx.getString(R.string.set_close), "", new Runnable() {
+            public void run() { closePanel(); }
+        });
+        showPanel(p.root);
+        return true;
+    }
+
+    /**
+     * Pick a tile up: pinned first if it is not (it then joins the end of its row's pinned
+     * run), lit with the moving ring, and told how it moves.
+     */
+    private void startMoving(String key, String label) {
+        moving = key;
+        if (!Prefs.isPinned(ctx, key)) {
+            Prefs.pin(ctx, key);
+            reorder(key);
+        } else {
+            View cell = cellsByKey.get(key);
+            if (cell != null) style(cell, cell.hasFocus());
+        }
+        try {
+            Toast.makeText(ctx, ctx.getString(R.string.tm_moving, label), Toast.LENGTH_LONG).show();
+        } catch (Throwable t) { }
+    }
+
+    /** Put a picked-up tile down where it is; its ring goes back to the usual one. */
+    private void stopMoving() {
+        if (moving == null) return;
+        String key = moving;
+        moving = null;
+        View cell = cellsByKey.get(key);
+        if (cell != null) style(cell, cell.hasFocus());
+    }
+
+    /**
+     * How far a D-pad key moves the picked-up tile: one place sideways; in the banner grid,
+     * a line (one row of columns) up or down. A scrolling row has no lines, so Up and Down
+     * do nothing there (and still never leave the tile).
+     */
+    private int moveStep(int code) {
+        if (code == android.view.KeyEvent.KEYCODE_DPAD_LEFT) return -1;
+        if (code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) return 1;
+        View cell = cellsByKey.get(moving);
+        boolean inRow = cell != null && cell.getParent() != null
+                && ((View) cell.getParent()).getParent() instanceof HorizontalScrollView;
+        if (inRow) return 0;
+        int cols = AppModel.columns(ctx);
+        return code == android.view.KeyEvent.KEYCODE_DPAD_UP ? -cols : cols;
+    }
+
+    /**
+     * The home screen row a tile sorts in, as AppModel's comparator groups them: the inputs
+     * row, the shortcuts, the TV apps' grid, the other apps (one grid for both when Apps in
+     * one row is on). A tile only ever trades places within its row.
+     */
+    private int rowOf(AppModel.Item it) {
+        if (it.type == AppModel.TYPE_RESTORE) return 0;
+        if (it.type == AppModel.TYPE_SHORTCUT) return 2;
+        if (it.type != AppModel.TYPE_APP) return 1;
+        if (it.banner != null && (it.tvApp || Prefs.appsOneRow(ctx))) return 3;
+        return 4;
+    }
+
+    /**
+     * Shift the picked-up tile by step places among the pinned tiles shown in its row, save
+     * the order and redraw with the tile still lit. Past either end of the pinned run it
+     * stays put: the unpinned tiles follow the sort setting and are not traded with.
+     * @return true if it moved.
+     */
+    private boolean moveTile(String key, int step) {
+        AppModel.Item it = itemFor(key);
+        if (it == null || !cellsByKey.containsKey(key)) { stopMoving(); return false; }
+        List<String> pins = Prefs.pinned(ctx);
+        if (!pins.contains(key)) pins.add(key);
+        int row = rowOf(it);
+        List<AppModel.Item> shown = AppModel.visibleItems(ctx);
+        List<String> run = new ArrayList<String>();
+        for (int i = 0; i < pins.size(); i++) {
+            for (int j = 0; j < shown.size(); j++) {
+                AppModel.Item s = shown.get(j);
+                if (pins.get(i).equals(s.key()) && rowOf(s) == row) { run.add(pins.get(i)); break; }
+            }
+        }
+        int at = run.indexOf(key);
+        int to = Math.max(0, Math.min(run.size() - 1, at + step));
+        if (to == at) return false;
+        String anchor = run.get(to);
+        pins.remove(key);
+        pins.add(pins.indexOf(anchor) + (step < 0 ? 0 : 1), key);
+        Prefs.setPinned(ctx, pins);
+        reorder(key);
+        return true;
+    }
+
+    /** The pins changed: sort the model again, redraw, and keep the tile in view. */
+    private void reorder(String key) {
+        long t0 = android.os.SystemClock.uptimeMillis();
+        AppModel.resort(ctx);
+        layoutGen++;
+        rebuild();
+        reveal(key);
+        android.util.Log.i("Homestead", "tiles reordered in "
+                + (android.os.SystemClock.uptimeMillis() - t0) + "ms");
+    }
+
+    /**
+     * Scroll so the tile is on screen, with its name label, once a rebuild has been laid out
+     * and the old scroll offsets put back (after both of applyScroll's posts).
+     */
+    private void reveal(final String key) {
+        scroll.post(new Runnable() {
+            public void run() {
+                scroll.post(new Runnable() {
+                    public void run() {
+                        View cell = cellsByKey.get(key);
+                        if (cell == null) return;
+                        revealInDock(cell);
+                        if (dock && dockKeys.contains(key)) return;
+                        cell.requestRectangleOnScreen(new android.graphics.Rect(0, 0,
+                                cell.getWidth(), cell.getHeight() + dp(NAME_H_DP + 8)));
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -584,6 +789,7 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     public void showPanel(final View v) {
+        stopMoving();
         // Stop the grid, and any panel underneath, from stealing D-pad focus.
         gridFocusable(false);
         View under = panels.isEmpty() ? null : panels.get(panels.size() - 1);
@@ -793,6 +999,8 @@ public class HomeGrid implements SettingsPanel.Host {
         int[] rx = getRowScrollX();
         boolean wasDock = dock;
         build();
+        // A picked-up tile that the rebuild no longer draws (hidden from the other grid, say).
+        if (moving != null && !cellsByKey.containsKey(moving)) moving = null;
         // The rows differ between the designs (the dock is the first in one, the inputs row
         // in the other), and so does what a page offset means, so a switch starts the page at
         // the top: the saved values are dropped and the page itself is scrolled back, since
@@ -884,6 +1092,9 @@ public class HomeGrid implements SettingsPanel.Host {
         AppModel.Item restore = null;
         topTile = null;
 
+        // Apps in one row: the other apps join the TV apps' grid, as the wide tiles AppModel
+        // builds for them (until it has reloaded after the switch, they are still cards).
+        boolean oneRow = Prefs.appsOneRow(ctx);
         List<AppModel.Item> all = AppModel.visibleItems(ctx);
         restoreShown = false;
         for (int i = 0; i < all.size(); i++) {
@@ -902,7 +1113,7 @@ public class HomeGrid implements SettingsPanel.Host {
                     || it.type == AppModel.TYPE_AMAZON_HOME
                     || it.type == AppModel.TYPE_SETTINGS || it.type == AppModel.TYPE_HEALTH) {
                 inputs.add(it);
-            } else if (it.tvApp && it.banner != null) {
+            } else if (it.banner != null && (it.tvApp || oneRow)) {
                 tv.add(it);
             } else {
                 nonTv.add(it);
@@ -945,7 +1156,7 @@ public class HomeGrid implements SettingsPanel.Host {
 
         String inputsTitle = ctx.getString(R.string.home_sec_inputs);
         String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
-        String tvTitle = ctx.getString(R.string.home_sec_tv);
+        String tvTitle = ctx.getString(oneRow ? R.string.home_sec_apps : R.string.home_sec_tv);
         String shortcutsTitle = ctx.getString(R.string.home_sec_settings);
         boolean first = true;
         if (restore != null) { addRestoreTile(restore); first = false; }
@@ -1714,7 +1925,7 @@ public class HomeGrid implements SettingsPanel.Host {
         cell.setOnLongClickListener(new View.OnLongClickListener() {
             // In Simple mode a held Select falls through to a normal click.
             public boolean onLongClick(View v) {
-                return !Prefs.simpleMode(ctx) && hideFocused();
+                return !Prefs.simpleMode(ctx) && showTileMenu();
             }
         });
         cellsByKey.put(it.key(), cell);
@@ -1764,9 +1975,11 @@ public class HomeGrid implements SettingsPanel.Host {
         if (dock) { dockStyle(f, focused, animate); return; }
         float scale = focused ? FOCUS_SCALE : 1f;
         if (focused) {
+            // A picked-up tile wears the moving ring instead of the look's.
+            boolean lifted = moving != null && cellsByKey.get(moving) == f;
             GradientDrawable ring = new GradientDrawable();
             ring.setCornerRadius(dp(8));
-            ring.setStroke(dp(3), look.ring);
+            ring.setStroke(dp(lifted ? 4 : 3), lifted ? MOVE_RING : look.ring);
             ring.setColor(Color.TRANSPARENT);
             f.setForeground(ring);
             f.setTranslationZ(dp(8));
@@ -1817,9 +2030,10 @@ public class HomeGrid implements SettingsPanel.Host {
     private void dockStyle(final FrameLayout f, boolean focused, boolean animate) {
         Drawable rim = outline();
         if (focused) {
+            boolean lifted = moving != null && cellsByKey.get(moving) == f;
             GradientDrawable d = new GradientDrawable();
             d.setCornerRadius(dp(8));
-            d.setStroke(dp(3), Color.WHITE);
+            d.setStroke(dp(lifted ? 4 : 3), lifted ? MOVE_RING : Color.WHITE);
             d.setColor(Color.TRANSPARENT);
             rim = d;
         }

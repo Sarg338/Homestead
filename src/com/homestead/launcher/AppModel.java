@@ -256,7 +256,9 @@ public final class AppModel {
         health.icon = toBitmap(c, d != null ? d : drawable(c, android.R.drawable.ic_menu_info_details), ICON_PX, ICON_PX, false);
         ITEMS.add(health);
         d = null;
-        boolean wide = Prefs.nonTvWide(c);
+        // Wide tiles for the non-TV apps: asked for, or needed for the one row they then share
+        // with the TV apps' banners.
+        boolean wide = Prefs.nonTvWide(c) || Prefs.appsOneRow(c);
 
         loadShortcuts(c);
 
@@ -799,8 +801,18 @@ public final class AppModel {
         }
 
         final boolean byLastUsed = (Prefs.sort(c) == Prefs.SORT_LAST_USED);
+        // Apps in one row: TV and non-TV apps sort as one list instead of TV apps first.
+        final boolean oneRow = Prefs.appsOneRow(c);
+        // Pinned tiles lead their row, in the order they were pinned; one list for every row.
+        final java.util.Map<String, Integer> pinAt = new java.util.HashMap<String, Integer>();
+        List<String> pins = Prefs.pinned(c);
+        for (int i = 0; i < pins.size(); i++) pinAt.put(pins.get(i), i);
         Collections.sort(ITEMS, new Comparator<Item>() {
             public int compare(Item x, Item y) {
+                // The rows first, so a pin only ever moves a tile within its own row.
+                if (group(x.type) != group(y.type)) return group(x.type) - group(y.type);
+                int px = pinRank(x), py = pinRank(y);
+                if (px != py) return px < py ? -1 : 1;
                 if (x.type != y.type) return rank(x.type) - rank(y.type);
                 if (x.type == TYPE_INPUT) {
                     boolean xh = x.label.toUpperCase(Locale.US).startsWith("HDMI");
@@ -809,10 +821,21 @@ public final class AppModel {
                     return x.label.compareToIgnoreCase(y.label);
                 }
                 if (x.type != TYPE_APP) return 0;
-                if (x.tvApp != y.tvApp) return x.tvApp ? -1 : 1;
+                if (!oneRow && x.tvApp != y.tvApp) return x.tvApp ? -1 : 1;
                 if (!byLastUsed) return x.label.compareToIgnoreCase(y.label);
                 if (x.lastUsed != y.lastUsed) return (x.lastUsed > y.lastUsed) ? -1 : 1;
                 return x.label.compareToIgnoreCase(y.label);
+            }
+            private int pinRank(Item it) {
+                Integer i = pinAt.isEmpty() ? null : pinAt.get(it.key());
+                return i == null ? Integer.MAX_VALUE : i;
+            }
+            /** The home screen's rows: the inputs row holds Live TV, the inputs and the system tiles. */
+            private int group(int t) {
+                if (t == TYPE_RESTORE) return 0;
+                if (t == TYPE_SHORTCUT) return 2;
+                if (t == TYPE_APP) return 3;
+                return 1;
             }
             private int rank(int t) {
                 if (t == TYPE_RESTORE) return -1;

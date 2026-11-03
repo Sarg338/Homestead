@@ -96,7 +96,7 @@
   <string name="set_close">Fermer</string>
   <string name="set_back">Retour</string>
   <string name="set_hidden">Tuiles masquées</string>
-  <string name="set_hidden_note">Appuyez sur MENU sur une tuile pour la masquer (l\'appui long fonctionne aussi ; pas en mode simple). Masquer ne change que ce que ce lanceur affiche : rien n\'est désactivé ni désinstallé, et l\'appli fonctionne toujours partout ailleurs.</string>
+  <string name="set_hidden_note">Appuyez sur MENU sur une tuile (ou faites un appui long) pour son menu : l\'épingler en tête de sa rangée, la déplacer ou la masquer. Pas en mode simple. Masquer ne change que ce que ce lanceur affiche : rien n\'est désactivé ni désinstallé, et l\'appli fonctionne toujours partout ailleurs.</string>
   <string name="set_sort">Trier les applis par</string>
   <string name="set_sort_az">A – Z</string>
   <string name="set_sort_last">Dernière utilisation</string>
@@ -117,7 +117,7 @@
   <string name="set_photo_pick">Choisir une photo sur cette TV</string>
   <string name="set_photo_pick_help">Liste les images du dossier Téléchargements de la TV. Il faut le tunnel sur l\'appareil.</string>
   <string name="set_hidden_sub">Choisissez-en une pour l\'afficher à nouveau sur l\'écran d\'accueil</string>
-  <string name="set_hidden_none">Rien n\'est masqué. Appuyez sur MENU sur une tuile (ou faites un appui long) pour la masquer.</string>
+  <string name="set_hidden_none">Rien n\'est masqué. Appuyez sur MENU sur une tuile (ou faites un appui long) et choisissez Masquer.</string>
   <string name="set_hidden_value">masquée</string>
   <string name="set_shown_value">affichée</string>
   <string name="set_show_all">Afficher toutes les tuiles masquées</string>
@@ -721,4 +721,25 @@
   <string name="ro_s_inputs">Entrées</string>
   <string name="ro_s_nontv">Applis non-TV</string>
   <string name="ro_s_tv">Applis TV</string>
+
+  <!-- 2.1.0 : le menu de tuile, les tuiles épinglées, les applis sur une seule rangée -->
+  <string name="home_sec_apps">Applications</string>
+  <string name="tm_pin">Épingler en tête</string>
+  <string name="tm_pin_help">Les tuiles épinglées viennent en premier dans leur rangée, dans l\'ordre où elles ont été épinglées. Le reste de la rangée garde l\'ordre de tri.</string>
+  <string name="tm_unpin">Désépingler</string>
+  <string name="tm_unpin_help">Elle reprend sa place dans l\'ordre de tri.</string>
+  <string name="tm_move">Déplacer</string>
+  <string name="tm_move_help">Gauche et Droite la déplacent d\'une place, Haut et Bas d\'une ligne. OK ou Retour la repose. Une tuile non épinglée est d\'abord épinglée.</string>
+  <string name="tm_hide">Masquer</string>
+  <string name="tm_hide_help">Seul ce lanceur cesse de l\'afficher ; rien n\'est désactivé ni désinstallé. Les tuiles masquées sont listées dans Réglages → Écran d\'accueil.</string>
+  <string name="tm_moving">Déplacement de %1$s : Gauche et Droite la déplacent, OK ou Retour la repose.</string>
+  <string name="set_pinned">Tuiles épinglées</string>
+  <string name="set_pinned_sub">En tête de leur rangée, dans cet ordre. Choisissez-en une pour la désépingler.</string>
+  <string name="set_pinned_none">Rien n\'est épinglé. Appuyez sur MENU sur une tuile (ou faites un appui long) et choisissez Épingler en tête.</string>
+  <string name="set_pinned_value">épinglée</string>
+  <string name="set_unpinned_value">désépinglée</string>
+  <string name="set_unpin_all">Tout désépingler</string>
+  <string name="set_apps_one">Applis sur une seule rangée</string>
+  <string name="set_apps_one_help">Les applis TV et les autres ensemble dans une seule grille, triées comme une seule liste. Les autres applis reçoivent des tuiles larges faites de leur icône.</string>
+  <string name="ro_in_apps">dans Applications</string>
 </resources>

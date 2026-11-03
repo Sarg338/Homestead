@@ -99,7 +99,7 @@
   <string name="set_close">Schließen</string>
   <string name="set_back">Zurück</string>
   <string name="set_hidden">Ausgeblendete Kacheln</string>
-  <string name="set_hidden_note">MENÜ auf einer Kachel drücken, um sie auszublenden (langes Drücken geht auch; nicht im einfachen Modus). Ausblenden ändert nur, was dieser Launcher zeichnet – nichts wird deaktiviert oder deinstalliert, und die App funktioniert überall sonst weiter.</string>
+  <string name="set_hidden_note">MENÜ auf einer Kachel drücken (oder lange drücken) für ihr Menü: nach vorn anheften, verschieben oder ausblenden. Nicht im einfachen Modus. Ausblenden ändert nur, was dieser Launcher zeichnet – nichts wird deaktiviert oder deinstalliert, und die App funktioniert überall sonst weiter.</string>
   <string name="set_sort">Apps sortieren nach</string>
   <string name="set_sort_az">A – Z</string>
   <string name="set_sort_last">Zuletzt verwendet</string>
@@ -120,7 +120,7 @@
   <string name="set_photo_pick">Foto auf diesem TV auswählen</string>
   <string name="set_photo_pick_help">Listet die Bilder im Download-Ordner des TVs. Benötigt den Gerätetunnel.</string>
   <string name="set_hidden_sub">Eines auswählen, um es wieder auf dem Startbildschirm anzuzeigen</string>
-  <string name="set_hidden_none">Nichts ist ausgeblendet. MENÜ auf einer Kachel drücken (oder lange drücken), um sie auszublenden.</string>
+  <string name="set_hidden_none">Nichts ist ausgeblendet. MENÜ auf einer Kachel drücken (oder lange drücken) und „Ausblenden“ wählen.</string>
   <string name="set_hidden_value">ausgeblendet</string>
   <string name="set_shown_value">angezeigt</string>
   <string name="set_show_all">Alle ausgeblendeten Kacheln anzeigen</string>
@@ -725,4 +725,25 @@
   <string name="ro_s_inputs">Eingänge</string>
   <string name="ro_s_nontv">Nicht-TV-Apps</string>
   <string name="ro_s_tv">TV-Apps</string>
+
+  <!-- 2.1.0: das Kachelmenü, angeheftete Kacheln, Apps in einer Zeile -->
+  <string name="home_sec_apps">Anwendungen</string>
+  <string name="tm_pin">Nach vorn anheften</string>
+  <string name="tm_pin_help">Angeheftete Kacheln stehen in ihrer Zeile vorn, in der Reihenfolge des Anheftens. Der Rest der Zeile behält die Sortierung.</string>
+  <string name="tm_unpin">Lösen</string>
+  <string name="tm_unpin_help">Zurück an ihren Platz in der Sortierung.</string>
+  <string name="tm_move">Verschieben</string>
+  <string name="tm_move_help">Links und Rechts verschieben sie um einen Platz, Oben und Unten um eine Zeile. OK oder Zurück legt sie ab. Eine nicht angeheftete Kachel wird zuerst angeheftet.</string>
+  <string name="tm_hide">Ausblenden</string>
+  <string name="tm_hide_help">Nur dieser Launcher zeichnet sie nicht mehr; nichts wird deaktiviert oder deinstalliert. Ausgeblendete Kacheln stehen unter Einstellungen → Startbildschirm.</string>
+  <string name="tm_moving">%1$s wird verschoben: Links und Rechts verschieben, OK oder Zurück legt ab.</string>
+  <string name="set_pinned">Angeheftete Kacheln</string>
+  <string name="set_pinned_sub">Vorn in ihrer Zeile, in dieser Reihenfolge. Eine auswählen, um sie zu lösen.</string>
+  <string name="set_pinned_none">Nichts ist angeheftet. MENÜ auf einer Kachel drücken (oder lange drücken) und „Nach vorn anheften“ wählen.</string>
+  <string name="set_pinned_value">angeheftet</string>
+  <string name="set_unpinned_value">gelöst</string>
+  <string name="set_unpin_all">Alle lösen</string>
+  <string name="set_apps_one">Apps in einer Zeile</string>
+  <string name="set_apps_one_help">TV-Apps und die übrigen Apps zusammen in einem Raster, als eine Liste sortiert. Die übrigen Apps bekommen breite Kacheln aus ihren Symbolen.</string>
+  <string name="ro_in_apps">in Anwendungen</string>
 </resources>

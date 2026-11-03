@@ -83,9 +83,8 @@ public class HomeGrid implements SettingsPanel.Host {
     /** Below the last row: room for a focused tile's growth and its name, clear of the screen edge. */
     private static final int BOTTOM_DP = MARGIN_DP + NAME_H_DP + 12;
 
-    // The dock design (PR #27): the most-used apps on a translucent band at the bottom of the
+    // The dock design (PR #27): the first TV apps on a translucent band at the bottom of the
     // first screen, one grid below it, a glow in the focused banner's colour, a springier focus.
-    private static final int DOCK_COUNT = 5;
     /** Dock tile height per Prefs.dockSize; the tiles are 16:9. */
     private static final int[] DOCK_H_DP = { 88, 112, 136, 160 };
     private static final int DOCK_PAD_DP = 14;
@@ -122,6 +121,8 @@ public class HomeGrid implements SettingsPanel.Host {
     /** Behind everything; coloured by the focused banner in the dock design, else empty. */
     private final View glow;
     private int glowColor;
+    /** The focused tile's accent, so a background change can redraw or drop the glow. */
+    private int focusedAccent;
     /** The dock's title line, naming the focused dock tile; null without a dock. */
     private TextView dockTitle;
     private final java.util.Set<String> dockKeys = new java.util.LinkedHashSet<String>();
@@ -397,6 +398,8 @@ public class HomeGrid implements SettingsPanel.Host {
         if (state.equals(painted)) return;
         painted = state;
         look = p;
+        // The glow belongs to the colour presets; over a picture it only tints it.
+        if (dock) setGlow(focusedAccent);
         root.setBackground(photo != null ? Backgrounds.photoDrawable(ctx, photo)
                 : Backgrounds.drawable(p));
         paintText(clock);
@@ -788,7 +791,11 @@ public class HomeGrid implements SettingsPanel.Host {
         String keep = focusedKey;
         int y = scroll.getScrollY();
         int[] rx = getRowScrollX();
+        boolean wasDock = dock;
         build();
+        // The rows differ between the designs (the dock is the first in one, the inputs row
+        // in the other), so a scroll kept across a switch would land on the wrong row.
+        if (dock != wasDock) { y = 0; rx = null; }
         // Leave focus alone while a panel is open, or the grid would take it from the panel.
         if (panels.isEmpty()) {
             if (keep == null || !selectKey(keep)) takeFocus();
@@ -828,6 +835,7 @@ public class HomeGrid implements SettingsPanel.Host {
     /** Enough to get to Settings, using nothing that can throw. */
     private void buildFallback() {
         dock = false;
+        setGlow(0);
         column.removeAllViews();
         cellsByKey.clear();
         rowHeaders.clear();
@@ -921,8 +929,11 @@ public class HomeGrid implements SettingsPanel.Host {
             }
         }
 
+        // Shortcuts placed in the bar are its pills; only those placed as a row are tiles.
+        if (Prefs.shortcutsPlace(ctx) != Prefs.SHORTCUTS_ROW) shortcuts.clear();
+
         if (dock) {
-            addDockLayout(restore, liveTv, tv, inputs, nonTv);
+            addDockLayout(restore, liveTv, tv, inputs, shortcuts, nonTv);
             return;
         }
 
@@ -930,7 +941,6 @@ public class HomeGrid implements SettingsPanel.Host {
         String nonTvTitle = ctx.getString(R.string.home_sec_nontv);
         String tvTitle = ctx.getString(R.string.home_sec_tv);
         String shortcutsTitle = ctx.getString(R.string.home_sec_settings);
-        if (Prefs.shortcutsPlace(ctx) != Prefs.SHORTCUTS_ROW) shortcuts.clear();
         boolean first = true;
         if (restore != null) { addRestoreTile(restore); first = false; }
         if (liveTv != null)  { addLiveTvTile(liveTv); first = false; }
@@ -960,18 +970,37 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /**
-     * The dock design: Live TV (when it comes first) and the most-used TV apps on a band at
-     * the bottom of the first screen, then one grid with everything else, no headers.
+     * The dock design: Live TV (when it comes first) and the first TV apps, in their sort
+     * order, on a band at the bottom of the first screen, then one grid with everything
+     * else (inputs, shortcuts placed as a row, the remaining TV apps, non-TV apps), no headers.
      */
     private void addDockLayout(AppModel.Item restore, AppModel.Item liveTv, List<AppModel.Item> tv,
-                               List<AppModel.Item> inputs, List<AppModel.Item> nonTv) {
+                               List<AppModel.Item> inputs, List<AppModel.Item> shortcuts,
+                               List<AppModel.Item> nonTv) {
         if (restore != null) addRestoreTile(restore);
-        int n = Math.min(Math.max(0, DOCK_COUNT - (liveTv != null ? 1 : 0)), tv.size());
+        int n = Math.min(dockCount(liveTv != null), tv.size());
         if (liveTv != null || n > 0) addDock(liveTv, tv.subList(0, n), restore == null);
         List<AppModel.Item> grid = new ArrayList<AppModel.Item>(inputs);
+        grid.addAll(shortcuts);
         grid.addAll(tv.subList(n, tv.size()));
         grid.addAll(nonTv);
         if (!grid.isEmpty()) addTileGrid(grid);
+    }
+
+    /**
+     * How many TV apps the dock holds at the chosen size: as many as fit the screen's width,
+     * beside the Live TV tile when that comes first (one and a half tiles wide), and at least
+     * one without it. The band still scrolls sideways, as a safety net for a narrower screen.
+     */
+    private int dockCount(boolean featured) {
+        int h = dp(DOCK_H_DP[Prefs.dockSize(ctx)]);
+        int normalW = h * 16 / 9;
+        int widest = featured ? normalW * 3 / 2 : normalW;
+        int padH = Math.max(dp(DOCK_PAD_DP), Math.round(widest * (DOCK_FOCUS_SCALE - 1f) / 2f) + dp(2));
+        int avail = ctx.getResources().getDisplayMetrics().widthPixels - 2 * dp(MARGIN_DP) - 2 * padH;
+        if (featured) avail -= widest + dp(GAP_DP);
+        int n = (avail + dp(GAP_DP)) / (normalW + dp(GAP_DP));
+        return Math.max(featured ? 0 : 1, n);
     }
 
     /** The translucent band and its title line; pinned to the bottom when pin is set. */
@@ -1028,7 +1057,7 @@ public class HomeGrid implements SettingsPanel.Host {
             dockKeys.add(liveTv.key());
         }
         for (int i = 0; i < apps.size(); i++) {
-            View cell = buildTile(apps.get(i));
+            View cell = buildTile(apps.get(i), true);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(normalW, h);
             if (i > 0 || liveTv != null) lp.leftMargin = dp(GAP_DP);
             stopAt(cell, i == 0 && liveTv == null, i == apps.size() - 1);
@@ -1051,8 +1080,12 @@ public class HomeGrid implements SettingsPanel.Host {
         column.addView(band, blp);
     }
 
-    /** The glow in the focused banner's colour; none for a tile without art. */
+    /**
+     * The glow in the focused banner's colour; none for a tile without art, and none over a
+     * photo or a landscape, which it would only tint.
+     */
     private void setGlow(int accent) {
+        if (look == Backgrounds.PHOTO_LOOK) accent = 0;
         if (accent == glowColor) return;
         glowColor = accent;
         if (accent == 0) { glow.setBackground(null); return; }
@@ -1614,7 +1647,7 @@ public class HomeGrid implements SettingsPanel.Host {
             }
             // The dock design's one grid mixes banners with the cards of inputs and the like.
             AppModel.Item it = items.get(i);
-            View cell = it.banner != null ? buildTile(it) : buildCard(it);
+            View cell = it.banner != null ? buildTile(it, false) : buildCard(it);
             boolean rowEnd = i % AppModel.columns(ctx) == AppModel.columns(ctx) - 1
                     || i == items.size() - 1;
             stopAt(cell, i % AppModel.columns(ctx) == 0, rowEnd);
@@ -1647,6 +1680,7 @@ public class HomeGrid implements SettingsPanel.Host {
                     style(v, true, true);
                     if (v == topTile) keepAtTop();
                     if (dock) {
+                        focusedAccent = it.accent;
                         setGlow(it.accent);
                         if (dockKeys.contains(it.key())) {
                             keepAtTop();
@@ -1792,6 +1826,21 @@ public class HomeGrid implements SettingsPanel.Host {
                     .setDuration(focused ? 220L : 160L)
                     .setInterpolator(focused ? DOCK_IN : DOCK_OUT).start();
         }
+        // A grid tile's name hangs below it, as in Classic; the row is lifted so the name
+        // draws over the next row. Dock tiles have no label: the title line names them.
+        View row = (View) f.getParent();
+        if (focused && raisedRow != null && raisedRow != row) {
+            raisedRow.setTranslationZ(0f);
+            raisedRow = null;
+        }
+        final View name = f.findViewWithTag(NAME_TAG);
+        if (name != null) {
+            name.setVisibility(focused ? View.VISIBLE : View.INVISIBLE);
+            if (focused && row != null) {
+                row.setTranslationZ(dp(8));
+                raisedRow = row;
+            }
+        }
         // Dock tiles are kept in view by keepAtTop() and revealInDock(); scrolling for them
         // here too made the page jump on every move along the dock.
         boolean inDock = f.getParent() != null
@@ -1801,8 +1850,9 @@ public class HomeGrid implements SettingsPanel.Host {
                 public void run() {
                     int gx = Math.round(f.getWidth() * (DOCK_FOCUS_SCALE - 1f) / 2f) + dp(4);
                     int gy = Math.round(f.getHeight() * (DOCK_FOCUS_SCALE - 1f) / 2f) + dp(4);
+                    int below = dp(DOCK_LIFT_DP) + (name != null ? dp(NAME_H_DP + 8) : 0);
                     f.requestRectangleOnScreen(new android.graphics.Rect(-gx, -gy,
-                            f.getWidth() + gx, f.getHeight() + gy + dp(DOCK_LIFT_DP)));
+                            f.getWidth() + gx, f.getHeight() + gy + below));
                 }
             });
         }
@@ -1834,15 +1884,17 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /** A TV app: full-bleed banner, already rounded in the bitmap. */
-    private View buildTile(AppModel.Item it) {
+    private View buildTile(AppModel.Item it) { return buildTile(it, false); }
+
+    /** @param inDock on the dock's band, where the title line names the focused tile. */
+    private View buildTile(AppModel.Item it, boolean inDock) {
         FrameLayout cell = newCell(it);
         ImageView img = new ImageView(ctx);
         img.setScaleType(ImageView.ScaleType.FIT_XY);
         img.setImageBitmap(it.banner);
         cell.addView(img, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        // The dock design names the focused dock tile in its title line instead.
-        if (dock) return cell;
+        if (inDock) return cell;
 
         // The app's name, shown while focused. It hangs below the banner into the gap and
         // over the row beneath (the focused cell draws on top), so rows keep their height.

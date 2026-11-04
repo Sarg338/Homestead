@@ -44,11 +44,11 @@ import java.util.regex.Pattern;
  * Full-screen viewer for a passthrough (HDMI / composite) input, hosted with TvView.
  *
  * Amazon's input switcher requires a signature-level permission, and a passthrough VIEW
- * intent only opens Amazon's Live TV settings. Where Amazon's KaminoInputSwitchService is
- * available (exported without a permission), the input is opened in Amazon's own player
- * through it: on some TVs (TCL, Amlogic, Fire OS 8) a TvView here gets onVideoAvailable
- * but never a picture. Otherwise the input is shown here directly. If tuning fails, fall
- * back to Amazon's Inputs picker.
+ * intent only opens Amazon's Live TV settings, so the input is shown here directly. On TVs
+ * whose inputs come from com.droidlogic.tvinput (TCL, Amlogic, Fire OS 8) a TvView here gets
+ * onVideoAvailable but never a picture; there the input is opened in Amazon's own player
+ * through KaminoInputSwitchService (exported without a permission) instead. If tuning
+ * fails, fall back to Amazon's Inputs picker.
  *
  * Tuning happens in onResume: the activity is singleTop, so a new input reuses the
  * instance after onPause has already reset the TvView.
@@ -58,7 +58,9 @@ public class HdmiActivity extends Activity {
     private static final String TAG = "Homestead";
     private static final String KAMINO_PACKAGE = "com.amazon.tv.inputpreference.service";
     private static final String KAMINO_SERVICE = KAMINO_PACKAGE + ".KaminoInputSwitchService";
-    private static final Pattern HW_NUMBER = Pattern.compile("/HW(\\d+)$");
+    /** Boards where the TvView stays black and inputs go to Amazon's player instead. */
+    private static final String[] KAMINO_BOARDS = { "com.droidlogic.tvinput/" };
+    private static final Pattern HDMI_LABEL = Pattern.compile("(?i)\\bHDMI\\s*([1-4])\\b");
     public static final String EXTRA_INPUT_ID = "input_id";
     public static final String EXTRA_LABEL = "label";
     private static final long TUNE_TIMEOUT_MS = 6000L;
@@ -185,25 +187,25 @@ public class HdmiActivity extends Activity {
     }
 
     /**
-     * Opens the input in Amazon's own player through KaminoInputSwitchService, which takes
-     * the input's hardware number ("inputType") and, optionally, the TV input to tune
-     * ("tifId"). Tuning the HDMI-CEC device on the port rather than the bare port makes the
-     * TV send Set Stream Path, which wakes a sleeping source such as an Apple TV; with only
-     * the port, a sleeping source stays black. Returns false when the service is missing or
-     * the number is unknown, so the caller shows the input in the TvView instead.
+     * Opens the input in Amazon's own player through KaminoInputSwitchService, on the boards
+     * in KAMINO_BOARDS only. The service takes Amazon's own input number ("inputType"); for an
+     * HDMI port with a CEC device on it, Amazon's player tunes that device and the TV sends Set
+     * Stream Path, which wakes a sleeping source such as an Apple TV. Returns false when this
+     * board is not listed, the service is missing or the number is unknown, so the caller shows
+     * the input in the TvView instead.
      */
     private boolean openWithKamino(String inputId) {
-        int hw = hardwareNumber(inputId);
-        if (hw < 0) return false;
+        boolean listed = false;
+        for (String b : KAMINO_BOARDS) if (inputId.startsWith(b)) listed = true;
+        if (!listed) return false;
+        int type = kaminoInputType(inputId);
+        if (type < 0) return false;
         Intent i = new Intent().setComponent(new ComponentName(KAMINO_PACKAGE, KAMINO_SERVICE));
         try {
             if (getPackageManager().resolveService(i, 0) == null) return false;
-            i.putExtra("inputType", hw);
-            String tune = cecDevice(inputId);
-            if (tune != null) i.putExtra("tifId", tune);
+            i.putExtra("inputType", type);
             if (startService(i) == null) return false;
-            Log.i(TAG, "opened " + inputId + " through KaminoInputSwitchService, inputType=" + hw
-                    + ", tifId=" + tune);
+            Log.i(TAG, "opened " + inputId + " through KaminoInputSwitchService, inputType=" + type);
             return true;
         } catch (Throwable t) {
             Log.w(TAG, "KaminoInputSwitchService failed: " + t);
@@ -212,35 +214,37 @@ public class HdmiActivity extends Activity {
     }
 
     /**
-     * The hardware number of a passthrough input: ".../HW5" gives 5. A device found over
-     * HDMI-CEC (".../HDMI100004") has the port it sits on as its parent, so that one is used.
+     * Amazon's input number for KaminoInputSwitchService, which follows the input's type and
+     * name, not its hardware id: HDMI 1 = 2, HDMI 2 = 3, HDMI 3 = 4, HDMI 4 = 10, composite =
+     * 11, component = 12, VGA = 13. A device found over HDMI-CEC uses its parent port. -1 when
+     * the input matches none of these.
      */
-    private int hardwareNumber(String inputId) {
-        String id = inputId;
+    private int kaminoInputType(String inputId) {
         try {
             TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
             TvInputInfo info = tim == null ? null : tim.getTvInputInfo(inputId);
-            if (info != null && info.getParentId() != null) id = info.getParentId();
-        } catch (Throwable t) { }
-        Matcher m = HW_NUMBER.matcher(id);
-        return m.find() ? Integer.parseInt(m.group(1)) : -1;
-    }
-
-    /**
-     * The HDMI-CEC device to tune for this input: the input itself when it is one (it has a
-     * parent port), otherwise a CEC device that sits on this port, or null if there is none.
-     */
-    private String cecDevice(String inputId) {
-        try {
-            TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
-            if (tim == null) return null;
-            TvInputInfo self = tim.getTvInputInfo(inputId);
-            if (self != null && self.getParentId() != null) return inputId;
-            for (TvInputInfo info : tim.getTvInputList()) {
-                if (inputId.equals(info.getParentId())) return info.getId();
+            if (info != null && info.getParentId() != null) info = tim.getTvInputInfo(info.getParentId());
+            if (info == null) return -1;
+            switch (info.getType()) {
+                case TvInputInfo.TYPE_COMPOSITE: return 11;
+                case TvInputInfo.TYPE_COMPONENT: return 12;
+                case TvInputInfo.TYPE_VGA: return 13;
+                case TvInputInfo.TYPE_HDMI: break;
+                default: return -1;
             }
-        } catch (Throwable t) { }
-        return null;
+            CharSequence label = info.loadLabel(this);
+            Matcher m = HDMI_LABEL.matcher(label == null ? "" : label);
+            if (!m.find()) return -1;
+            switch (Integer.parseInt(m.group(1))) {
+                case 1: return 2;
+                case 2: return 3;
+                case 3: return 4;
+                case 4: return 10;
+                default: return -1;
+            }
+        } catch (Throwable t) {
+            return -1;
+        }
     }
 
     /** Hand off to Amazon's Inputs screen, standing the Home redirect down first. */

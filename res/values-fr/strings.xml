@@ -58,7 +58,7 @@
   <string name="opt_fire">Icônes système Fire TV</string>
   <string name="opt_fire_help">Accueil Amazon, Réglages et Santé de la TV utilisent les icônes de l\'accueil et des Paramètres de Fire OS, lues sur cette TV. Si l\'une manque, l\'icône habituelle reste.</string>
   <string name="opt_design">Design</string>
-  <string name="opt_design_help">Classique : les sections, chacune sous son titre. Dock : les premières de vos applis TV, dans leur ordre de tri, sur un bandeau en bas du premier écran, avec un halo de la couleur de l\'appli sélectionnée, tout le reste dans une seule grille en dessous, et l\'horloge et les Réglages dans une barre en haut.</string>
+  <string name="opt_design_help">Classique : les sections, chacune sous son titre. Dock : les premières de vos applis TV, dans leur ordre de tri, sur un bandeau en bas du premier écran, avec un halo de la couleur de l\'appli sélectionnée, tout le reste dans une seule grille en dessous, dans l\'ordre choisi sous Ordre des rangées, et l\'horloge et les Réglages dans une barre en haut.</string>
   <string name="opt_design_classic">Classique</string>
   <string name="opt_design_dock">Dock</string>
   <string name="opt_dock_size">Taille du dock</string>
@@ -714,6 +714,7 @@
   <string name="ro_top">De haut en bas</string>
   <string name="ro_reset">Rétablir l\'ordre par défaut</string>
   <string name="ro_reset_help">Raccourcis des Paramètres Fire TV, Entrées et système, Applications non-TV, puis Applications TV.</string>
+  <string name="ro_reset_help_dock">Entrées et système, Raccourcis des Paramètres Fire TV, Applications TV, puis Applications non-TV.</string>
   <string name="ro_in_bar">dans la barre du haut</string>
   <string name="ro_hidden">masquée</string>
   <string name="ro_first">%1$s en premier</string>
@@ -729,7 +730,8 @@
   <string name="tm_unpin">Désépingler</string>
   <string name="tm_unpin_help">Elle reprend sa place dans l\'ordre de tri.</string>
   <string name="tm_move">Déplacer</string>
-  <string name="tm_move_help">Gauche et Droite la déplacent d\'une place, Haut et Bas d\'une ligne. OK ou Retour la repose. Une tuile non épinglée est d\'abord épinglée.</string>
+  <string name="tm_move_help">Gauche et Droite la déplacent d\'une place, Haut et Bas d\'une ligne. OK ou Retour la repose. Une fois déplacée, elle est épinglée, ainsi que les tuiles qui la précèdent et celles qu\'elle dépasse, pour qu\'elles gardent leur place.</string>
+  <string name="tm_move_help_dock">Le dock contient les premières applis TV : déplacer une appli TV en tête la met sur le dock.</string>
   <string name="tm_hide">Masquer</string>
   <string name="tm_hide_help">Seul ce lanceur cesse de l\'afficher ; rien n\'est désactivé ni désinstallé. Les tuiles masquées sont listées dans Réglages → Écran d\'accueil.</string>
   <string name="tm_moving">Déplacement de %1$s : Gauche et Droite la déplacent, OK ou Retour la repose.</string>

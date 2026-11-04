@@ -61,7 +61,7 @@
   <string name="opt_fire">Fire TV system icons</string>
   <string name="opt_fire_help">Amazon Home, Settings and TV Health use the icons of Fire OS\'s own home and Settings, read from this TV. Where one is missing, the usual icon stays.</string>
   <string name="opt_design">Design</string>
-  <string name="opt_design_help">Classic: the sections, each under its heading. Dock: the first of your TV apps, in their sort order, on a band at the bottom of the first screen, with a glow in the selected app\'s colour, everything else in one grid below, and the clock and Settings in a bar at the top.</string>
+  <string name="opt_design_help">Classic: the sections, each under its heading. Dock: the first of your TV apps, in their sort order, on a band at the bottom of the first screen, with a glow in the selected app\'s colour, everything else in one grid below in the order set under Row order, and the clock and Settings in a bar at the top.</string>
   <string name="opt_design_classic">Classic</string>
   <string name="opt_design_dock">Dock</string>
   <string name="opt_dock_size">Dock size</string>
@@ -718,6 +718,7 @@
   <string name="ro_top">Top to bottom</string>
   <string name="ro_reset">Reset to Default</string>
   <string name="ro_reset_help">Fire TV settings shortcuts, Inputs &amp; System, Non-TV Applications, then TV Applications.</string>
+  <string name="ro_reset_help_dock">Inputs &amp; System, Fire TV settings shortcuts, TV Applications, then Non-TV Applications.</string>
   <string name="ro_in_bar">in the top bar</string>
   <string name="ro_hidden">hidden</string>
   <string name="ro_first">%1$s first</string>
@@ -733,7 +734,8 @@
   <string name="tm_unpin">Unpin</string>
   <string name="tm_unpin_help">Back to its place in the sort order.</string>
   <string name="tm_move">Move</string>
-  <string name="tm_move_help">Left and Right move it one place, Up and Down one line. OK or Back puts it down. A tile that is not pinned is pinned first.</string>
+  <string name="tm_move_help">Left and Right move it one place, Up and Down one line. OK or Back puts it down. Once it moves, it is pinned, and so are the tiles before it and the ones it passes, so they keep their places.</string>
+  <string name="tm_move_help_dock">The dock holds the first TV apps, so moving a TV app to the front puts it on the dock.</string>
   <string name="tm_hide">Hide</string>
   <string name="tm_hide_help">Only this launcher stops drawing it; nothing is disabled or uninstalled. Hidden tiles are listed under Settings → Home screen.</string>
   <string name="tm_moving">Moving %1$s: Left and Right move it, OK or Back puts it down.</string>

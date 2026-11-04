@@ -191,14 +191,14 @@ public final class SettingsPanel {
 
     /** The dock layout is what the home screen draws: Dock chosen, and not Simple mode. */
     private static boolean dockLayout(Context c) {
-        return Prefs.design(c) == Prefs.DESIGN_DOCK && !Prefs.simpleMode(c);
+        return Prefs.dockLayout(c);
     }
 
     private static View buildHome(final Context c, final Host host, final Runnable changed) {
         final Panel p = new Panel(c, c.getString(R.string.set_home), null, Panel.SHEET);
 
         // The design first: it decides what the rest of the page means. Dock size shows
-        // only with Dock, and Row order (further down) only with Classic, which has rows.
+        // only with Dock; Row order (further down) keeps one order per design.
         final int[] designs = { R.string.opt_design_classic, R.string.opt_design_dock };
         final int[] sizes = { R.string.opt_dock_s, R.string.opt_dock_m, R.string.opt_dock_l, R.string.opt_dock_xl };
         final Panel.Row[] orderRow = new Panel.Row[1];
@@ -213,7 +213,7 @@ public final class SettingsPanel {
                 Prefs.setDesign(c, n);
                 design.setValue(c.getString(designs[n]));
                 dockSize.cell.setVisibility(n == Prefs.DESIGN_DOCK ? View.VISIBLE : View.GONE);
-                if (orderRow[0] != null) orderRow[0].cell.setVisibility(dockLayout(c) ? View.GONE : View.VISIBLE);
+                if (orderRow[0] != null) orderRow[0].setValue(orderSummary(c));
                 host.rebuildGrid();
                 changed.run();
             }
@@ -364,8 +364,6 @@ public final class SettingsPanel {
             public void onClick(View v) { host.showPanel(buildRowOrder(c, host)); }
         });
         order.setHelp(c.getString(R.string.set_row_order_help));
-        // One grid in Dock, so there is no row order to set; Simple mode keeps the rows.
-        order.cell.setVisibility(dockLayout(c) ? View.GONE : View.VISIBLE);
         orderRow[0] = order;
         // The order changes on the page this row opens; repaint it on the way back.
         order.cell.setOnFocusChangeListener(chain(order.cell.getOnFocusChangeListener(),
@@ -503,13 +501,13 @@ public final class SettingsPanel {
         p.addRow(c.getString(R.string.ro_reset), "", new Runnable() {
             public void run() {
                 order.clear();
-                order.addAll(Prefs.usualRowOrder());
+                order.addAll(Prefs.usualRowOrder(c));
                 Prefs.setRowOrder(c, order);
                 drop.run();
                 host.rebuildGrid();
                 host.showRow(order.get(0));
             }
-        }).setHelp(c.getString(R.string.ro_reset_help));
+        }).setHelp(c.getString(dockLayout(c) ? R.string.ro_reset_help_dock : R.string.ro_reset_help));
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });

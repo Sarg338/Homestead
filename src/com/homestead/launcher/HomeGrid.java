@@ -641,7 +641,9 @@ public class HomeGrid implements SettingsPanel.Host {
                 closePanel();
                 startMoving(key, it.label);
             }
-        }).setHelp(ctx.getString(R.string.tm_move_help));
+        }).setHelp(ctx.getString(R.string.tm_move_help)
+                // The dock is the front of the TV apps, so moving one there puts it on the dock.
+                + (dock && rowOf(it) == 3 ? " " + ctx.getString(R.string.tm_move_help_dock) : ""));
         if (hideable(it)) {
             p.addRow(ctx.getString(R.string.tm_hide), "", new Runnable() {
                 public void run() {
@@ -658,18 +660,13 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /**
-     * Pick a tile up: pinned first if it is not (it then joins the end of its row's pinned
-     * run), lit with the moving ring, and told how it moves.
+     * Pick a tile up where it stands: lit with the moving ring and told how it moves. Nothing
+     * is pinned until it moves (pinning it now would send it to the front of its row).
      */
     private void startMoving(String key, String label) {
         moving = key;
-        if (!Prefs.isPinned(ctx, key)) {
-            Prefs.pin(ctx, key);
-            reorder(key);
-        } else {
-            View cell = cellsByKey.get(key);
-            if (cell != null) style(cell, cell.hasFocus());
-        }
+        View cell = cellsByKey.get(key);
+        if (cell != null) style(cell, cell.hasFocus());
         try {
             Toast.makeText(ctx, ctx.getString(R.string.tm_moving, label), Toast.LENGTH_LONG).show();
         } catch (Throwable t) { }
@@ -714,29 +711,35 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /**
-     * Shift the picked-up tile by step places among the pinned tiles shown in its row, save
-     * the order and redraw with the tile still lit. Past either end of the pinned run it
-     * stays put: the unpinned tiles follow the sort setting and are not traded with.
+     * Shift the picked-up tile by step places within its row, save the order and redraw with
+     * the tile still lit. Pinned tiles lead the row, so the tiles from the start of the row
+     * up to the old and the new place are pinned as they stand, in the order shown: the tile
+     * can go anywhere in its row and every tile before it keeps its place.
      * @return true if it moved.
      */
     private boolean moveTile(String key, int step) {
         AppModel.Item it = itemFor(key);
         if (it == null || !cellsByKey.containsKey(key)) { stopMoving(); return false; }
         List<String> pins = Prefs.pinned(ctx);
-        if (!pins.contains(key)) pins.add(key);
         int row = rowOf(it);
+        // The row as drawn: pinned tiles in pin order, then the rest in the sort order. The
+        // big Live TV tile stands apart from its row, so it is not part of it.
+        boolean tvFirst = liveTvFirst();
         List<AppModel.Item> shown = AppModel.visibleItems(ctx);
-        List<String> run = new ArrayList<String>();
-        for (int i = 0; i < pins.size(); i++) {
-            for (int j = 0; j < shown.size(); j++) {
-                AppModel.Item s = shown.get(j);
-                if (pins.get(i).equals(s.key()) && rowOf(s) == row) { run.add(pins.get(i)); break; }
-            }
+        List<String> line = new ArrayList<String>();
+        for (int j = 0; j < shown.size(); j++) {
+            AppModel.Item s = shown.get(j);
+            if (tvFirst && s.type == AppModel.TYPE_LIVETV) continue;
+            if (rowOf(s) == row && cellsByKey.containsKey(s.key())) line.add(s.key());
         }
-        int at = run.indexOf(key);
-        int to = Math.max(0, Math.min(run.size() - 1, at + step));
+        int at = line.indexOf(key);
+        if (at < 0) return false;
+        int to = Math.max(0, Math.min(line.size() - 1, at + step));
         if (to == at) return false;
-        String anchor = run.get(to);
+        for (int i = 0; i <= Math.max(at, to); i++) {
+            if (!pins.contains(line.get(i))) pins.add(line.get(i));
+        }
+        String anchor = line.get(to);
         pins.remove(key);
         pins.add(pins.indexOf(anchor) + (step < 0 ? 0 : 1), key);
         Prefs.setPinned(ctx, pins);
@@ -1189,7 +1192,8 @@ public class HomeGrid implements SettingsPanel.Host {
     /**
      * The dock design: Live TV (when it comes first) and the first TV apps, in their sort
      * order, on a band at the bottom of the first screen, then one grid with everything
-     * else (inputs, shortcuts placed as a row, the remaining TV apps, non-TV apps), no headers.
+     * else (inputs, shortcuts placed as a row, the remaining TV apps, non-TV apps) in the
+     * row order chosen in Settings, no headers.
      */
     private void addDockLayout(AppModel.Item restore, AppModel.Item liveTv, List<AppModel.Item> tv,
                                List<AppModel.Item> inputs, List<AppModel.Item> shortcuts,
@@ -1197,10 +1201,15 @@ public class HomeGrid implements SettingsPanel.Host {
         if (restore != null) addRestoreTile(restore);
         int n = Math.min(dockCount(liveTv != null), tv.size());
         if (liveTv != null || n > 0) addDock(liveTv, tv.subList(0, n), restore == null);
-        List<AppModel.Item> grid = new ArrayList<AppModel.Item>(inputs);
-        grid.addAll(shortcuts);
-        grid.addAll(tv.subList(n, tv.size()));
-        grid.addAll(nonTv);
+        List<AppModel.Item> grid = new ArrayList<AppModel.Item>();
+        List<String> order = Prefs.rowOrder(ctx);
+        for (int i = 0; i < order.size(); i++) {
+            String row = order.get(i);
+            if (row.equals(Prefs.ROW_SHORTCUTS)) grid.addAll(shortcuts);
+            else if (row.equals(Prefs.ROW_INPUTS)) grid.addAll(inputs);
+            else if (row.equals(Prefs.ROW_NONTV)) grid.addAll(nonTv);
+            else grid.addAll(tv.subList(n, tv.size()));
+        }
         if (!grid.isEmpty()) addTileGrid(grid);
     }
 

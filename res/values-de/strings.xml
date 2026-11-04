@@ -61,7 +61,7 @@
   <string name="opt_fire">Fire-TV-Systemsymbole</string>
   <string name="opt_fire_help">Amazon Home, Einstellungen und TV-Zustand nutzen die Symbole von Fire OS und seinen Einstellungen, ausgelesen von diesem TV. Fehlt eines, bleibt das übliche Symbol.</string>
   <string name="opt_design">Design</string>
-  <string name="opt_design_help">Klassisch: die Bereiche, jeder unter seiner Überschrift. Dock: die ersten Ihrer TV-Apps in ihrer Sortierreihenfolge auf einem Band unten auf dem ersten Bildschirm, mit einem Leuchten in der Farbe der gewählten App, alles andere in einem Raster darunter, und Uhr und Einstellungen in einer Leiste oben.</string>
+  <string name="opt_design_help">Klassisch: die Bereiche, jeder unter seiner Überschrift. Dock: die ersten Ihrer TV-Apps in ihrer Sortierreihenfolge auf einem Band unten auf dem ersten Bildschirm, mit einem Leuchten in der Farbe der gewählten App, alles andere in einem Raster darunter in der unter Zeilenreihenfolge gewählten Reihenfolge, und Uhr und Einstellungen in einer Leiste oben.</string>
   <string name="opt_design_classic">Klassisch</string>
   <string name="opt_design_dock">Dock</string>
   <string name="opt_dock_size">Dockgröße</string>
@@ -718,6 +718,7 @@
   <string name="ro_top">Von oben nach unten</string>
   <string name="ro_reset">Auf Standard zurücksetzen</string>
   <string name="ro_reset_help">Fire-TV-Einstellungsverknüpfungen, Eingänge &amp; System, Nicht-TV-Anwendungen, dann TV-Anwendungen.</string>
+  <string name="ro_reset_help_dock">Eingänge &amp; System, Fire-TV-Einstellungsverknüpfungen, TV-Anwendungen, dann Nicht-TV-Anwendungen.</string>
   <string name="ro_in_bar">in der oberen Leiste</string>
   <string name="ro_hidden">ausgeblendet</string>
   <string name="ro_first">%1$s zuerst</string>
@@ -733,7 +734,8 @@
   <string name="tm_unpin">Lösen</string>
   <string name="tm_unpin_help">Zurück an ihren Platz in der Sortierung.</string>
   <string name="tm_move">Verschieben</string>
-  <string name="tm_move_help">Links und Rechts verschieben sie um einen Platz, Oben und Unten um eine Zeile. OK oder Zurück legt sie ab. Eine nicht angeheftete Kachel wird zuerst angeheftet.</string>
+  <string name="tm_move_help">Links und Rechts verschieben sie um einen Platz, Oben und Unten um eine Zeile. OK oder Zurück legt sie ab. Sobald sie sich bewegt, wird sie angeheftet, ebenso die Kacheln vor ihr und die, an denen sie vorbeizieht, damit sie ihren Platz behalten.</string>
+  <string name="tm_move_help_dock">Das Dock enthält die ersten TV-Apps, daher landet eine TV-App, die ganz nach vorn geschoben wird, im Dock.</string>
   <string name="tm_hide">Ausblenden</string>
   <string name="tm_hide_help">Nur dieser Launcher zeichnet sie nicht mehr; nichts wird deaktiviert oder deinstalliert. Ausgeblendete Kacheln stehen unter Einstellungen → Startbildschirm.</string>
   <string name="tm_moving">%1$s wird verschoben: Links und Rechts verschieben, OK oder Zurück legt ab.</string>

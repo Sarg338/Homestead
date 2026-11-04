@@ -1278,7 +1278,7 @@ public class HomeGrid implements SettingsPanel.Host {
         if (liveTv != null) {
             View cell = buildCard(liveTv);
             if (topTile == null) topTile = cell;
-            stopAt(cell, true, apps.isEmpty());
+            dockCellKeys(cell, true, apps.isEmpty());
             row.addView(cell, new LinearLayout.LayoutParams(featuredW, h));
             dockKeys.add(liveTv.key());
         }
@@ -1286,7 +1286,7 @@ public class HomeGrid implements SettingsPanel.Host {
             View cell = buildTile(apps.get(i), true);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(normalW, h);
             if (i > 0 || liveTv != null) lp.leftMargin = dp(GAP_DP);
-            stopAt(cell, i == 0 && liveTv == null, i == apps.size() - 1);
+            dockCellKeys(cell, i == 0 && liveTv == null, i == apps.size() - 1);
             row.addView(cell, lp);
             dockKeys.add(apps.get(i).key());
         }
@@ -2104,6 +2104,44 @@ public class HomeGrid implements SettingsPanel.Host {
                         || (last && code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT);
             }
         });
+    }
+
+    /**
+     * A dock tile's keys: Left and Right stop at the band's ends, as stopAt() does, and Up
+     * goes to the nearest pill in the top bar. The focus search only found the bar from the
+     * tiles under the pills, so Up from the left of the dock went nowhere.
+     */
+    private void dockCellKeys(View cell, final boolean first, final boolean last) {
+        cell.setOnKeyListener(new View.OnKeyListener() {
+            public boolean onKey(View v, int code, android.view.KeyEvent e) {
+                if ((first && code == android.view.KeyEvent.KEYCODE_DPAD_LEFT)
+                        || (last && code == android.view.KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                    return true;
+                }
+                if (code != android.view.KeyEvent.KEYCODE_DPAD_UP
+                        || e.getAction() != android.view.KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                View pill = nearestPill(v);
+                return pill != null && pill.requestFocus();
+            }
+        });
+    }
+
+    /** The shown top bar pill closest to the view across the screen; null without a bar. */
+    private View nearestPill(View from) {
+        int[] at = new int[2];
+        from.getLocationOnScreen(at);
+        int x = at[0] + from.getWidth() / 2;
+        View best = null;
+        int bestD = Integer.MAX_VALUE;
+        for (View p : pillsByKey.values()) {
+            if (!p.isShown() || !p.isFocusable()) continue;
+            p.getLocationOnScreen(at);
+            int d = Math.abs(at[0] + p.getWidth() / 2 - x);
+            if (d < bestD) { bestD = d; best = p; }
+        }
+        return best;
     }
 
     /** Swallow the given D-pad keys on a cell, for the bar's edges and its Up. */

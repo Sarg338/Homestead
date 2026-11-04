@@ -77,11 +77,8 @@ public class HomeGrid implements SettingsPanel.Host {
     private static final int HEADER_BOTTOM_DP = 12;
     private static final float FOCUS_SCALE = 1.10f;
     private static final long FOCUS_MS = 140L;
-    /** The name label under a focused banner. */
-    private static final int NAME_H_DP = 20;
-    private static final String NAME_TAG = "name";
     /** Below the last row: room for a focused tile's growth and its name, clear of the screen edge. */
-    private static final int BOTTOM_DP = MARGIN_DP + NAME_H_DP + 12;
+    private static final int BOTTOM_DP = MARGIN_DP + 32;
 
     // The dock design (PR #27): the first TV apps on a translucent band at the bottom of the
     // first screen, one grid below it, a glow in the focused banner's colour, a springier focus.
@@ -139,8 +136,14 @@ public class HomeGrid implements SettingsPanel.Host {
     private final List<HorizontalScrollView> rows = new ArrayList<HorizontalScrollView>();
     private View focusedCell;
     private String focusedKey;
-    /** The grid row lifted so its focused tile's name label draws over the row below. */
-    private View raisedRow;
+    /**
+     * The title line that names a focused banner (which has no name on it): the heading line
+     * of its row in Classic, by tile key, or the top line (topTitle, next to the clock) while
+     * that heading is scrolled out of view; the top line in Dock, for the grid under the dock
+     * (the dock's own title line names the dock's tiles). shownTitle is the one in use.
+     */
+    private final Map<String, TextView> titleSlots = new HashMap<String, TextView>();
+    private TextView headerName, topTitle, shownTitle;
     /** The Live TV first tile, or null when that layout is not in use. */
     private View topTile;
     /** The tile picked up with Move in its menu (its key); the D-pad shifts it. Null: none. */
@@ -293,6 +296,12 @@ public class HomeGrid implements SettingsPanel.Host {
                 if (dock && r.top >= getScrollY() && r.bottom <= getScrollY() + getHeight()) return 0;
                 return super.computeScrollDeltaToGetChildRectOnScreen(r);
             }
+
+            // A scroll can take the focused banner's heading away or bring it back.
+            @Override protected void onScrollChanged(int l, int t, int ol, int ot) {
+                super.onScrollChanged(l, t, ol, ot);
+                if (focusedCell != null && focusedCell.hasFocus()) placeTitle();
+            }
         };
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setClipChildren(false);
@@ -431,9 +440,14 @@ public class HomeGrid implements SettingsPanel.Host {
         paintText(greet);
         paintText(date);
         paintText(dateText);
+        if (topTitle != null && topTitle == barSpacer) paintText(topTitle);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
             if (v instanceof TextView) paintText((TextView) v);
+            if (HEAD_TAG.equals(v.getTag())) {
+                ViewGroup line = (ViewGroup) v;
+                for (int j = 0; j < line.getChildCount(); j++) paintText((TextView) line.getChildAt(j));
+            }
         }
         // The ring and the outline are per look, so every cell is repainted.
         for (View cell : cellsByKey.values()) style(cell, cell == focusedCell);
@@ -759,7 +773,7 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /**
-     * Scroll so the tile is on screen, with its name label, once a rebuild has been laid out
+     * Scroll so the tile is on screen, with its focus ring, once a rebuild has been laid out
      * and the old scroll offsets put back (after both of applyScroll's posts).
      */
     private void reveal(final String key) {
@@ -772,7 +786,7 @@ public class HomeGrid implements SettingsPanel.Host {
                         revealInDock(cell);
                         if (dock && dockKeys.contains(key)) return;
                         cell.requestRectangleOnScreen(new android.graphics.Rect(0, 0,
-                                cell.getWidth(), cell.getHeight() + dp(NAME_H_DP + 8)));
+                                cell.getWidth(), cell.getHeight() + dp(8)));
                     }
                 });
             }
@@ -1058,7 +1072,9 @@ public class HomeGrid implements SettingsPanel.Host {
         rowHeaders.clear();
         rows.clear();
         focusedCell = null;
-        raisedRow = null;
+        titleSlots.clear();
+        headerName = null;
+        shownTitle = null;
         topTile = null;
         restoreSlot = null;
 
@@ -1081,7 +1097,9 @@ public class HomeGrid implements SettingsPanel.Host {
         rowHeaders.clear();
         rows.clear();
         focusedCell = null;
-        raisedRow = null;
+        titleSlots.clear();
+        headerName = null;
+        shownTitle = null;
         restoreSlot = null;
 
         List<AppModel.Item> inputs = new ArrayList<AppModel.Item>();
@@ -1283,7 +1301,7 @@ public class HomeGrid implements SettingsPanel.Host {
             dockKeys.add(liveTv.key());
         }
         for (int i = 0; i < apps.size(); i++) {
-            View cell = buildTile(apps.get(i), true);
+            View cell = buildTile(apps.get(i));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(normalW, h);
             if (i > 0 || liveTv != null) lp.leftMargin = dp(GAP_DP);
             dockCellKeys(cell, i == 0 && liveTv == null, i == apps.size() - 1);
@@ -1414,17 +1432,46 @@ public class HomeGrid implements SettingsPanel.Host {
         barShown = bar;
         boolean showClock = Prefs.clockMode(ctx) != Prefs.CLOCK_OFF;
 
-        View spacer = new View(ctx);
+        // With the bar, the space between the clock and the pills is the top title line.
+        TextView spacer = new TextView(ctx);
+        spacer.setTextSize(TypedValue.COMPLEX_UNIT_SP, HEADER_SP);
+        spacer.setSingleLine(true);
+        spacer.setEllipsize(TextUtils.TruncateAt.END);
+        spacer.setGravity(Gravity.CENTER);
+        spacer.setAlpha(0.8f);
+        paintText(spacer);
         barSpacer = spacer;
+        topTitle = spacer;
         barRule = null;
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(0, 1, 1f);
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        slp.leftMargin = dp(16);
+        slp.rightMargin = dp(16);
 
         if (!bar) {
-            // The plain layout: the clock alone at the right.
+            // The plain layout: the clock alone at the right. Nothing backs it there, and the
+            // page scrolls under it, so the top title is a dark chip beside the clock, shown
+            // only while it names something.
             clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
             clock.setTypeface(Typeface.DEFAULT);
             dateText.setVisibility(View.GONE);
-            topBar.addView(spacer, slp);
+            TextView chip = new TextView(ctx);
+            chip.setTextColor(Color.WHITE);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            chip.setSingleLine(true);
+            chip.setEllipsize(TextUtils.TruncateAt.END);
+            chip.setPadding(dp(12), dp(4), dp(12), dp(4));
+            GradientDrawable pill = new GradientDrawable();
+            pill.setCornerRadius(dp(14));
+            pill.setColor(0xD9101820);
+            chip.setBackground(pill);
+            chip.setVisibility(View.GONE);
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            clp.rightMargin = dp(16);
+            topTitle = chip;
+            topBar.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+            topBar.addView(chip, clp);
             topBar.addView(clock);
             updateClock();
             // Where the page starts is up to updateHead: below the greeting and date, or at the top.
@@ -1795,18 +1842,38 @@ public class HomeGrid implements SettingsPanel.Host {
         });
     }
 
-    private TextView addHeader(String text, boolean first) {
+    /** A row's heading line: its name, and at the right the focused banner's name. */
+    private static final String HEAD_TAG = "head";
+
+    private View addHeader(String text, boolean first) {
+        LinearLayout line = new LinearLayout(ctx);
+        line.setOrientation(LinearLayout.HORIZONTAL);
+        line.setGravity(Gravity.BOTTOM);
+        line.setTag(HEAD_TAG);
         TextView h = new TextView(ctx);
         h.setText(text);
         paintText(h);
         h.setTextSize(TypedValue.COMPLEX_UNIT_SP, HEADER_SP);
         h.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        line.addView(h);
+        TextView name = new TextView(ctx);
+        paintText(name);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, HEADER_SP);
+        name.setSingleLine(true);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        name.setGravity(Gravity.END);
+        name.setAlpha(0.75f);
+        LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        nlp.leftMargin = dp(24);
+        line.addView(name, nlp);
+        headerName = name;
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = first ? 0 : dp(HEADER_TOP_DP);
         lp.bottomMargin = dp(HEADER_BOTTOM_DP);
-        column.addView(h, lp);
-        return h;
+        column.addView(line, lp);
+        return line;
     }
 
     /** Cards, or banner tiles made from the icons when "Wide tiles" is on (AppModel builds them). */
@@ -1877,7 +1944,9 @@ public class HomeGrid implements SettingsPanel.Host {
             }
             // The dock design's one grid mixes banners with the cards of inputs and the like.
             AppModel.Item it = items.get(i);
-            View cell = it.banner != null ? buildTile(it, false) : buildCard(it);
+            View cell = it.banner != null ? buildTile(it) : buildCard(it);
+            TextView slot = dock ? topTitle : headerName;
+            if (it.banner != null && slot != null) titleSlots.put(it.key(), slot);
             boolean rowEnd = i % AppModel.columns(ctx) == AppModel.columns(ctx) - 1
                     || i == items.size() - 1;
             stopAt(cell, i % AppModel.columns(ctx) == 0, rowEnd);
@@ -1907,6 +1976,7 @@ public class HomeGrid implements SettingsPanel.Host {
                 if (has) {
                     focusedCell = v;
                     focusedKey = it.key();
+                    placeTitle();
                     style(v, true, true);
                     if (v == topTile) keepAtTop();
                     if (dock) {
@@ -1920,6 +1990,12 @@ public class HomeGrid implements SettingsPanel.Host {
                     }
                 } else {
                     style(v, false, true);
+                    // Focus went to something that is not a tile (a pill, a page): no name.
+                    v.post(new Runnable() {
+                        public void run() {
+                            if (focusedCell == v && !v.hasFocus()) showTitle(null, null);
+                        }
+                    });
                 }
             }
         });
@@ -2003,32 +2079,6 @@ public class HomeGrid implements SettingsPanel.Host {
             f.setScaleX(scale);
             f.setScaleY(scale);
         }
-        // The label hangs over the next grid row, which is drawn later, so the focused tile's
-        // row is lifted above it. Only one row is ever lifted, and only a focus gain moves
-        // the lift: a loss can't tell whether focus is staying in the row.
-        View row = (View) f.getParent();
-        if (focused && raisedRow != null && raisedRow != row) {
-            raisedRow.setTranslationZ(0f);
-            raisedRow = null;
-        }
-        View name = f.findViewWithTag(NAME_TAG);
-        if (name != null) {
-            name.setVisibility(focused ? View.VISIBLE : View.INVISIBLE);
-            if (focused && row != null) {
-                row.setTranslationZ(dp(8));
-                raisedRow = row;
-            }
-            // Scroll far enough to show the label too, not only the banner.
-            if (focused && animate) {
-                final FrameLayout cell = f;
-                cell.post(new Runnable() {
-                    public void run() {
-                        cell.requestRectangleOnScreen(new android.graphics.Rect(0, 0,
-                                cell.getWidth(), cell.getHeight() + dp(NAME_H_DP + 8)));
-                    }
-                });
-            }
-        }
     }
 
     /**
@@ -2059,21 +2109,6 @@ public class HomeGrid implements SettingsPanel.Host {
                     .setDuration(focused ? 220L : 160L)
                     .setInterpolator(focused ? DOCK_IN : DOCK_OUT).start();
         }
-        // A grid tile's name hangs below it, as in Classic; the row is lifted so the name
-        // draws over the next row. Dock tiles have no label: the title line names them.
-        View row = (View) f.getParent();
-        if (focused && raisedRow != null && raisedRow != row) {
-            raisedRow.setTranslationZ(0f);
-            raisedRow = null;
-        }
-        final View name = f.findViewWithTag(NAME_TAG);
-        if (name != null) {
-            name.setVisibility(focused ? View.VISIBLE : View.INVISIBLE);
-            if (focused && row != null) {
-                row.setTranslationZ(dp(8));
-                raisedRow = row;
-            }
-        }
         // Dock tiles are kept in view by keepAtTop() and revealInDock(); scrolling for them
         // here too made the page jump on every move along the dock.
         boolean inDock = f.getParent() != null
@@ -2083,7 +2118,7 @@ public class HomeGrid implements SettingsPanel.Host {
                 public void run() {
                     int gx = Math.round(f.getWidth() * (DOCK_FOCUS_SCALE - 1f) / 2f) + dp(4);
                     int gy = Math.round(f.getHeight() * (DOCK_FOCUS_SCALE - 1f) / 2f) + dp(4);
-                    int below = dp(DOCK_LIFT_DP) + (name != null ? dp(NAME_H_DP + 8) : 0);
+                    int below = dp(DOCK_LIFT_DP);
                     f.requestRectangleOnScreen(new android.graphics.Rect(-gx, -gy,
                             f.getWidth() + gx, f.getHeight() + gy + below));
                 }
@@ -2144,6 +2179,37 @@ public class HomeGrid implements SettingsPanel.Host {
         return best;
     }
 
+    /**
+     * Name the focused banner on its title line: its row's heading while that is on screen,
+     * else the top line. Called on focus and on every scroll, as a scroll can take the
+     * heading away or bring it back.
+     */
+    private void placeTitle() {
+        AppModel.Item it = focusedKey == null ? null : itemFor(focusedKey);
+        TextView slot = it == null ? null : titleSlots.get(focusedKey);
+        if (slot != null && slot != topTitle && !onScreen((View) slot.getParent())) slot = topTitle;
+        showTitle(slot, it == null ? null : it.label);
+    }
+
+    /** A heading line (a child of the column) is wholly inside the scrolled view. */
+    private boolean onScreen(View line) {
+        int top = line.getTop() - scroll.getScrollY();
+        return top >= 0 && top + line.getHeight() <= scroll.getHeight();
+    }
+
+    /** Name a focused banner on its title line, and clear the line that named the last one. */
+    private void showTitle(TextView slot, String name) {
+        if (shownTitle != null && shownTitle != slot) shownTitle.setText("");
+        if (slot != null) slot.setText(name);
+        shownTitle = slot;
+        // The plain layout's chip shows only while it names something.
+        if (topTitle != null && topTitle != barSpacer) {
+            topTitle.setVisibility(topTitle.length() > 0 ? View.VISIBLE : View.GONE);
+        }
+        // A grid tile named in the bar: the dock's own line would name another app.
+        if (dock && slot == topTitle && dockTitle != null) dockTitle.setText("");
+    }
+
     /** Swallow the given D-pad keys on a cell, for the bar's edges and its Up. */
     private static void stopKeys(View cell, final int... codes) {
         cell.setOnKeyListener(new View.OnKeyListener() {
@@ -2155,39 +2221,14 @@ public class HomeGrid implements SettingsPanel.Host {
     }
 
     /** A TV app: full-bleed banner, already rounded in the bitmap. */
-    private View buildTile(AppModel.Item it) { return buildTile(it, false); }
-
-    /** @param inDock on the dock's band, where the title line names the focused tile. */
-    private View buildTile(AppModel.Item it, boolean inDock) {
+    private View buildTile(AppModel.Item it) {
         FrameLayout cell = newCell(it);
         ImageView img = new ImageView(ctx);
         img.setScaleType(ImageView.ScaleType.FIT_XY);
         img.setImageBitmap(it.banner);
         cell.addView(img, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        if (inDock) return cell;
-
-        // The app's name, shown while focused. It hangs below the banner into the gap and
-        // over the row beneath (the focused cell draws on top), so rows keep their height.
-        TextView name = new TextView(ctx);
-        name.setTag(NAME_TAG);
-        name.setText(it.label);
-        name.setTextColor(Color.WHITE);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        name.setSingleLine(true);
-        name.setEllipsize(TextUtils.TruncateAt.END);
-        name.setGravity(Gravity.CENTER);
-        name.setPadding(dp(8), 0, dp(8), 0);
-        GradientDrawable pill = new GradientDrawable();
-        pill.setCornerRadius(dp(10));
-        pill.setColor(0xD9101820);
-        name.setBackground(pill);
-        name.setVisibility(View.INVISIBLE);
-        FrameLayout.LayoutParams nlp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(NAME_H_DP),
-                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        name.setTranslationY(dp(NAME_H_DP + 4));
-        cell.addView(name, nlp);
+        // A banner has no name of its own; the title line names it while it is focused.
         return cell;
     }
 

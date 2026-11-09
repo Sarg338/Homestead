@@ -736,6 +736,7 @@
   <string name="tm_move">Verschieben</string>
   <string name="tm_move_help">Links und Rechts verschieben sie um einen Platz, Oben und Unten um eine Zeile. OK oder Zurück legt sie ab. Sobald sie sich bewegt, wird sie angeheftet, ebenso die Kacheln vor ihr und die, an denen sie vorbeizieht, damit sie ihren Platz behalten.</string>
   <string name="tm_move_help_dock">Das Dock enthält die ersten TV-Apps, daher landet eine TV-App, die ganz nach vorn geschoben wird, im Dock.</string>
+  <string name="tm_move_help_dock_all">Das Dock enthält die ersten Apps, daher landet eine App, die ganz nach vorn geschoben wird, im Dock.</string>
   <string name="tm_hide">Ausblenden</string>
   <string name="tm_hide_help">Nur dieser Launcher zeichnet sie nicht mehr; nichts wird deaktiviert oder deinstalliert. Ausgeblendete Kacheln stehen unter Einstellungen → Startbildschirm.</string>
   <string name="tm_moving">%1$s wird verschoben: Links und Rechts verschieben, OK oder Zurück legt ab.</string>

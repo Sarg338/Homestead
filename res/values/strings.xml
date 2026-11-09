@@ -736,6 +736,7 @@
   <string name="tm_move">Move</string>
   <string name="tm_move_help">Left and Right move it one place, Up and Down one line. OK or Back puts it down. Once it moves, it is pinned, and so are the tiles before it and the ones it passes, so they keep their places.</string>
   <string name="tm_move_help_dock">The dock holds the first TV apps, so moving a TV app to the front puts it on the dock.</string>
+  <string name="tm_move_help_dock_all">The dock holds the first apps, so moving an app to the front puts it on the dock.</string>
   <string name="tm_hide">Hide</string>
   <string name="tm_hide_help">Only this launcher stops drawing it; nothing is disabled or uninstalled. Hidden tiles are listed under Settings → Home screen.</string>
   <string name="tm_moving">Moving %1$s: Left and Right move it, OK or Back puts it down.</string>

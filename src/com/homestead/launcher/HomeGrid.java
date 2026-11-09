@@ -656,8 +656,10 @@ public class HomeGrid implements SettingsPanel.Host {
                 startMoving(key, it.label);
             }
         }).setHelp(ctx.getString(R.string.tm_move_help)
-                // The dock is the front of the TV apps, so moving one there puts it on the dock.
-                + (dock && rowOf(it) == 3 ? " " + ctx.getString(R.string.tm_move_help_dock) : ""));
+                // The dock is the front of this row (the TV apps, or every app with Apps in one
+                // row), so moving a tile there puts it on the dock.
+                + (dock && rowOf(it) == 3 ? " " + ctx.getString(Prefs.appsOneRow(ctx)
+                        ? R.string.tm_move_help_dock_all : R.string.tm_move_help_dock) : ""));
         if (hideable(it)) {
             p.addRow(ctx.getString(R.string.tm_hide), "", new Runnable() {
                 public void run() {

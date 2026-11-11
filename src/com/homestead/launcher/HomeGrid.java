@@ -395,6 +395,9 @@ public class HomeGrid implements SettingsPanel.Host {
      * photo is decoded off the main thread, and this runs again once it has loaded.
      */
     public void applyBackground() {
+        BingWallpaper.refresh(ctx, new Runnable() {
+            public void run() { applyBackground(); }
+        });
         Backgrounds.Preset p = Backgrounds.current(ctx);
         Bitmap photo = null;
         String state = p.name;

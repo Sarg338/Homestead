@@ -87,6 +87,8 @@ final class Backgrounds {
 
     /** The setting value for the photo. */
     static final String PHOTO_ID = "photo";
+    /** Bing's daily image; its cache is separate from the photo the user supplied. */
+    static final String BING_ID = BingWallpaper.ID;
     /** The photo's text and ring colours, and its look until the photo has loaded. */
     static final Preset PHOTO_LOOK =
             new Preset(PHOTO_ID, "Photo", 0xFF000000, 0xFF000000, 0xFFFFFFFF, 0xFFE6E6E6, EDGE);
@@ -132,6 +134,7 @@ final class Backgrounds {
 
     static Preset current(Context c) {
         String id = currentId(c);
+        if (BING_ID.equals(id)) return BingWallpaper.file(c) != null ? PHOTO_LOOK : PRESETS[0];
         if (PHOTO_ID.equals(id) || isLandscape(id)) return PHOTO_LOOK;
         for (int i = 0; i < PRESETS.length; i++) {
             if (PRESETS[i].id.equals(id)) return PRESETS[i];
@@ -140,7 +143,10 @@ final class Backgrounds {
     }
 
     /** The photo sent from a computer or picked on the TV is the chosen look. */
-    static boolean photoChosen(Context c) { return PHOTO_ID.equals(currentId(c)); }
+    static boolean photoChosen(Context c) {
+        String id = currentId(c);
+        return PHOTO_ID.equals(id) || (BING_ID.equals(id) && BingWallpaper.file(c) != null);
+    }
 
     static boolean isLandscape(String id) { return id != null && id.startsWith(LANDSCAPE_PREFIX); }
 
@@ -194,6 +200,7 @@ final class Backgrounds {
     /** The value shown on the Settings row. */
     static String label(Context c) {
         String id = currentId(c);
+        if (BING_ID.equals(id)) return c.getString(R.string.bg_bing);
         if (isLandscape(id)) return landscapeName(c, id);
         if (!photoChosen(c)) return name(c, current(c));
         return c.getString(photoFile(c) != null ? R.string.bg_photo : R.string.bg_photo_none);
@@ -211,6 +218,7 @@ final class Backgrounds {
 
     /** The photo received through BackgroundProvider, or null. Private storage only. */
     static File photoFile(Context c) {
+        if (BING_ID.equals(currentId(c))) return BingWallpaper.file(c);
         try {
             File own = BackgroundProvider.photoFile(c);
             if (own.isFile() && own.length() > 0) return own;

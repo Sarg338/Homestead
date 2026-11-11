@@ -480,6 +480,9 @@
   <string name="bg_list_help">Eines auswählen, um es zu verwenden. Der Startbildschirm neben dieser Seite ändert sich sofort.</string>
   <string name="bg_landscapes">Landschaften</string>
   <string name="bg_landscapes_help">Macht diese Landschaft zum Hintergrund. Ein gesendetes Foto bleibt erhalten; wählen Sie „Foto“, um dorthin zurückzukehren. Das Abdunkeln oben gilt auch hier.</string>
+  <string name="bg_daily">Täglicher Online-Hintergrund</string>
+  <string name="bg_bing">Bing-Bild des Tages</string>
+  <string name="bg_bing_help">Lädt beim Öffnen von Homestead das aktuelle Bing-Bild über HTTPS. Nach Erfolg wartet es bis morgen; nach einem Fehler versucht es es später erneut. Das letzte gültige Bild bleibt offline verfügbar; Ihr Foto bleibt separat erhalten.</string>
   <string name="ls_drawn_dusk">Berge im Abendlicht</string>
   <string name="ls_drawn_lake">Bergsee</string>
   <string name="ls_drawn_forest">Wald im Nebel</string>

@@ -597,7 +597,8 @@ public final class SettingsPanel {
                 for (int i = 0; i < rows.size(); i++) {
                     boolean on = ids.get(i).equals(now);
                     String v = on ? c.getString(R.string.bg_in_use) : "";
-                    if (noFile && ids.get(i).equals(Backgrounds.PHOTO_ID)) {
+                    if (noFile && (ids.get(i).equals(Backgrounds.PHOTO_ID)
+                            || ids.get(i).equals(Backgrounds.BING_ID))) {
                         v = c.getString(on ? R.string.bg_in_use_no_file : R.string.bg_no_file);
                     }
                     rows.get(i).setValue(v);
@@ -668,6 +669,27 @@ public final class SettingsPanel {
             rows.add(r);
             ids.add(Backgrounds.landscapeId(file));
         }
+
+        p.addHeader(c.getString(R.string.bg_daily));
+        final Panel.Row bing = p.addRow(c.getString(R.string.bg_bing), "", null);
+        bing.setHelp(c.getString(R.string.bg_bing_help));
+        bing.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Backgrounds.choose(c, Backgrounds.BING_ID);
+                mark.run();
+                host.rebuildGrid();
+                changed.run();
+                BingWallpaper.refresh(c, new Runnable() {
+                    public void run() {
+                        mark.run();
+                        host.rebuildGrid();
+                        changed.run();
+                    }
+                });
+            }
+        });
+        rows.add(bing);
+        ids.add(Backgrounds.BING_ID);
         mark.run();
 
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {

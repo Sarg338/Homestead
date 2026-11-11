@@ -480,6 +480,9 @@
   <string name="bg_list_help">Select one to use it. The home screen beside this page changes straight away.</string>
   <string name="bg_landscapes">Landscapes</string>
   <string name="bg_landscapes_help">Makes this landscape the background. A photo you sent is kept; choose \"Photo\" to go back to it. The dimming above applies here too.</string>
+  <string name="bg_daily">Daily online wallpaper</string>
+  <string name="bg_bing">Bing image of the day</string>
+  <string name="bg_bing_help">Downloads Bing\'s current image over HTTPS when Homestead opens. A successful download waits until tomorrow; a failure retries later. The last good image stays available offline; your Photo is kept separately.</string>
   <string name="ls_drawn_dusk">Mountains at dusk</string>
   <string name="ls_drawn_lake">Mountain lake</string>
   <string name="ls_drawn_forest">Forest in the mist</string>

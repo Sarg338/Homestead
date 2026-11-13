@@ -597,12 +597,20 @@ public final class SettingsPanel {
                 for (int i = 0; i < rows.size(); i++) {
                     boolean on = ids.get(i).equals(now);
                     String v = on ? c.getString(R.string.bg_in_use) : "";
-                    if (noFile && (ids.get(i).equals(Backgrounds.PHOTO_ID)
-                            || ids.get(i).equals(Backgrounds.BING_ID))) {
+                    boolean good = on;
+                    if (noFile && ids.get(i).equals(Backgrounds.PHOTO_ID)) {
                         v = c.getString(on ? R.string.bg_in_use_no_file : R.string.bg_no_file);
                     }
+                    // Bing's row speaks for Bing's own cache, and only while it is the choice.
+                    if (on && ids.get(i).equals(Backgrounds.BING_ID)) {
+                        if (BingWallpaper.busy()) v = c.getString(R.string.bg_bing_loading);
+                        else if (BingWallpaper.file(c) == null) {
+                            v = c.getString(R.string.bg_bing_failed);
+                            good = false;
+                        }
+                    }
                     rows.get(i).setValue(v);
-                    rows.get(i).setValueColor(on ? IN_USE : 0xFF8FA3B8);
+                    rows.get(i).setValueColor(good ? IN_USE : 0xFF8FA3B8);
                 }
             }
         };
@@ -676,16 +684,18 @@ public final class SettingsPanel {
         bing.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Backgrounds.choose(c, Backgrounds.BING_ID);
-                mark.run();
-                host.rebuildGrid();
-                changed.run();
-                BingWallpaper.refresh(c, new Runnable() {
+                // Selecting the row is asking for the image now, so a failed attempt within
+                // the last hour does not hold this one off. The grid asks again as it
+                // rebuilds, and repaints itself when the image lands.
+                BingWallpaper.refresh(c, true, new Runnable() {
                     public void run() {
                         mark.run();
-                        host.rebuildGrid();
                         changed.run();
                     }
                 });
+                mark.run();
+                host.rebuildGrid();
+                changed.run();
             }
         });
         rows.add(bing);

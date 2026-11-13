@@ -478,7 +478,9 @@
   <string name="bg_landscapes_help">Met ce paysage en fond d\'écran. Une photo envoyée est conservée ; choisissez « Photo » pour y revenir. L\'assombrissement ci-dessus s\'y applique aussi.</string>
   <string name="bg_daily">Fond d\'écran quotidien en ligne</string>
   <string name="bg_bing">Image du jour Bing</string>
-  <string name="bg_bing_help">Télécharge l\'image Bing du jour en HTTPS à l\'ouverture de Homestead. Après un succès, attend demain ; après un échec, réessaie plus tard. La dernière image valide reste disponible hors ligne ; votre photo est conservée séparément.</string>
+  <string name="bg_bing_help">Affiche l\'image du jour de Bing. Homestead en cherche une nouvelle à son ouverture, en HTTPS, et garde la dernière si la TV est hors ligne. Votre photo n\'est pas modifiée.</string>
+  <string name="bg_bing_loading">téléchargement…</string>
+  <string name="bg_bing_failed">non téléchargée</string>
   <string name="ls_drawn_dusk">Montagnes au crépuscule</string>
   <string name="ls_drawn_lake">Lac de montagne</string>
   <string name="ls_drawn_forest">Forêt dans la brume</string>

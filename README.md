@@ -33,8 +33,8 @@ Both pictures are from the same TV, a few minutes apart.
 - **Pick a background** in Settings: the blue gradient, a few darker ones, plain black for
   OLED screens and night viewing, eight built-in **landscapes** (four drawn, four photos),
   [your own photo](#your-own-background-photo), or Bing's image of the day. Bing is optional,
-  checks after Homestead opens, waits until the next local day after a successful download, and
-  keeps its last downloaded image offline.
+  checks when Homestead opens, then waits until Bing's next image is due, and keeps its last
+  downloaded image offline.
 - **Optional extras** on the Settings → Home screen page, all off until you switch them on: a
   greeting and the date at the top, non-TV apps as wide tiles, all apps in one row instead
   of TV apps and the rest apart, and Fire TV's own icons for Amazon Home, Settings and TV

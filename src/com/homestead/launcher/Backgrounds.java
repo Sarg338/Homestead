@@ -143,9 +143,16 @@ final class Backgrounds {
     }
 
     /** The photo sent from a computer or picked on the TV is the chosen look. */
-    static boolean photoChosen(Context c) {
-        String id = currentId(c);
-        return PHOTO_ID.equals(id) || (BING_ID.equals(id) && BingWallpaper.file(c) != null);
+    static boolean photoChosen(Context c) { return PHOTO_ID.equals(currentId(c)); }
+
+    /** A picture read from a file is the chosen look: the photo, or Bing's image once it is here. */
+    static boolean pictureChosen(Context c) {
+        return photoChosen(c) || (BING_ID.equals(currentId(c)) && BingWallpaper.file(c) != null);
+    }
+
+    /** The file behind the chosen look, or null: Bing's cache when Bing is chosen, else the photo. */
+    static File pictureFile(Context c) {
+        return BING_ID.equals(currentId(c)) ? BingWallpaper.file(c) : photoFile(c);
     }
 
     static boolean isLandscape(String id) { return id != null && id.startsWith(LANDSCAPE_PREFIX); }
@@ -218,7 +225,6 @@ final class Backgrounds {
 
     /** The photo received through BackgroundProvider, or null. Private storage only. */
     static File photoFile(Context c) {
-        if (BING_ID.equals(currentId(c))) return BingWallpaper.file(c);
         try {
             File own = BackgroundProvider.photoFile(c);
             if (own.isFile() && own.length() > 0) return own;

@@ -395,7 +395,7 @@ public class HomeGrid implements SettingsPanel.Host {
      * photo is decoded off the main thread, and this runs again once it has loaded.
      */
     public void applyBackground() {
-        BingWallpaper.refresh(ctx, new Runnable() {
+        BingWallpaper.refresh(ctx, false, new Runnable() {
             public void run() { applyBackground(); }
         });
         Backgrounds.Preset p = Backgrounds.current(ctx);
@@ -415,10 +415,10 @@ public class HomeGrid implements SettingsPanel.Host {
                 key = "loading";
             }
             state = "photo|" + (photo == null ? "none" : key) + "|" + Backgrounds.dimAlpha(ctx);
-        } else if (!Backgrounds.photoChosen(ctx)) {
+        } else if (!Backgrounds.pictureChosen(ctx)) {
             Backgrounds.drop();
         } else {
-            java.io.File f = Backgrounds.photoFile(ctx);
+            java.io.File f = Backgrounds.pictureFile(ctx);
             if (f == null) Backgrounds.drop();
             String key = Backgrounds.keyOf(f);
             photo = Backgrounds.photoFor(key);

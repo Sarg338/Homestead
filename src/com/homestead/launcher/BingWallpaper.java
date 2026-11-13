@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 /** Downloads Bing's current image into a separate private cache when the user chooses it. */
 final class BingWallpaper {
@@ -46,7 +47,14 @@ final class BingWallpaper {
     private static final String FILE = "bing-wallpaper.jpg";
     private static final int MAX_JSON = 256 * 1024;
     private static final int MAX_IMAGE = 16 * 1024 * 1024;
+    /** After a failure, and while Bing still offers the image already here. */
     private static final long RETRY_MS = 60L * 60L * 1000L;
+    /** Bing offers each image for a day, from the time its entry gives. */
+    private static final long DAY_MS = 24L * 60L * 60L * 1000L;
+    /** Past the changeover, so the check does not land just before it. */
+    private static final long MARGIN_MS = 5L * 60L * 1000L;
+    /** When the entry's time is no help, such as on a TV whose clock is wrong. */
+    private static final long FALLBACK_MS = 6L * 60L * 60L * 1000L;
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     // Accessed from the main thread: HomeGrid and settings both invoke refresh from there.
@@ -62,65 +70,100 @@ final class BingWallpaper {
         return f.isFile() && f.length() > 0 ? f : null;
     }
 
+    /** A check or a download is running. Main thread. */
+    static boolean busy() { return busy; }
+
     /**
-     * Fetch at most once on a local calendar day. A transient failure keeps yesterday's
-     * private cache on screen and is retried after an hour; no timer wakes the television.
+     * Ask Bing for its current image when one is due, and run onDone on the main thread when
+     * the answer is in, whether or not it brought a new image. Main thread.
+     *
+     * Bing changes its image at a fixed time of day (08:00 UTC for this market), not at the
+     * TV's midnight, so the next check is due a day after the time in the entry of the image
+     * held, not on the next local calendar day. Until then nothing is sent. If Bing still
+     * offers the same image when the check is due, it is asked again an hour later.
+     *
+     * A failure keeps the previous image on screen and is retried after an hour. force
+     * skips that wait, for when the user selects the row; it does not fetch again while the
+     * image held is still Bing's current one. No timer wakes the television.
      */
-    static void refresh(Context context, Runnable onReady) {
+    static void refresh(Context context, boolean force, Runnable onDone) {
         final Context c = context.getApplicationContext();
         if (!chosen(c)) return;
         if (busy) {
-            if (onReady != null) done.add(onReady);
+            if (onDone != null) done.add(onDone);
             return;
         }
         final SharedPreferences p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        final String today = day();
-        long now = System.currentTimeMillis();
-        if (today.equals(p.getString("day", "")) && file(c) != null) return;
-        if (now - p.getLong("attempt", 0L) < RETRY_MS) return;
-        if (onReady != null) done.add(onReady);
+        final long now = System.currentTimeMillis();
+        final boolean have = file(c) != null;
+        // A time further off than Bing keeps an image is a clock that was changed: check.
+        long next = p.getLong("next", 0L);
+        if (have && now < next && next - now <= DAY_MS + RETRY_MS) return;
+        if (!force && Math.abs(now - p.getLong("attempt", 0L)) < RETRY_MS) return;
+        if (onDone != null) done.add(onDone);
         busy = true;
         p.edit().putLong("attempt", now).apply();
+        final String held = p.getString("image", "");
         new Thread(new Runnable() {
             public void run() {
-                boolean ready = false;
-                String reason = null;
+                String result;
                 try {
                     JSONObject page = new JSONObject(new String(fetch(API, MAX_JSON, false), "UTF-8"));
                     JSONArray images = page.getJSONArray("images");
                     JSONObject image = images.getJSONObject(0);
                     if (!image.optBoolean("wp", false)) throw new IOException("Bing did not offer an image");
-                    URL imageUrl = new URL(new URL(API), image.getString("url"));
-                    byte[] bytes = fetch(imageUrl.toString(), MAX_IMAGE, true);
-                    verifyImage(bytes);
-                    replace(c, bytes);
-                    p.edit().putString("day", today).apply();
-                    ready = true;
+                    String path = image.getString("url");
+                    boolean same = have && path.equals(held);
+                    if (!same) {
+                        URL imageUrl = new URL(new URL(API), path);
+                        byte[] bytes = fetch(imageUrl.toString(), MAX_IMAGE, true);
+                        verifyImage(bytes);
+                        replace(c, bytes);
+                    }
+                    long after = System.currentTimeMillis();
+                    long due = startOf(image.optString("fullstartdate", "")) + DAY_MS + MARGIN_MS;
+                    if (due <= after || due - after > DAY_MS + RETRY_MS) {
+                        due = after + (same ? RETRY_MS : FALLBACK_MS);
+                    }
+                    // The wait after a failure is over: from here the due time decides.
+                    p.edit().putString("image", path).putLong("next", due).remove("attempt").apply();
+                    result = (same ? "no new image yet" : "new image cached") + ", next check "
+                            + utc("yyyy-MM-dd HH:mm").format(new Date(due)) + " UTC";
                 } catch (Throwable t) {
-                    reason = t instanceof IOException ? t.getMessage() : "could not read Bing's image";
+                    result = "kept previous image: "
+                            + (t instanceof IOException ? t.getMessage() : "could not read Bing's image");
                     Log.w(TAG, "Bing wallpaper not updated: " + t);
                 }
-                final boolean updated = ready;
-                final String error = reason;
+                final String outcome = result;
                 MAIN.post(new Runnable() {
                     public void run() {
                         busy = false;
-                        if (updated) {
-                            for (Runnable r : done) {
-                                try { r.run(); } catch (Throwable ignored) { }
-                            }
-                        }
+                        Log.i(TAG, "Bing wallpaper: " + outcome);
+                        // A copy: a callback may ask again, which adds to the list.
+                        List<Runnable> waiting = new ArrayList<Runnable>(done);
                         done.clear();
-                        if (updated) Log.i(TAG, "Bing wallpaper cached for " + today);
-                        else Log.i(TAG, "Bing wallpaper kept previous image: " + error);
+                        for (Runnable r : waiting) {
+                            try { r.run(); } catch (Throwable ignored) { }
+                        }
                     }
                 });
             }
         }, "homestead-bing-wallpaper").start();
     }
 
-    private static String day() {
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+    private static SimpleDateFormat utc(String pattern) {
+        SimpleDateFormat f = new SimpleDateFormat(pattern, Locale.US);
+        f.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return f;
+    }
+
+    /** When Bing started offering an image, from its entry ("202611130800", UTC); 0 if unreadable. */
+    private static long startOf(String fullStartDate) {
+        try {
+            return utc("yyyyMMddHHmm").parse(fullStartDate).getTime();
+        } catch (Throwable t) {
+            return 0L;
+        }
     }
 
     /** HTTPS to Bing only; image redirects are held to the same origin boundary. */
@@ -156,7 +199,7 @@ final class BingWallpaper {
                 if (image && (type == null || !type.toLowerCase(Locale.US).startsWith("image/"))) {
                     throw new IOException("Bing returned a page instead of an image");
                 }
-                if (connection.getContentLengthLong() > limit) throw new IOException("Bing image is too large");
+                if (connection.getContentLength() > limit) throw new IOException("Bing image is too large");
                 InputStream in = connection.getInputStream();
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 try {

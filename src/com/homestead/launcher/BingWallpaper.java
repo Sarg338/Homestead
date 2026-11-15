@@ -14,6 +14,7 @@ package com.homestead.launcher;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
@@ -58,13 +59,15 @@ final class BingWallpaper {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     /** Markets Bing provides regional daily images for; "" (the default) follows the TV. */
-    static final String[] MARKETS = {
-        "", "en-US", "en-GB", "en-CA", "fr-CA", "en-AU", "de-DE", "fr-FR",
+    private static final String[] MARKETS = {
+        "", "en-US", "en-GB", "en-CA", "fr-CA", "de-DE", "fr-FR",
         "it-IT", "es-ES", "ja-JP", "zh-CN", "pt-BR", "en-IN"
     };
 
     // Accessed from the main thread: HomeGrid and settings both invoke refresh from there.
     private static boolean busy;
+    private static boolean pendingForce;
+    private static String pendingMarket;
     private static final List<Runnable> done = new ArrayList<Runnable>();
 
     private BingWallpaper() { }
@@ -79,7 +82,7 @@ final class BingWallpaper {
     /** A check or a download is running. Main thread. */
     static boolean busy() { return busy; }
 
-    /** The next choice in the Settings cycle. */
+    /** The next choice in the Settings cycle; an unknown choice resets to the default. */
     static String nextMarket(Context c) {
         String cur = Prefs.bingMarket(c);
         for (int i = 0; i < MARKETS.length; i++) {
@@ -91,28 +94,27 @@ final class BingWallpaper {
     /** Market names shown in Settings. */
     static String marketLabel(Context c) {
         String m = Prefs.bingMarket(c);
-        if (m.isEmpty()) return c.getString(R.string.lang_tv);
-        if ("en-US".equals(m)) return "United States";
-        if ("en-GB".equals(m)) return "United Kingdom";
-        if ("en-CA".equals(m)) return "Canada (EN)";
-        if ("fr-CA".equals(m)) return "Canada (FR)";
-        if ("en-AU".equals(m)) return "Australia";
-        if ("de-DE".equals(m)) return "Deutschland";
-        if ("fr-FR".equals(m)) return "France";
-        if ("it-IT".equals(m)) return "Italia";
-        if ("es-ES".equals(m)) return "España";
-        if ("ja-JP".equals(m)) return "日本";
-        if ("zh-CN".equals(m)) return "中国";
-        if ("pt-BR".equals(m)) return "Brasil";
-        if ("en-IN".equals(m)) return "India";
+        if (m.isEmpty()) return c.getString(R.string.bg_bing_market_tv, market(c));
+        if ("en-US".equals(m)) return c.getString(R.string.bg_bing_mkt_us);
+        if ("en-GB".equals(m)) return c.getString(R.string.bg_bing_mkt_gb);
+        if ("en-CA".equals(m)) return c.getString(R.string.bg_bing_mkt_ca_en);
+        if ("fr-CA".equals(m)) return c.getString(R.string.bg_bing_mkt_ca_fr);
+        if ("de-DE".equals(m)) return c.getString(R.string.bg_bing_mkt_de);
+        if ("fr-FR".equals(m)) return c.getString(R.string.bg_bing_mkt_fr);
+        if ("it-IT".equals(m)) return c.getString(R.string.bg_bing_mkt_it);
+        if ("es-ES".equals(m)) return c.getString(R.string.bg_bing_mkt_es);
+        if ("ja-JP".equals(m)) return c.getString(R.string.bg_bing_mkt_jp);
+        if ("zh-CN".equals(m)) return c.getString(R.string.bg_bing_mkt_cn);
+        if ("pt-BR".equals(m)) return c.getString(R.string.bg_bing_mkt_br);
+        if ("en-IN".equals(m)) return c.getString(R.string.bg_bing_mkt_in);
         return m;
     }
 
-    /** Resolves the effective market code: the user's choice, or inferred from the TV's locale. */
+    /** Resolves the effective market code: the user's choice, or inferred from the TV's system locale. */
     static String market(Context c) {
         String m = Prefs.bingMarket(c);
         if (!m.isEmpty()) return m;
-        Locale l = c.getResources().getConfiguration().locale;
+        Locale l = Resources.getSystem().getConfiguration().locale;
         if (l == null) l = Locale.getDefault();
         String country = l.getCountry();
         String language = l.getLanguage();
@@ -147,6 +149,8 @@ final class BingWallpaper {
         final Context c = context.getApplicationContext();
         if (!chosen(c)) return;
         if (busy) {
+            if (force) pendingForce = true;
+            pendingMarket = market(c);
             if (onDone != null) done.add(onDone);
             return;
         }
@@ -155,16 +159,19 @@ final class BingWallpaper {
         final boolean have = file(c) != null;
         final String mkt = market(c);
         final String api = API_PREFIX + mkt;
-        final boolean marketChanged = !mkt.equals(p.getString("market", ""));
+        final String lastMarket = p.getString("market", "");
+        final String attemptMarket = p.getString("attempt_market", "");
+        final boolean marketChanged = !mkt.equals(lastMarket);
+        final boolean triedThisMarket = mkt.equals(attemptMarket);
         // A time further off than Bing keeps an image is a clock that was changed: check.
         long next = p.getLong("next", 0L);
         if (!marketChanged && have && now < next && next - now <= DAY_MS + RETRY_MS) return;
-        if (!force && !marketChanged && Math.abs(now - p.getLong("attempt", 0L)) < RETRY_MS) return;
+        if (!force && (!marketChanged || triedThisMarket)
+                && Math.abs(now - p.getLong("attempt", 0L)) < RETRY_MS) return;
         if (onDone != null) done.add(onDone);
         busy = true;
-        p.edit().putLong("attempt", now).apply();
+        p.edit().putLong("attempt", now).putString("attempt_market", mkt).apply();
         final String held = p.getString("image", "");
-        final String lastMarket = p.getString("market", "");
         new Thread(new Runnable() {
             public void run() {
                 String result;
@@ -189,6 +196,7 @@ final class BingWallpaper {
                     // The wait after a failure is over: from here the due time decides.
                     p.edit().putString("image", path)
                             .putString("market", mkt)
+                            .remove("attempt_market")
                             .putLong("next", due)
                             .remove("attempt")
                             .apply();
@@ -210,6 +218,11 @@ final class BingWallpaper {
                         for (Runnable r : waiting) {
                             try { r.run(); } catch (Throwable ignored) { }
                         }
+                        String pending = pendingMarket;
+                        boolean rerun = pendingForce || (pending != null && !pending.equals(p.getString("market", "")));
+                        pendingForce = false;
+                        pendingMarket = null;
+                        if (rerun) refresh(c, true, null);
                     }
                 });
             }

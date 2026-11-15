@@ -702,6 +702,26 @@ public final class SettingsPanel {
         ids.add(Backgrounds.BING_ID);
         mark.run();
 
+        final Panel.Row market = p.addRow(c.getString(R.string.bg_bing_market), BingWallpaper.marketLabel(c), null);
+        market.setHelp(c.getString(R.string.bg_bing_market_help));
+        market.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                String next = BingWallpaper.nextMarket(c);
+                Prefs.setBingMarket(c, next);
+                market.setValue(BingWallpaper.marketLabel(c));
+                if (Backgrounds.BING_ID.equals(Backgrounds.currentId(c))) {
+                    BingWallpaper.refresh(c, true, new Runnable() {
+                        public void run() {
+                            mark.run();
+                            host.rebuildGrid();
+                            changed.run();
+                        }
+                    });
+                    mark.run();
+                }
+            }
+        });
+
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });

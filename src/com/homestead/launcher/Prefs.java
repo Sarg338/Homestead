@@ -40,6 +40,7 @@ public final class Prefs {
     private static final String K_CLOCK = "clock";
     private static final String K_BACKGROUND = "background";
     private static final String K_BACKGROUND_ID = "background_id";
+    private static final String K_BING_MARKET = "bing_market";
     private static final String K_PHOTO_DIM = "photo_dim";
     private static final String K_SHARED_PHOTO = "shared_photo_adopted";
     private static final String K_ADB = "adb_enabled";
@@ -302,6 +303,9 @@ public final class Prefs {
     /** One of Lang.CODES; "" (the default) follows the TV's language. */
     public static String language(Context c) { return sp(c).getString(K_LANGUAGE, ""); }
     public static void setLanguage(Context c, String v) { sp(c).edit().putString(K_LANGUAGE, v).apply(); }
+    /** Bing wallpaper market code (e.g. "en-US", "de-DE"); "" (the default) follows the TV. */
+    public static String bingMarket(Context c) { return sp(c).getString(K_BING_MARKET, ""); }
+    public static void setBingMarket(Context c, String v) { sp(c).edit().putString(K_BING_MARKET, v).apply(); }
 
     /** The home screen's layout: the sections, or the dock design from PR #27. */
     public static final int DESIGN_CLASSIC = 0;

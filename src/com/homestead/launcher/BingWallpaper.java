@@ -41,8 +41,8 @@ final class BingWallpaper {
     static final String ID = "bing";
 
     private static final String TAG = "Homestead";
-    private static final String API =
-            "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US";
+    private static final String API_PREFIX =
+            "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=";
     private static final String PREFS = "bing_wallpaper";
     private static final String FILE = "bing-wallpaper.jpg";
     private static final int MAX_JSON = 256 * 1024;
@@ -56,6 +56,12 @@ final class BingWallpaper {
     /** When the entry's time is no help, such as on a TV whose clock is wrong. */
     private static final long FALLBACK_MS = 6L * 60L * 60L * 1000L;
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
+
+    /** Markets Bing provides regional daily images for; "" (the default) follows the TV. */
+    static final String[] MARKETS = {
+        "", "en-US", "en-GB", "en-CA", "fr-CA", "en-AU", "de-DE", "fr-FR",
+        "it-IT", "es-ES", "ja-JP", "zh-CN", "pt-BR", "en-IN"
+    };
 
     // Accessed from the main thread: HomeGrid and settings both invoke refresh from there.
     private static boolean busy;
@@ -73,18 +79,69 @@ final class BingWallpaper {
     /** A check or a download is running. Main thread. */
     static boolean busy() { return busy; }
 
+    /** The next choice in the Settings cycle. */
+    static String nextMarket(Context c) {
+        String cur = Prefs.bingMarket(c);
+        for (int i = 0; i < MARKETS.length; i++) {
+            if (MARKETS[i].equals(cur)) return MARKETS[(i + 1) % MARKETS.length];
+        }
+        return MARKETS[0];
+    }
+
+    /** Market names shown in Settings. */
+    static String marketLabel(Context c) {
+        String m = Prefs.bingMarket(c);
+        if (m.isEmpty()) return c.getString(R.string.lang_tv);
+        if ("en-US".equals(m)) return "United States";
+        if ("en-GB".equals(m)) return "United Kingdom";
+        if ("en-CA".equals(m)) return "Canada (EN)";
+        if ("fr-CA".equals(m)) return "Canada (FR)";
+        if ("en-AU".equals(m)) return "Australia";
+        if ("de-DE".equals(m)) return "Deutschland";
+        if ("fr-FR".equals(m)) return "France";
+        if ("it-IT".equals(m)) return "Italia";
+        if ("es-ES".equals(m)) return "España";
+        if ("ja-JP".equals(m)) return "日本";
+        if ("zh-CN".equals(m)) return "中国";
+        if ("pt-BR".equals(m)) return "Brasil";
+        if ("en-IN".equals(m)) return "India";
+        return m;
+    }
+
+    /** Resolves the effective market code: the user's choice, or inferred from the TV's locale. */
+    static String market(Context c) {
+        String m = Prefs.bingMarket(c);
+        if (!m.isEmpty()) return m;
+        Locale l = c.getResources().getConfiguration().locale;
+        if (l == null) l = Locale.getDefault();
+        String country = l.getCountry();
+        String language = l.getLanguage();
+        if (country != null && !country.isEmpty() && language != null && !language.isEmpty()) {
+            return language.toLowerCase(Locale.US) + "-" + country.toUpperCase(Locale.US);
+        }
+        if ("de".equalsIgnoreCase(language)) return "de-DE";
+        if ("fr".equalsIgnoreCase(language)) return "fr-FR";
+        if ("ja".equalsIgnoreCase(language)) return "ja-JP";
+        if ("zh".equalsIgnoreCase(language)) return "zh-CN";
+        if ("it".equalsIgnoreCase(language)) return "it-IT";
+        if ("es".equalsIgnoreCase(language)) return "es-ES";
+        if ("pt".equalsIgnoreCase(language)) return "pt-BR";
+        return "en-US";
+    }
+
     /**
      * Ask Bing for its current image when one is due, and run onDone on the main thread when
      * the answer is in, whether or not it brought a new image. Main thread.
      *
-     * Bing changes its image at a fixed time of day (08:00 UTC for this market), not at the
-     * TV's midnight, so the next check is due a day after the time in the entry of the image
-     * held, not on the next local calendar day. Until then nothing is sent. If Bing still
-     * offers the same image when the check is due, it is asked again an hour later.
+     * Bing changes its image at a fixed time of day (such as 08:00 UTC for en-US, or around
+     * midnight for local markets), not at the TV's midnight, so the next check is due a day
+     * after the time in the entry of the image held, not on the next local calendar day.
+     * Until then nothing is sent. If Bing still offers the same image when the check is due,
+     * it is asked again an hour later.
      *
      * A failure keeps the previous image on screen and is retried after an hour. force
-     * skips that wait, for when the user selects the row; it does not fetch again while the
-     * image held is still Bing's current one. No timer wakes the television.
+     * skips that wait, for when the user selects the row or changes the region; it does not
+     * fetch again while the image held is still Bing's current one. No timer wakes the television.
      */
     static void refresh(Context context, boolean force, Runnable onDone) {
         final Context c = context.getApplicationContext();
@@ -96,26 +153,30 @@ final class BingWallpaper {
         final SharedPreferences p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         final long now = System.currentTimeMillis();
         final boolean have = file(c) != null;
+        final String mkt = market(c);
+        final String api = API_PREFIX + mkt;
+        final boolean marketChanged = !mkt.equals(p.getString("market", ""));
         // A time further off than Bing keeps an image is a clock that was changed: check.
         long next = p.getLong("next", 0L);
-        if (have && now < next && next - now <= DAY_MS + RETRY_MS) return;
-        if (!force && Math.abs(now - p.getLong("attempt", 0L)) < RETRY_MS) return;
+        if (!marketChanged && have && now < next && next - now <= DAY_MS + RETRY_MS) return;
+        if (!force && !marketChanged && Math.abs(now - p.getLong("attempt", 0L)) < RETRY_MS) return;
         if (onDone != null) done.add(onDone);
         busy = true;
         p.edit().putLong("attempt", now).apply();
         final String held = p.getString("image", "");
+        final String lastMarket = p.getString("market", "");
         new Thread(new Runnable() {
             public void run() {
                 String result;
                 try {
-                    JSONObject page = new JSONObject(new String(fetch(API, MAX_JSON, false), "UTF-8"));
+                    JSONObject page = new JSONObject(new String(fetch(api, MAX_JSON, false), "UTF-8"));
                     JSONArray images = page.getJSONArray("images");
                     JSONObject image = images.getJSONObject(0);
                     if (!image.optBoolean("wp", false)) throw new IOException("Bing did not offer an image");
                     String path = image.getString("url");
-                    boolean same = have && path.equals(held);
+                    boolean same = have && path.equals(held) && mkt.equals(lastMarket);
                     if (!same) {
-                        URL imageUrl = new URL(new URL(API), path);
+                        URL imageUrl = new URL(new URL(api), path);
                         byte[] bytes = fetch(imageUrl.toString(), MAX_IMAGE, true);
                         verifyImage(bytes);
                         replace(c, bytes);
@@ -126,8 +187,12 @@ final class BingWallpaper {
                         due = after + (same ? RETRY_MS : FALLBACK_MS);
                     }
                     // The wait after a failure is over: from here the due time decides.
-                    p.edit().putString("image", path).putLong("next", due).remove("attempt").apply();
-                    result = (same ? "no new image yet" : "new image cached") + ", next check "
+                    p.edit().putString("image", path)
+                            .putString("market", mkt)
+                            .putLong("next", due)
+                            .remove("attempt")
+                            .apply();
+                    result = (same ? "no new image yet" : "new image cached") + " (" + mkt + "), next check "
                             + utc("yyyy-MM-dd HH:mm").format(new Date(due)) + " UTC";
                 } catch (Throwable t) {
                     result = "kept previous image: "

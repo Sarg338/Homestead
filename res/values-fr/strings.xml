@@ -481,6 +481,8 @@
   <string name="bg_bing_help">Affiche l\'image du jour de Bing. Homestead en cherche une nouvelle à son ouverture, en HTTPS, et garde la dernière si la TV est hors ligne. Votre photo n\'est pas modifiée.</string>
   <string name="bg_bing_loading">téléchargement…</string>
   <string name="bg_bing_failed">non téléchargée</string>
+  <string name="bg_bing_market">Région Bing</string>
+  <string name="bg_bing_market_help">De quel pays provient l\'image du jour Bing. La langue de la TV décide par défaut.</string>
   <string name="ls_drawn_dusk">Montagnes au crépuscule</string>
   <string name="ls_drawn_lake">Lac de montagne</string>
   <string name="ls_drawn_forest">Forêt dans la brume</string>

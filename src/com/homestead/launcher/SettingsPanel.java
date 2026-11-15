@@ -702,23 +702,12 @@ public final class SettingsPanel {
         ids.add(Backgrounds.BING_ID);
         mark.run();
 
-        final Panel.Row market = p.addRow(c.getString(R.string.bg_bing_market), BingWallpaper.marketLabel(c), null);
+        final Panel.Row market = p.addRow(c.getString(R.string.bg_bing_market), BingWallpaper.marketLabel(c), null).opens();
+        market.setValueColor(0xFF8FA3B8);
         market.setHelp(c.getString(R.string.bg_bing_market_help));
         market.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                String next = BingWallpaper.nextMarket(c);
-                Prefs.setBingMarket(c, next);
-                market.setValue(BingWallpaper.marketLabel(c));
-                if (Backgrounds.BING_ID.equals(Backgrounds.currentId(c))) {
-                    BingWallpaper.refresh(c, true, new Runnable() {
-                        public void run() {
-                            mark.run();
-                            host.rebuildGrid();
-                            changed.run();
-                        }
-                    });
-                    mark.run();
-                }
+                host.showPanel(buildBingMarket(c, host, market, mark, changed));
             }
         });
 
@@ -745,6 +734,67 @@ public final class SettingsPanel {
         d.setCornerRadius(AppModel.dp(c, 5));
         d.setStroke(AppModel.dp(c, 1), 0x59FFFFFF);
         return d;
+    }
+
+    // ---------------------------------------------------------------- bing region
+
+    /**
+     * The regions Bing offers a daily image for, the TV's own first. Selecting one applies it
+     * at once and returns to the background page; the one in use is marked.
+     */
+    private static View buildBingMarket(final Context c, final Host host,
+                                        final Panel.Row summary, final Runnable mark,
+                                        final Runnable changed) {
+        final Panel p = new Panel(c, c.getString(R.string.bg_bing_market),
+                c.getString(R.string.bg_bing_market_help), Panel.SHEET);
+
+        final List<Panel.Row> rows = new ArrayList<Panel.Row>();
+        final List<String> codes = new ArrayList<String>();
+        final Runnable inUse = new Runnable() {
+            public void run() {
+                String now = BingWallpaper.chosenMarket(c);
+                for (int i = 0; i < rows.size(); i++) {
+                    boolean on = codes.get(i).equals(now);
+                    rows.get(i).setValue(on ? c.getString(R.string.bg_in_use) : "");
+                    rows.get(i).setValueColor(on ? IN_USE : 0xFF8FA3B8);
+                }
+            }
+        };
+
+        String[] markets = BingWallpaper.markets();
+        for (int i = 0; i < markets.length; i++) {
+            final String code = markets[i];
+            final Panel.Row r = p.addRow(BingWallpaper.marketLabel(c, code), "", null);
+            r.cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    if (!code.equals(BingWallpaper.chosenMarket(c))) {
+                        Prefs.setBingMarket(c, code);
+                        summary.setValue(BingWallpaper.marketLabel(c));
+                        if (Backgrounds.BING_ID.equals(Backgrounds.currentId(c))) {
+                            BingWallpaper.refresh(c, true, new Runnable() {
+                                public void run() {
+                                    mark.run();
+                                    host.rebuildGrid();
+                                    changed.run();
+                                }
+                            });
+                        }
+                        mark.run();
+                        host.rebuildGrid();
+                        changed.run();
+                    }
+                    host.closePanel();
+                }
+            });
+            rows.add(r);
+            codes.add(code);
+        }
+        inUse.run();
+
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
     }
 
     // ---------------------------------------------------------------- hidden list

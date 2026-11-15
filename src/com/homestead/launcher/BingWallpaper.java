@@ -82,19 +82,18 @@ final class BingWallpaper {
     /** A check or a download is running. Main thread. */
     static boolean busy() { return busy; }
 
-    /** The next choice in the Settings cycle; an unknown choice resets to the default. */
-    static String nextMarket(Context c) {
-        String cur = Prefs.bingMarket(c);
-        for (int i = 0; i < MARKETS.length; i++) {
-            if (MARKETS[i].equals(cur)) return MARKETS[(i + 1) % MARKETS.length];
-        }
-        return MARKETS[0];
-    }
+    /** The markets the Settings list offers, the TV's own region first. */
+    static String[] markets() { return MARKETS.clone(); }
+
+    /** The market picked in Settings; "" means the TV's region. */
+    static String chosenMarket(Context c) { return Prefs.bingMarket(c); }
 
     /** Market names shown in Settings. */
-    static String marketLabel(Context c) {
-        String m = Prefs.bingMarket(c);
-        if (m.isEmpty()) return c.getString(R.string.bg_bing_market_tv, market(c));
+    static String marketLabel(Context c) { return marketLabel(c, Prefs.bingMarket(c)); }
+
+    /** The name shown in Settings for a market code; "" names the TV's own region. */
+    static String marketLabel(Context c, String m) {
+        if (m.isEmpty()) return c.getString(R.string.bg_bing_market_tv, tvMarket());
         if ("en-US".equals(m)) return c.getString(R.string.bg_bing_mkt_us);
         if ("en-GB".equals(m)) return c.getString(R.string.bg_bing_mkt_gb);
         if ("en-CA".equals(m)) return c.getString(R.string.bg_bing_mkt_ca_en);
@@ -113,7 +112,11 @@ final class BingWallpaper {
     /** Resolves the effective market code: the user's choice, or inferred from the TV's system locale. */
     static String market(Context c) {
         String m = Prefs.bingMarket(c);
-        if (!m.isEmpty()) return m;
+        return m.isEmpty() ? tvMarket() : m;
+    }
+
+    /** The market inferred from the TV's system locale, independent of the app language. */
+    private static String tvMarket() {
         Locale l = Resources.getSystem().getConfiguration().locale;
         if (l == null) l = Locale.getDefault();
         String country = l.getCountry();

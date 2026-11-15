@@ -35,11 +35,13 @@ The app has exactly three network behaviours, and no others:
 - **Optional Bing wallpaper.** Only after you choose *Bing image of the day* in Background,
   Homestead makes unauthenticated HTTPS requests to `www.bing.com` when the home screen
   opens: one for the day's entry and, when that names an image it does not have yet, one for
-  the image. It then waits until Bing's next image is due, about once a day. A failure can
-  retry after an hour, or at once when you select the row again. It accepts HTTPS responses
-  from Bing only, limits the metadata to 256 KB and the image to 16 MB, verifies that it is a
-  usable image, then replaces a separate app-private cache. A failed response keeps the
-  previous cache, and no photo, identifier or other TV information is uploaded.
+  the image. The request for the entry names a region, such as `en-US`: the TV's language
+  and country, or the region you pick under *Bing region*. It then waits until Bing's next
+  image is due, about once a day. A failure can retry after an hour, or at once when you
+  select the row again or change the region. It accepts HTTPS responses from Bing only,
+  limits the metadata to 256 KB and the image to 16 MB, verifies that it is a usable image,
+  then replaces a separate app-private cache. A failed response keeps the previous cache.
+  Apart from that region code, no photo, identifier or other TV information is uploaded.
 
 There is no telemetry, no crash reporting and no analytics of any kind.
 

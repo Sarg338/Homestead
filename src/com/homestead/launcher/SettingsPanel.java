@@ -604,7 +604,7 @@ public final class SettingsPanel {
                     // Bing's row speaks for Bing's own cache, and only while it is the choice.
                     if (on && ids.get(i).equals(Backgrounds.BING_ID)) {
                         if (BingWallpaper.busy()) v = c.getString(R.string.bg_bing_loading);
-                        else if (BingWallpaper.file(c) == null) {
+                        else if (BingWallpaper.file(c) == null || BingWallpaper.stale(c)) {
                             v = c.getString(R.string.bg_bing_failed);
                             good = false;
                         }
@@ -770,18 +770,20 @@ public final class SettingsPanel {
                     if (!code.equals(BingWallpaper.chosenMarket(c))) {
                         Prefs.setBingMarket(c, code);
                         summary.setValue(BingWallpaper.marketLabel(c));
+                        // Nothing on screen changes, and nothing is sent, unless Bing is
+                        // the look in use. Then it goes as on the Bing row: ask now, and
+                        // the grid repaints itself when the image lands.
                         if (Backgrounds.BING_ID.equals(Backgrounds.currentId(c))) {
                             BingWallpaper.refresh(c, true, new Runnable() {
                                 public void run() {
                                     mark.run();
-                                    host.rebuildGrid();
                                     changed.run();
                                 }
                             });
+                            mark.run();
+                            host.rebuildGrid();
+                            changed.run();
                         }
-                        mark.run();
-                        host.rebuildGrid();
-                        changed.run();
                     }
                     host.closePanel();
                 }
@@ -793,6 +795,14 @@ public final class SettingsPanel {
 
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
+        });
+
+        // Start on the region in use, one step after showPanel focuses the first row.
+        final View start = rows.get(Math.max(0, codes.indexOf(BingWallpaper.chosenMarket(c)))).cell;
+        p.root.post(new Runnable() {
+            public void run() {
+                p.root.post(new Runnable() { public void run() { start.requestFocus(); } });
+            }
         });
         return p.root;
     }

@@ -66,7 +66,7 @@ final class BingWallpaper {
 
     // Accessed from the main thread: HomeGrid and settings both invoke refresh from there.
     private static boolean busy;
-    private static boolean pendingForce;
+    /** The region asked for while a check was running, or null. */
     private static String pendingMarket;
     private static final List<Runnable> done = new ArrayList<Runnable>();
 
@@ -81,6 +81,15 @@ final class BingWallpaper {
 
     /** A check or a download is running. Main thread. */
     static boolean busy() { return busy; }
+
+    /**
+     * The image held is from another region than the one wanted now, so the download for
+     * this region has not succeeded yet. Main thread.
+     */
+    static boolean stale(Context c) {
+        return !market(c).equals(
+                c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("market", ""));
+    }
 
     /** The markets the Settings list offers, the TV's own region first. */
     static String[] markets() { return MARKETS.clone(); }
@@ -147,12 +156,14 @@ final class BingWallpaper {
      * A failure keeps the previous image on screen and is retried after an hour. force
      * skips that wait, for when the user selects the row or changes the region; it does not
      * fetch again while the image held is still Bing's current one. No timer wakes the television.
+     *
+     * A region chosen while a check is running is asked for as soon as that check ends, and
+     * those waiting hear once, from the answer for the region wanted last.
      */
     static void refresh(Context context, boolean force, Runnable onDone) {
         final Context c = context.getApplicationContext();
         if (!chosen(c)) return;
         if (busy) {
-            if (force) pendingForce = true;
             pendingMarket = market(c);
             if (onDone != null) done.add(onDone);
             return;
@@ -215,17 +226,21 @@ final class BingWallpaper {
                     public void run() {
                         busy = false;
                         Log.i(TAG, "Bing wallpaper: " + outcome);
+                        // The region was changed while this ran: ask for the one wanted now,
+                        // and leave those waiting to hear from that answer. A failure for
+                        // the same region is not asked again here; that waits its hour.
+                        String wanted = pendingMarket;
+                        pendingMarket = null;
+                        if (wanted != null && !wanted.equals(mkt)) {
+                            refresh(c, true, null);
+                            if (busy) return;
+                        }
                         // A copy: a callback may ask again, which adds to the list.
                         List<Runnable> waiting = new ArrayList<Runnable>(done);
                         done.clear();
                         for (Runnable r : waiting) {
                             try { r.run(); } catch (Throwable ignored) { }
                         }
-                        String pending = pendingMarket;
-                        boolean rerun = pendingForce || (pending != null && !pending.equals(p.getString("market", "")));
-                        pendingForce = false;
-                        pendingMarket = null;
-                        if (rerun) refresh(c, true, null);
                     }
                 });
             }

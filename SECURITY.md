@@ -9,7 +9,7 @@ are.
 | Capability | Why | Notes |
 |---|---|---|
 | Accessibility service | The only way to learn the Home button was pressed | `canRetrieveWindowContent="false"`, no key filtering, no package filter. It receives *which app came to the foreground* and nothing else. |
-| `INTERNET` | The on-device ADB client and the update check | Two uses, both listed under *What goes over the network* below. Nothing is uploaded and there are no analytics. |
+| `INTERNET` | The on-device ADB client, update check and optional Bing wallpaper | Three uses, all listed under *What goes over the network* below. Nothing is uploaded and there are no analytics. |
 | `WRITE_SECURE_SETTINGS` | Optional. TV Health applies animation-scale and ad-tracking settings | Declared but not held unless you grant it with `pm grant` (or the on-device tunnel grants it). Without it those pages are read-only and show the command instead. |
 | `READ_LOGS` | Optional. Lets Homestead cover Amazon's home screen before it appears, and makes Home work while Amazon's home screen is showing | Declared but not held unless you grant it with `pm grant` (setup does this over the tunnel). See *The system log* below. |
 | `SYSTEM_ALERT_WINDOW` | Fallback only | The overlay normally uses `TYPE_ACCESSIBILITY_OVERLAY`, which needs no permission. Declared for devices that refuse that window type. |
@@ -19,7 +19,7 @@ are.
 
 ## What goes over the network
 
-The app has exactly two network behaviours, and no others:
+The app has exactly three network behaviours, and no others:
 
 - **Update check.** At most once a day, when the home screen opens or comes back, and
   whenever you press *Check for updates* in Settings, one unauthenticated HTTPS GET to
@@ -32,6 +32,14 @@ The app has exactly two network behaviours, and no others:
   a local tunnel on the TV. It never leaves the device. The tunnel is a VPN that routes only
   its own private subnet. Updates and re-apply after reboot do not start it while another
   VPN is running, so they never interrupt one you use.
+- **Optional Bing wallpaper.** Only after you choose *Bing image of the day* in Background,
+  Homestead makes unauthenticated HTTPS requests to `www.bing.com` when the home screen
+  opens: one for the day's entry and, when that names an image it does not have yet, one for
+  the image. It then waits until Bing's next image is due, about once a day. A failure can
+  retry after an hour, or at once when you select the row again. It accepts HTTPS responses
+  from Bing only, limits the metadata to 256 KB and the image to 16 MB, verifies that it is a
+  usable image, then replaces a separate app-private cache. A failed response keeps the
+  previous cache, and no photo, identifier or other TV information is uploaded.
 
 There is no telemetry, no crash reporting and no analytics of any kind.
 

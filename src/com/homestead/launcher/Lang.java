@@ -63,4 +63,3 @@ final class Lang {
         return c.getString(R.string.lang_tv);
     }
 }
-

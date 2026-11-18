@@ -15,6 +15,8 @@
     <string name="home_sc_network">Red</string>
     <string name="home_sc_display">Pantalla y sonido</string>
     <string name="home_sc_display_short">Pantalla</string>
+    <string name="home_sc_mirroring">Modo espejo</string>
+    <string name="home_sc_mirroring_short">Modo espejo</string>
     <string name="home_sc_controllers">Mandos y Bluetooth</string>
     <string name="home_sc_controllers_short">Mandos</string>
     <string name="home_sc_accessibility">Accesibilidad</string>
@@ -646,6 +648,7 @@
     <string name="ftv_place_bar">barra superior</string>
     <string name="ftv_h_network">Wi-Fi, Ethernet y añadir una red.</string>
     <string name="ftv_h_display">Resolución, HDR, audio, control de dispositivos HDMI y modo ambiente.</string>
+    <string name="ftv_h_mirroring">Mostrar la pantalla de un móvil, una tableta o un ordenador en este televisor (Miracast). Pulsa cualquier botón del mando para salir.</string>
     <string name="ftv_h_controllers">Vincular un mando, un mando de videojuegos o cualquier dispositivo Bluetooth.</string>
     <string name="ftv_h_accessibility">Subtítulos, audiodescripción y lector de pantalla.</string>
     <string name="ftv_h_applications">Apps instaladas, almacenamiento y permisos.</string>

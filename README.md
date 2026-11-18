@@ -40,9 +40,9 @@ Both pictures are from the same TV, a few minutes apart.
   of TV apps and the rest apart, and Fire TV's own icons for Amazon Home, Settings and TV
   Health.
 - **Fire TV's own settings screens** (Settings → Fire TV settings): Network, Controllers &
-  Bluetooth, Applications, My Fire TV, Equipment control, Help and the rest, each opened
-  straight from Homestead where the TV allows it, with optional shortcuts to them on the home
-  screen or in a bar at the top.
+  Bluetooth, Applications, My Fire TV, Display mirroring, Equipment control, Help and the
+  rest, each opened straight from Homestead where the TV allows it, with optional shortcuts
+  to them on the home screen or in a bar at the top.
 - **In English, French or German**, following the TV's language, or pick one under Settings →
   Language.
 - **Settings opens over the home screen**, so changes to the background, columns, clock and

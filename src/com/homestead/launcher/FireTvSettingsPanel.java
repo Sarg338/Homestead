@@ -54,6 +54,11 @@ public final class FireTvSettingsPanel {
                     "Wi-Fi, Ethernet and adding a network." },
             { "display", "Display & sounds", A + "DISPLAY_AND_SOUNDS",
                     "Resolution, HDR, audio, HDMI device control, ambient mode." },
+            // Not a settings page: the screen that waits for a phone or computer to send its
+            // picture, a screen of its own app, by component. Amazon's menu keeps it under
+            // Display & sounds. Seen on Fire OS 7 (an Insignia TV and a Fire TV Stick).
+            { "mirroring", "Display mirroring", "com.amazon.cast.sink/.DisplayMirroringSinkActivity",
+                    "Show the screen of a phone, tablet or computer on this TV (Miracast)." },
             { "controllers", "Controllers & Bluetooth", A + "CONTROLLERS",
                     "Pair a remote, a game controller or any Bluetooth device." },
             { "accessibility", "Accessibility", A + "ACCESSIBILITY",
@@ -90,6 +95,7 @@ public final class FireTvSettingsPanel {
     private static final int[][] HOME_LABELS = {
             { R.string.home_sc_network, R.string.home_sc_network },
             { R.string.home_sc_display, R.string.home_sc_display_short },
+            { R.string.home_sc_mirroring, R.string.home_sc_mirroring_short },
             { R.string.home_sc_controllers, R.string.home_sc_controllers_short },
             { R.string.home_sc_accessibility, R.string.home_sc_accessibility },
             { R.string.home_sc_applications, R.string.home_sc_applications },
@@ -104,10 +110,11 @@ public final class FireTvSettingsPanel {
 
     /** What each screen holds, row for row with SCREENS, in the TV's language. */
     private static final int[] HELPS = {
-            R.string.ftv_h_network, R.string.ftv_h_display, R.string.ftv_h_controllers,
-            R.string.ftv_h_accessibility, R.string.ftv_h_applications, R.string.ftv_h_language,
-            R.string.ftv_h_preferences, R.string.ftv_h_data, R.string.ftv_h_account,
-            R.string.ftv_h_device, R.string.ftv_h_equipment, R.string.ftv_h_help,
+            R.string.ftv_h_network, R.string.ftv_h_display, R.string.ftv_h_mirroring,
+            R.string.ftv_h_controllers, R.string.ftv_h_accessibility, R.string.ftv_h_applications,
+            R.string.ftv_h_language, R.string.ftv_h_preferences, R.string.ftv_h_data,
+            R.string.ftv_h_account, R.string.ftv_h_device, R.string.ftv_h_equipment,
+            R.string.ftv_h_help,
     };
 
     private FireTvSettingsPanel() { }

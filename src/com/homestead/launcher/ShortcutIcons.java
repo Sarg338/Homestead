@@ -15,6 +15,8 @@ package com.homestead.launcher;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 
 /**
@@ -70,6 +72,15 @@ final class ShortcutIcons {
             if ("display".equals(id)) {
                 c.drawArc(new RectF(s * 0.42f, s * 0.34f, s * 0.64f, s * 0.54f), -50f, 100f, false, line);
             }
+        } else if ("mirroring".equals(id)) {
+            // A TV with a phone in front of its corner. The phone's place is cut out of the
+            // TV first, so the TV's edge does not show through it.
+            c.drawRoundRect(new RectF(s * 0.08f, s * 0.14f, s * 0.92f, s * 0.68f), s * 0.05f, s * 0.05f, line);
+            Paint gap = new Paint(Paint.ANTI_ALIAS_FLAG);
+            gap.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+            c.drawRoundRect(new RectF(s * 0.55f, s * 0.36f, s * 0.93f, s * 0.96f), s * 0.08f, s * 0.08f, gap);
+            c.drawRoundRect(new RectF(s * 0.61f, s * 0.42f, s * 0.87f, s * 0.9f), s * 0.06f, s * 0.06f, line);
+            c.drawCircle(s * 0.74f, s * 0.81f, s * 0.02f, fill);
         } else if ("accessibility".equals(id)) {
             c.drawCircle(s * 0.5f, s * 0.2f, s * 0.07f, line);
             c.drawLine(s * 0.2f, s * 0.38f, s * 0.8f, s * 0.38f, line);

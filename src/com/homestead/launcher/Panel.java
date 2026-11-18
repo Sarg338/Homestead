@@ -290,7 +290,7 @@ public class Panel {
         cell.setMinimumHeight(dp(54));
         cell.setPadding(dp(18), dp(12), dp(16), dp(12));
 
-        LinearLayout line = new LinearLayout(ctx);
+        RowLine line = new RowLine(ctx);
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
 
@@ -299,6 +299,7 @@ public class Panel {
         l.setEllipsize(TextUtils.TruncateAt.END);
         line.addView(l, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 0f));
+        line.name = l;
 
         TextView badge = text("", 10, 0xFFE8C468);
         badge.setLetterSpacing(0.08f);
@@ -318,6 +319,7 @@ public class Panel {
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         vlp.leftMargin = dp(14);
         line.addView(v, vlp);
+        line.value = v;
 
         Toggle sw = new Toggle(ctx);
         sw.setVisibility(View.GONE);
@@ -489,6 +491,65 @@ public class Panel {
             }
             super.setEnabled(e);
             if (row != null) row.paint();
+        }
+    }
+
+    /**
+     * One row's line of name, badge, value, switch and arrow. The name gives way: what
+     * stands beside it is measured first and keeps its room, and the name takes what is
+     * left, on two lines when it has to. A plain row hands the name the whole width first,
+     * so a long name (in a language with longer words, say) pushes the switch or the value
+     * off the end of the row. A row where everything fits is measured as before.
+     */
+    private static final class RowLine extends LinearLayout {
+        TextView name, value;
+        /** Room for the name and for the value in this pass; -1 while everything fits. */
+        private int nameRoom = -1, valueRoom = -1;
+
+        RowLine(Context c) { super(c); }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            nameRoom = -1;
+            valueRoom = -1;
+            if (name != null && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                int inner = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+                int free = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+                int fixed = 0, valueW = 0;
+                for (int i = 0; i < getChildCount(); i++) {
+                    View ch = getChildAt(i);
+                    if (ch == name || ch.getVisibility() == GONE) continue;
+                    LayoutParams lp = (LayoutParams) ch.getLayoutParams();
+                    if (lp.weight > 0) continue;   // the gap that takes up the slack
+                    ch.measure(getChildMeasureSpec(free, 0, lp.width),
+                            getChildMeasureSpec(free, 0, lp.height));
+                    int w = ch.getMeasuredWidth() + lp.leftMargin + lp.rightMargin;
+                    if (ch == value) valueW = w; else fixed += w;
+                }
+                name.measure(free, free);
+                int nameW = name.getMeasuredWidth();
+                if (nameW + fixed + valueW > inner) {
+                    int rest = Math.max(0, inner - fixed);
+                    // The value keeps its own width up to a little under half of the row;
+                    // past that it wraps as well, and a short name leaves it the rest.
+                    int keep = Math.min(valueW, Math.round(rest * 0.45f));
+                    if (nameW < rest - keep) keep = rest - nameW;
+                    nameRoom = rest - keep;
+                    valueRoom = keep;
+                }
+            }
+            super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** LinearLayout measures each child through here; the room worked out above applies. */
+        @Override protected void measureChildWithMargins(View child, int parentWidthSpec,
+                int widthUsed, int parentHeightSpec, int heightUsed) {
+            int inner = MeasureSpec.getSize(parentWidthSpec) - getPaddingLeft() - getPaddingRight();
+            if (child == name && nameRoom >= 0) {
+                widthUsed = Math.max(widthUsed, inner - nameRoom);
+            } else if (child == value && valueRoom >= 0) {
+                widthUsed = Math.max(widthUsed, inner - valueRoom);
+            }
+            super.measureChildWithMargins(child, parentWidthSpec, widthUsed, parentHeightSpec, heightUsed);
         }
     }
 

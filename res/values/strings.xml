@@ -17,6 +17,8 @@
   <string name="home_sc_network">Network</string>
   <string name="home_sc_display">Display &amp; sounds</string>
   <string name="home_sc_display_short">Display</string>
+  <string name="home_sc_mirroring">Display mirroring</string>
+  <string name="home_sc_mirroring_short">Mirroring</string>
   <string name="home_sc_controllers">Controllers &amp; Bluetooth</string>
   <string name="home_sc_controllers_short">Controllers</string>
   <string name="home_sc_accessibility">Accessibility</string>
@@ -677,6 +679,7 @@
   <string name="ftv_place_bar">top bar</string>
   <string name="ftv_h_network">Wi-Fi, Ethernet and adding a network.</string>
   <string name="ftv_h_display">Resolution, HDR, audio, HDMI device control, ambient mode.</string>
+  <string name="ftv_h_mirroring">Show the screen of a phone, tablet or computer on this TV (Miracast). Press any button on the remote to leave it.</string>
   <string name="ftv_h_controllers">Pair a remote, a game controller or any Bluetooth device.</string>
   <string name="ftv_h_accessibility">Captions, audio description, screen reader.</string>
   <string name="ftv_h_applications">Installed apps, storage and permissions.</string>

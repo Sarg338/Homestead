@@ -17,6 +17,8 @@
   <string name="home_sc_network">Netzwerk</string>
   <string name="home_sc_display">Töne und Bildschirm</string>
   <string name="home_sc_display_short">Bild</string>
+  <string name="home_sc_mirroring">Display duplizieren</string>
+  <string name="home_sc_mirroring_short">Duplizieren</string>
   <string name="home_sc_controllers">Controller &amp; Bluetooth</string>
   <string name="home_sc_controllers_short">Controller</string>
   <string name="home_sc_accessibility">Barrierefreiheit</string>
@@ -677,6 +679,7 @@
   <string name="ftv_place_bar">obere Leiste</string>
   <string name="ftv_h_network">WLAN, Ethernet und ein Netzwerk hinzufügen.</string>
   <string name="ftv_h_display">Auflösung, HDR, Ton, HDMI-Gerätesteuerung, Umgebungsmodus.</string>
+  <string name="ftv_h_mirroring">Den Bildschirm eines Smartphones, Tablets oder Computers auf diesem TV anzeigen (Miracast). Zum Beenden eine beliebige Taste auf der Fernbedienung drücken.</string>
   <string name="ftv_h_controllers">Fernbedienung, Gamecontroller oder anderes Bluetooth-Gerät koppeln.</string>
   <string name="ftv_h_accessibility">Untertitel, Audiobeschreibung, Bildschirmleser.</string>
   <string name="ftv_h_applications">Installierte Apps, Speicher und Berechtigungen.</string>

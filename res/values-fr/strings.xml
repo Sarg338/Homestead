@@ -15,6 +15,8 @@
   <string name="home_sc_network">Réseau</string>
   <string name="home_sc_display">Affichage et sons</string>
   <string name="home_sc_display_short">Affichage</string>
+  <string name="home_sc_mirroring">Partage d\'écran</string>
+  <string name="home_sc_mirroring_short">Partage d\'écran</string>
   <string name="home_sc_controllers">Manettes et Bluetooth</string>
   <string name="home_sc_controllers_short">Manettes</string>
   <string name="home_sc_accessibility">Accessibilité</string>
@@ -673,6 +675,7 @@
   <string name="ftv_place_bar">barre du haut</string>
   <string name="ftv_h_network">Wi-Fi, Ethernet et ajout d\'un réseau.</string>
   <string name="ftv_h_display">Résolution, HDR, audio, contrôle des appareils HDMI, mode ambiant.</string>
+  <string name="ftv_h_mirroring">Afficher l\'écran d\'un téléphone, d\'une tablette ou d\'un ordinateur sur cette TV (Miracast). Appuyez sur un bouton de la télécommande pour quitter.</string>
   <string name="ftv_h_controllers">Associer une télécommande, une manette ou tout appareil Bluetooth.</string>
   <string name="ftv_h_accessibility">Sous-titres, audiodescription, lecteur d\'écran.</string>
   <string name="ftv_h_applications">Applis installées, stockage et autorisations.</string>

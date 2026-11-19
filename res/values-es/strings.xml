@@ -74,7 +74,7 @@
     <string name="set_lang">Idioma</string>
     <string name="set_lang_help">El idioma de las pantallas de Homestead. «Idioma del televisor» sigue los ajustes del televisor.</string>
     <string name="set_simple">Modo sencillo</string>
-    <string name="set_simple_note">Para un televisor configurado para otra persona: se ocultan los mosaicos Ajustes y Estado del televisor (pulsa MENU cinco veces en el inicio para abrir Ajustes), MENU y la pulsación prolongada dejan de ocultar mosaicos y no aparecen avisos de actualización; puedes buscar actualizaciones abajo. No modifica la eliminación de aplicaciones innecesarias.</string>
+    <string name="set_simple_note">Para un televisor configurado para otra persona: se ocultan los mosaicos Ajustes y Estado del televisor (pulsa MENU cinco veces en el inicio para abrir Ajustes), MENU y la pulsación prolongada dejan de ocultar mosaicos y no aparecen avisos de actualización; puedes buscar actualizaciones abajo. No cambia Apps innecesarias.</string>
     <string name="set_system">Sistema</string>
     <string name="set_setup">Configuración</string>
     <string name="set_setup_done">completada</string>

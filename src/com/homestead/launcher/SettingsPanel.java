@@ -33,6 +33,8 @@ public final class SettingsPanel {
         void showRow(String row);
         void showPanel(View v);
         void closePanel();
+        /** Put the focus where a Home press puts it, once no page is open. */
+        void focusStart();
     }
 
     private SettingsPanel() { }
@@ -115,6 +117,15 @@ public final class SettingsPanel {
         setup.cell.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { host.showPanel(SetupPanel.build(c, host)); }
         });
+
+        // The guide a new install starts with, for anyone who skipped it or wants its
+        // newer steps. It replaces this page, so finishing it lands on the home screen.
+        p.addRow(c.getString(R.string.set_rerun), "", new Runnable() {
+            public void run() {
+                host.closePanel();
+                host.showPanel(OnboardingPanel.build(c, host, true));
+            }
+        }).opens().setHelp(c.getString(R.string.set_rerun_help));
 
         SetupPanel.addTurnOffRow(c, p, new Runnable() {
             public void run() {

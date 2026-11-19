@@ -123,7 +123,9 @@ app came to the front: it cannot read what is on screen and does not receive key
    options is not there, open My Fire TV → About and press Select on the device name seven
    times.
 2. Open **Homestead** from Amazon's app row. The first-run setup walks you through the
-   rest. Later, the same steps are under the **Settings** tile → **Setup**.
+   rest, then lets you choose the design and the background with your own home screen
+   beside the choices. Later, the same steps are under **Settings** → **Setup**, and
+   **Run setup again** in Settings opens the guide from the start.
 3. Select **Set it up** (or **On-device tunnel (advanced)** in Setup) and accept Android's
    VPN prompt. In both prompts, press Down to reach OK.
 4. The TV asks whether to allow the app's ADB key. Check that the fingerprint matches the
@@ -214,7 +216,7 @@ The picture is removed when Homestead is uninstalled.
 
 ## Setting it up for someone else
 
-Choose **Simple mode** on the first setup screen (or switch it on later in Settings) when
+Choose **Simple mode** in the first-run setup (or switch it on later in Settings) when
 the TV is for someone who just wants to watch it, such as a parent or grandparent.
 
 - **The Settings and TV Health tiles are hidden.** To open Settings, press **Menu (☰)
@@ -224,7 +226,7 @@ the TV is for someone who just wants to watch it, such as a parent or grandparen
   Hide what you want before you switch it on, or open Settings to change it later.
 - **No update pop-ups.** Homestead does not check for updates by itself; use *Check for
   updates* in Settings when you visit.
-- **When chosen during setup, it switches off Debloat's safe list** (what the *Switch off
+- **When turned on during setup, it switches off Debloat's safe list** (what the *Switch off
   everything marked safe* button does: ads, telemetry, tutorials and demo content), except
   Amazon Photos, which stays on for family pictures. Alexa is left on too, since asking
   for a show by voice is often easier than finding it with the remote. This needs the

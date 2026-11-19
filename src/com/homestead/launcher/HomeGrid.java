@@ -862,14 +862,12 @@ public class HomeGrid implements SettingsPanel.Host {
 
     /**
      * Back to the plain grid. A Home press lands here, not on a page left open earlier.
-     * The first-run wizard stays, since losing it halfway through setup is worse.
+     * The setup guide stays, on a first run or opened again from Settings: one of its steps
+     * sends the user to Fire OS's settings, and Home is a natural way back from there.
      */
     public void closePanels() {
         while (!panels.isEmpty()) {
-            if (!Prefs.onboarded(ctx)
-                    && panels.get(panels.size() - 1).getTag() instanceof BackHandler) {
-                return;
-            }
+            if (OnboardingPanel.isWizard(panels.get(panels.size() - 1))) return;
             closePanel();
         }
     }
@@ -915,6 +913,11 @@ public class HomeGrid implements SettingsPanel.Host {
         public void showRow(String row) { grid.showRow(row); }
         public void showPanel(View v) { grid.showPanel(v); }
         public void closePanel() { grid.closePanel(); }
+        public void focusStart() { grid.focusStart(); }
+    }
+
+    public void focusStart() {
+        if (panels.isEmpty()) takeStartFocus();
     }
 
     /** A setting changed from a panel in this grid; the other grid catches up via syncOrder(). */

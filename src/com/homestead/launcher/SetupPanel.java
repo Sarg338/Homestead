@@ -274,7 +274,6 @@ public final class SetupPanel {
             }
         });
 
-        Prefs.setSetupSeen(c, true);
         refreshRef[0] = refresh;
         refresh.run();
         return p.root;

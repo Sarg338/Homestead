@@ -55,7 +55,8 @@ public final class Prefs {
     private static final String K_REFUSED = "refused_by_fire_os";
     private static final String K_HOME_OFF = "home_off_by_user";
     private static final String K_UPDATE_STARTED = "update_started_at";
-    private static final String K_SETUP_SEEN = "setup_seen";
+    private static final String K_HOME_DECLINED = "home_declined";
+    private static final String K_WIZARD = "wizard_state";
     private static final String K_ONBOARDED = "onboarded";
     private static final String K_UPD_LASTCHECK = "update_last_check";
     private static final String K_UPD_SKIP = "update_skipped_version";
@@ -211,6 +212,8 @@ public final class Prefs {
 
     public static int clockMode(Context c) { return sp(c).getInt(K_CLOCK, CLOCK_24H); }
     public static void setClockMode(Context c, int v) { sp(c).edit().putInt(K_CLOCK, v).apply(); }
+    /** False until the clock has been set, by the user or by the first run. */
+    public static boolean clockChosen(Context c) { return sp(c).contains(K_CLOCK); }
 
     // ---------------------------------------------------------------- the ADB link
 
@@ -248,15 +251,31 @@ public final class Prefs {
         sp(c).edit().putBoolean(K_REAPPLY, v).apply();
     }
 
-    public static boolean setupSeen(Context c) { return sp(c).getBoolean(K_SETUP_SEEN, false); }
-    public static void setSetupSeen(Context c, boolean v) {
-        sp(c).edit().putBoolean(K_SETUP_SEEN, v).apply();
+    /**
+     * The setup guide was finished or skipped without the Home button set up, so the Setup
+     * page does not open by itself at every start. Cleared once the Home button works, so
+     * that page still appears if it stops working later.
+     */
+    public static boolean homeDeclined(Context c) { return sp(c).getBoolean(K_HOME_DECLINED, false); }
+    public static void setHomeDeclined(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_HOME_DECLINED, v).apply();
     }
 
     /** Whether the first-run wizard has been completed or skipped. */
     public static boolean onboarded(Context c) { return sp(c).getBoolean(K_ONBOARDED, false); }
     public static void setOnboarded(Context c, boolean v) {
         sp(c).edit().putBoolean(K_ONBOARDED, v).apply();
+    }
+
+    /**
+     * Where the setup guide stands while it is open (OnboardingPanel writes and reads it),
+     * so it comes back on the same step if the app is restarted halfway. Null: not open.
+     */
+    public static String wizardState(Context c) { return sp(c).getString(K_WIZARD, null); }
+    public static void setWizardState(Context c, String v) {
+        SharedPreferences.Editor e = sp(c).edit();
+        if (v == null) e.remove(K_WIZARD); else e.putString(K_WIZARD, v);
+        e.apply();
     }
 
     /**

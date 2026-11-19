@@ -54,8 +54,10 @@ final class Lang {
     }
 
     /** Language names are written in their own language, so anyone can find theirs. */
-    static String label(Context c) {
-        String code = Prefs.language(c);
+    static String label(Context c) { return label(c, Prefs.language(c)); }
+
+    /** The name of one of CODES. */
+    static String label(Context c, String code) {
         if (code.equals("en")) return "English";
         if (code.equals("fr")) return "Français";
         if (code.equals("de")) return "Deutsch";

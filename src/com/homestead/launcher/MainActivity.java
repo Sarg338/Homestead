@@ -52,6 +52,8 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         Lang.apply(this);
+        // Before the grid is drawn, so a new install starts with the TV's own kind of clock.
+        if (!Prefs.onboarded(this)) OnboardingPanel.firstRunDefaults(this);
         home = new HomeGrid(this, this);
         setContentView(home.root);
         home.takeStartFocus();
@@ -59,11 +61,14 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         // Fire OS 6 only: start the log-watch Home fallback when it is needed (no-op elsewhere).
         HomeWatchService.startIfNeeded(this);
 
-        // First run shows the wizard; later, if the accessibility service is off (e.g.
-        // unbound by an app update) and the user did not turn it off, show Setup instead.
-        if (!Prefs.onboarded(this)) {
+        // First run shows the setup guide, and so does a guide left open when the app was
+        // last closed (it saves its place). Later, if the Home button stops working (the
+        // accessibility service unbound by an app update, say) and the user neither turned
+        // it off nor left it out of the guide, show Setup instead.
+        if (!Prefs.onboarded(this) || Prefs.wizardState(this) != null) {
             home.showPanel(OnboardingPanel.build(this, home));
-        } else if (!SetupPanel.homeWorks(this) && !Prefs.homeOffByUser(this)) {
+        } else if (!SetupPanel.homeWorks(this) && !Prefs.homeOffByUser(this)
+                && !Prefs.homeDeclined(this)) {
             home.showPanel(SetupPanel.build(this, home));
         }
     }
@@ -131,6 +136,9 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         HomeRedirectService.endSuspend();
         // Fire OS 6: READ_LOGS may have just been granted from a computer; start the fallback.
         HomeWatchService.startIfNeeded(this);
+        // Set up after being left out of the guide: from here on, Setup opens by itself
+        // again if the Home button ever stops working.
+        if (Prefs.homeDeclined(this) && SetupPanel.homeWorks(this)) Prefs.setHomeDeclined(this, false);
 
         String selKey = HomeRedirectService.overlaySelectedKey();
         int selScroll = HomeRedirectService.overlayScrollY();

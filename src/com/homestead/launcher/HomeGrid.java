@@ -548,7 +548,13 @@ public class HomeGrid implements SettingsPanel.Host {
             return;
         }
         // The dock design starts on the dock, not on the first tile of the grid below it.
-        if (dock && !dockKeys.isEmpty() && selectKey(dockKeys.iterator().next())) return;
+        // And on the first screen: a grid that has just been rebuilt into this design may
+        // have focused a tile under the dock on the way, which scrolled the page, and the
+        // dock, still in view, would not scroll it back.
+        if (dock && !dockKeys.isEmpty() && selectKey(dockKeys.iterator().next())) {
+            keepAtTop();
+            return;
+        }
         takeFocus();
     }
 

@@ -804,7 +804,8 @@ public final class OnboardingPanel {
     /** The clean-up step: the ADB link, then the offer to switch off Debloat's safe list. */
     private void buildAdb() {
         adbLinked = linked();
-        boolean cleaned = cleanState == CLEAN_DONE;
+        // Ticked off only when the whole list went; a part of it is said in the status line.
+        boolean cleaned = cleanState == CLEAN_DONE && cleanDone == cleanTotal;
         header(stepTag(), s(R.string.onb_adb_title), s(R.string.onb_adb_body));
         content.addView(miniStep("1", s(R.string.onb_adb_step), adbLinked));
         content.addView(miniStep("2", s(R.string.onb_adb_step2), cleaned));
@@ -816,7 +817,8 @@ public final class OnboardingPanel {
 
         actions.addView(button(s(R.string.set_back), false, new Runnable() { public void run() { back(); } }));
         actions.addView(gap());
-        View cont = button(s(R.string.onb_continue), cleaned || cleanState == CLEAN_RUNNING,
+        View cont = button(s(R.string.onb_continue),
+                cleanState == CLEAN_DONE || cleanState == CLEAN_RUNNING,
                 new Runnable() { public void run() { next(); } });
         View act = null;
         if (!adbLinked) {

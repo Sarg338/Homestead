@@ -125,13 +125,14 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
 
         // The user launched an app from the overlay while this start was still pending;
         // resuming now would cover it. Scoped to the current Home press.
-        if (HomeRedirectService.consumeUserPicked()) {
+        if (HomeRedirectService.consumeUserPicked() | HomeWatchService.consumeUserPicked()) {
             Log.i(TAG, "user launched from overlay this cycle; finishing");
             finish();
             return;
         }
 
         HomeRedirectService.setLiveActivity(this);
+        HomeWatchService.setLiveActivity(this);
         // Back from a settings, VPN or approval screen: Home should work again straight away.
         HomeRedirectService.endSuspend();
         // Fire OS 6: READ_LOGS may have just been granted from a computer; start the fallback.
@@ -140,10 +141,15 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         // again if the Home button ever stops working.
         if (Prefs.homeDeclined(this) && SetupPanel.homeWorks(this)) Prefs.setHomeDeclined(this, false);
 
-        String selKey = HomeRedirectService.overlaySelectedKey();
-        int selScroll = HomeRedirectService.overlayScrollY();
-        int[] selRows = HomeRedirectService.overlayRowScrollX();
-        boolean handoff = HomeRedirectService.isOverlayUp();
+        // Fire OS 6 has its own overlay, in HomeWatchService; at most one of the two is up.
+        boolean fo6 = HomeWatchService.isOverlayUp();
+        String selKey = fo6 ? HomeWatchService.overlaySelectedKey()
+                : HomeRedirectService.overlaySelectedKey();
+        int selScroll = fo6 ? HomeWatchService.overlayScrollY()
+                : HomeRedirectService.overlayScrollY();
+        int[] selRows = fo6 ? HomeWatchService.overlayRowScrollX()
+                : HomeRedirectService.overlayRowScrollX();
+        boolean handoff = fo6 || HomeRedirectService.isOverlayUp();
 
         if (home != null) {
             // During a handoff the overlay has already sorted the shared model; re-sorting
@@ -165,6 +171,7 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         // Lift the overlay once this activity has laid out behind it. The service copies
         // the overlay's selection just before lifting, so late moves are kept.
         HomeRedirectService.hideOverlay(1000L);
+        HomeWatchService.hideOverlay(1000L);
 
         if (!receiversOn) {
             registerReceiver(tick, new IntentFilter(Intent.ACTION_TIME_TICK));
@@ -178,7 +185,9 @@ public class MainActivity extends Activity implements HomeGrid.Listener {
         super.onPause();
         // Something else is coming to the front; cancel the overlay hide we scheduled.
         HomeRedirectService.cancelPendingHide();
+        HomeWatchService.cancelPendingHide();
         HomeRedirectService.clearLiveActivity(this);
+        HomeWatchService.clearLiveActivity(this);
         if (receiversOn) {
             try { unregisterReceiver(tick); } catch (Throwable t) { }
             receiversOn = false;

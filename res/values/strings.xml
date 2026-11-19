@@ -171,7 +171,7 @@
   <string name="setup_needs_computer">needs a computer</string>
   <string name="setup_press_again">press again to turn it off</string>
   <string name="setup_could_not">could not - try again</string>
-  <string name="setup_svc_help_fo6">Fire OS 6 does not let Homestead redirect the Home button, so Homestead watches for the Home press instead and opens itself. Fire OS holds back other apps for a few seconds after Home, so Amazon\'s home screen shows first.\n\nThis needs the READ_LOGS permission, given from a computer with \"Commands for a computer\". If you turned the Home button off, select this row to turn it back on; no computer is needed.</string>
+  <string name="setup_svc_help_fo6">Fire OS 6 does not let Homestead redirect the Home button, so Homestead watches for the Home press instead and opens itself. Fire OS holds back other apps for a few seconds after Home. With the overlay permission Homestead shows its grid at once and covers that wait; without it, Amazon\'s home screen shows first.\n\nThis needs the READ_LOGS permission, and the overlay the SYSTEM_ALERT_WINDOW permission, both given from a computer with \"Commands for a computer\". If you turned the Home button off, select this row to turn it back on; no computer is needed.</string>
   <string name="setup_turn_off_help_fo6">Turning it off sends Home back to Amazon\'s home screen straight away. To turn it back on, select \"Home-button redirect\" at the top of Setup; no computer is needed. Press twice to confirm.</string>
   <string name="setup_on_fo6">on (Fire OS 6)</string>
   <string name="setup_off_select">off - select to turn on</string>
@@ -418,6 +418,8 @@
   <string name="cmd_wss_note">One command makes every row on the TV Health page changeable from the remote, permanently:</string>
   <string name="cmd_logs">Catch Home presses early</string>
   <string name="cmd_logs_note">Without this, Amazon\'s home screen shows for a moment on each Home press, and Home does nothing while Amazon\'s home screen is already showing. Homestead uses it only to spot the Home press in the system log:</string>
+  <string name="cmd_overlay">Show Homestead at once (Fire OS 6)</string>
+  <string name="cmd_overlay_note">Fire OS holds back other apps for about 5 seconds after Home, so without this Amazon\'s home screen shows first. With it, Homestead draws its grid over Amazon\'s home straight away and switches to the app itself when the hold ends:</string>
   <string name="cmd_ads">Advertising &amp; telemetry</string>
   <string name="cmd_running">Still running</string>
   <string name="cmd_none">none</string>

@@ -78,6 +78,17 @@ public final class CommandsPanel {
                     + "adb shell pm grant " + pkg + " android.permission.READ_LOGS");
         }
 
+        // Fire OS 6 only: the overlay that covers Fire OS's hold on app starts after Home.
+        if (HomeWatchService.available(c)) {
+            boolean ovl = HomeWatchService.overlayPermitted(c);
+            Panel.Row o = p.addRow(c.getString(R.string.cmd_overlay), ovl ? done : needed, null);
+            o.setValueColor(ovl ? OK : WARN);
+            if (!ovl) {
+                p.addNote(c.getString(R.string.cmd_overlay_note) + "\n\n"
+                        + "adb shell appops set " + pkg + " SYSTEM_ALERT_WINDOW allow");
+            }
+        }
+
         // ------------------------------------------------------------------ packages
         StringBuilder off = new StringBuilder();
         int count = 0;

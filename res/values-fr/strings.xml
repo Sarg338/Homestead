@@ -167,7 +167,7 @@
   <string name="setup_needs_computer">il faut un ordinateur</string>
   <string name="setup_press_again">appuyez à nouveau pour désactiver</string>
   <string name="setup_could_not">impossible, réessayez</string>
-  <string name="setup_svc_help_fo6">Fire OS 6 ne laisse pas Homestead rediriger la touche Accueil : Homestead guette donc l\'appui sur Accueil et s\'ouvre lui-même. Fire OS retient les autres applis quelques secondes après Accueil, donc l\'écran d\'accueil d\'Amazon s\'affiche d\'abord.\n\nIl faut pour cela l\'autorisation READ_LOGS, donnée depuis un ordinateur avec « Commandes pour un ordinateur ». Si vous avez désactivé la touche Accueil, choisissez cette ligne pour la réactiver ; aucun ordinateur n\'est nécessaire.</string>
+  <string name="setup_svc_help_fo6">Fire OS 6 ne laisse pas Homestead rediriger la touche Accueil : Homestead guette donc l\'appui sur Accueil et s\'ouvre lui-même. Fire OS retient les autres applis quelques secondes après Accueil. Avec l\'autorisation de superposition, Homestead affiche sa grille tout de suite et couvre cette attente ; sans elle, l\'écran d\'accueil d\'Amazon s\'affiche d\'abord.\n\nIl faut pour cela l\'autorisation READ_LOGS, et SYSTEM_ALERT_WINDOW pour la superposition, données depuis un ordinateur avec « Commandes pour un ordinateur ». Si vous avez désactivé la touche Accueil, choisissez cette ligne pour la réactiver ; aucun ordinateur n\'est nécessaire.</string>
   <string name="setup_turn_off_help_fo6">La désactiver renvoie aussitôt Accueil vers l\'écran d\'accueil d\'Amazon. Pour la réactiver, choisissez « Redirection de la touche Accueil » en haut de l\'installation ; aucun ordinateur n\'est nécessaire. Appuyez deux fois pour confirmer.</string>
   <string name="setup_on_fo6">activée (Fire OS 6)</string>
   <string name="setup_off_select">désactivée, choisir pour activer</string>
@@ -414,6 +414,8 @@
   <string name="cmd_wss_note">Une seule commande rend chaque ligne de la page Santé de la TV modifiable depuis la télécommande, définitivement :</string>
   <string name="cmd_logs">Détecter la touche Accueil plus tôt</string>
   <string name="cmd_logs_note">Sans cela, l\'écran d\'accueil d\'Amazon s\'affiche un instant à chaque appui sur Accueil, et Accueil ne fait rien quand l\'écran d\'accueil d\'Amazon est déjà affiché. Homestead s\'en sert uniquement pour repérer l\'appui sur Accueil dans le journal système :</string>
+  <string name="cmd_overlay">Afficher Homestead tout de suite (Fire OS 6)</string>
+  <string name="cmd_overlay_note">Fire OS retient les autres applis environ 5 secondes après Accueil : sans cela, l\'écran d\'accueil d\'Amazon s\'affiche d\'abord. Avec, Homestead affiche sa grille tout de suite par-dessus et passe à l\'appli elle-même à la fin de ce délai :</string>
   <string name="cmd_ads">Publicité et télémétrie</string>
   <string name="cmd_running">Encore actifs</string>
   <string name="cmd_none">aucun</string>

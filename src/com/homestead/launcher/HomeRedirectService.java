@@ -168,6 +168,7 @@ public class HomeRedirectService extends AccessibilityService {
             Lang.apply(s);
             if (s.home != null) s.home.rebuild();
         }
+        HomeWatchService.languageChanged();
         MainActivity a = (liveActivity == null) ? null : liveActivity.get();
         if (a != null) {
             Lang.apply(a);

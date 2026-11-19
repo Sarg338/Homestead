@@ -160,7 +160,7 @@
     <string name="setup_needs_computer">requiere un ordenador</string>
     <string name="setup_press_again">pulsa de nuevo para desactivarlo</string>
     <string name="setup_could_not">no se ha podido; inténtalo de nuevo</string>
-    <string name="setup_svc_help_fo6">Fire OS 6 no permite que Homestead redirija el botón Inicio, así que Homestead detecta su pulsación y se abre. Fire OS retrasa unos segundos la apertura de otras apps tras pulsar Inicio, por lo que primero aparece el inicio de Amazon.\n\nEsto requiere el permiso READ_LOGS, que se concede desde un ordenador con «Comandos para un ordenador». Si has desactivado el botón Inicio, selecciona esta fila para reactivarlo; no necesitas ordenador.</string>
+    <string name="setup_svc_help_fo6">Fire OS 6 no permite que Homestead redirija el botón Inicio, así que Homestead detecta su pulsación y se abre. Fire OS retrasa unos segundos la apertura de otras apps tras pulsar Inicio. Con el permiso de superposición, Homestead muestra su cuadrícula al instante y cubre esa espera; sin él, primero aparece el inicio de Amazon.\n\nEsto requiere el permiso READ_LOGS, y SYSTEM_ALERT_WINDOW para la superposición, que se conceden desde un ordenador con «Comandos para un ordenador». Si has desactivado el botón Inicio, selecciona esta fila para reactivarlo; no necesitas ordenador.</string>
     <string name="setup_turn_off_help_fo6">Al desactivarlo, Inicio vuelve inmediatamente al inicio de Amazon. Para reactivarlo, selecciona «Redirección del botón Inicio» en la parte superior de Configuración; no necesitas ordenador. Pulsa dos veces para confirmar.</string>
     <string name="setup_on_fo6">activado (Fire OS 6)</string>
     <string name="setup_off_select">desactivado; selecciona para activar</string>
@@ -399,6 +399,8 @@
     <string name="cmd_wss_note">Un comando permite cambiar permanentemente todas las filas de Estado del televisor desde el mando:</string>
     <string name="cmd_logs">Detectar antes las pulsaciones de Inicio</string>
     <string name="cmd_logs_note">Sin esto, el inicio de Amazon aparece un instante al pulsar Inicio y el botón no hace nada si esa pantalla ya está abierta. Homestead solo lo usa para detectar la pulsación de Inicio en el registro del sistema:</string>
+    <string name="cmd_overlay">Mostrar Homestead al instante (Fire OS 6)</string>
+    <string name="cmd_overlay_note">Fire OS retiene las demás apps unos 5 segundos tras pulsar Inicio, así que sin esto aparece primero el inicio de Amazon. Con esto, Homestead muestra su cuadrícula al momento encima y pasa a la app cuando termina la espera:</string>
     <string name="cmd_ads">Publicidad y telemetría</string>
     <string name="cmd_running">Aún en ejecución</string>
     <string name="cmd_none">ninguno</string>

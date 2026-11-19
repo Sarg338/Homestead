@@ -171,7 +171,7 @@
   <string name="setup_needs_computer">braucht einen Computer</string>
   <string name="setup_press_again">erneut drücken zum Ausschalten</string>
   <string name="setup_could_not">nicht möglich – erneut versuchen</string>
-  <string name="setup_svc_help_fo6">Fire OS 6 erlaubt Homestead nicht, die Home-Taste umzuleiten, deshalb reagiert Homestead stattdessen auf das Drücken der Home-Taste und öffnet sich selbst. Fire OS hält andere Apps nach Home einige Sekunden zurück, sodass zuerst Amazons Startbildschirm erscheint.\n\nDafür wird die Berechtigung READ_LOGS benötigt, die von einem Computer mit „Befehle für einen Computer“ erteilt wird. Falls Sie die Home-Taste ausgeschaltet haben, diese Zeile auswählen, um sie wieder einzuschalten; ein Computer ist nicht nötig.</string>
+  <string name="setup_svc_help_fo6">Fire OS 6 erlaubt Homestead nicht, die Home-Taste umzuleiten, deshalb reagiert Homestead stattdessen auf das Drücken der Home-Taste und öffnet sich selbst. Fire OS hält andere Apps nach Home einige Sekunden zurück. Mit der Overlay-Berechtigung zeigt Homestead sein Raster sofort und überbrückt diese Wartezeit; ohne sie erscheint zuerst Amazons Startbildschirm.\n\nDafür wird die Berechtigung READ_LOGS benötigt, für das Overlay zusätzlich SYSTEM_ALERT_WINDOW; beide werden von einem Computer mit „Befehle für einen Computer“ erteilt. Falls Sie die Home-Taste ausgeschaltet haben, diese Zeile auswählen, um sie wieder einzuschalten; ein Computer ist nicht nötig.</string>
   <string name="setup_turn_off_help_fo6">Ausschalten schickt Home sofort zu Amazons Startbildschirm zurück. Zum Wiedereinschalten oben in der Einrichtung „Home-Tasten-Umleitung“ auswählen; ein Computer ist nicht nötig. Zum Bestätigen zweimal drücken.</string>
   <string name="setup_on_fo6">an (Fire OS 6)</string>
   <string name="setup_off_select">aus – auswählen zum Einschalten</string>
@@ -418,6 +418,8 @@
   <string name="cmd_wss_note">Ein einziger Befehl macht jede Zeile der Seite TV-Zustand dauerhaft von der Fernbedienung aus änderbar:</string>
   <string name="cmd_logs">Home-Tastendruck frühzeitig erkennen</string>
   <string name="cmd_logs_note">Ohne dies erscheint bei jedem Home-Druck kurz Amazons Startbildschirm, und Home bewirkt nichts, solange Amazons Startbildschirm bereits angezeigt wird. Homestead nutzt es nur, um den Home-Druck im Systemprotokoll zu erkennen:</string>
+  <string name="cmd_overlay">Homestead sofort zeigen (Fire OS 6)</string>
+  <string name="cmd_overlay_note">Fire OS hält andere Apps nach Home etwa 5 Sekunden zurück, deshalb erscheint ohne dies zuerst Amazons Startbildschirm. Damit zeichnet Homestead sein Raster sofort über Amazons Startbildschirm und wechselt zur App selbst, sobald die Sperre endet:</string>
   <string name="cmd_ads">Werbung &amp; Telemetrie</string>
   <string name="cmd_running">Läuft noch</string>
   <string name="cmd_none">keine</string>

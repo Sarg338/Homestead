@@ -1597,6 +1597,11 @@ public class HomeGrid implements SettingsPanel.Host {
                 GradientDrawable ring = new GradientDrawable();
                 ring.setCornerRadius(radius);
                 if (has) {
+                    // The bar is the top of the dock design's first screen, so reaching it
+                    // brings that screen back: the background, with the dock at the bottom.
+                    // Left where it was, the grid stayed scrolled under the bar and the next
+                    // Down threw it back to the dock in one jump.
+                    if (dock && scroll.getScrollY() != 0) scroll.smoothScrollTo(0, 0);
                     ring.setStroke(dp(2), 0xF2FFFFFF);
                     ring.setColor(0x26FFFFFF);
                     cell.setForeground(ring);

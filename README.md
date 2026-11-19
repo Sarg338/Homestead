@@ -10,6 +10,23 @@ launcher as the system home activity and will not let anything else take it.
 
 Both pictures are from the same TV, a few minutes apart.
 
+## Styles
+
+<img src="screenshots/styles.jpg" alt="Six pictures of Homestead on one Fire TV Stick. Top row, the Dock design over three built-in landscapes: Mountains at dusk, Mountain lake, and Mount Ida, Crete. Bottom row: Dock over the Midnight colour, then the Classic design over the Deep sea colour and over Alps near Scuol.">
+
+All six are the same Fire TV Stick. The first four are the **Dock** design, the last two
+**Classic**.
+
+- **Design.** Classic keeps your inputs and apps in rows under their headings. Dock puts
+  the first of your TV apps on a band at the bottom of the first screen, in four sizes,
+  with the rest one press down.
+- **Background.** Eight colours, from the blue gradient to plain black, and eight built-in
+  landscapes: four drawn, four photos. Or [your own photo](#your-own-background-photo), or
+  Bing's image of the day.
+
+The first-run setup lets you try both with your own home screen beside the choices. Later
+they are under Settings → Home screen → Design, and Settings → Background.
+
 ## What it does
 
 - **A home screen without the ads.** Your inputs, your TV apps and everything else, in
@@ -66,23 +83,6 @@ Both pictures are from the same TV, a few minutes apart.
 - **[Simple mode](#setting-it-up-for-someone-else)** for a TV you set up for someone else:
   Settings is out of sight, nothing can be hidden by accident, and there are no update
   pop-ups.
-
-## Styles
-
-<img src="screenshots/styles.jpg" alt="Six pictures of Homestead on one Fire TV Stick. Top row, the Dock design over three built-in landscapes: Mountains at dusk, Mountain lake, and Mount Ida, Crete. Bottom row: Dock over the Midnight colour, then the Classic design over the Deep sea colour and over Alps near Scuol.">
-
-All six are the same Fire TV Stick. The first four are the **Dock** design, the last two
-**Classic**.
-
-- **Design.** Classic keeps your inputs and apps in rows under their headings. Dock puts
-  the first of your TV apps on a band at the bottom of the first screen, in four sizes,
-  with the rest one press down.
-- **Background.** Eight colours, from the blue gradient to plain black, and eight built-in
-  landscapes: four drawn, four photos. Or [your own photo](#your-own-background-photo), or
-  Bing's image of the day.
-
-The first-run setup lets you try both with your own home screen beside the choices. Later
-they are under Settings → Home screen → Design, and Settings → Background.
 
 ## Verified on
 

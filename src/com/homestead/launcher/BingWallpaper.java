@@ -37,13 +37,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/** Downloads Bing's current image into a separate private cache when the user chooses it. */
+/**
+ * Downloads Bing's image of the day into a separate private cache when the user chooses it.
+ * Bing marks some images as not for use as a wallpaper; on such a day the newest image it
+ * does allow is used instead.
+ */
 final class BingWallpaper {
     static final String ID = "bing";
 
     private static final String TAG = "Homestead";
     private static final String API_PREFIX =
-            "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=";
+            "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8&mkt=";
     private static final String PREFS = "bing_wallpaper";
     private static final String FILE = "bing-wallpaper.jpg";
     private static final int MAX_JSON = 256 * 1024;
@@ -192,8 +196,16 @@ final class BingWallpaper {
                 try {
                     JSONObject page = new JSONObject(new String(fetch(api, MAX_JSON, false), "UTF-8"));
                     JSONArray images = page.getJSONArray("images");
-                    JSONObject image = images.getJSONObject(0);
-                    if (!image.optBoolean("wp", false)) throw new IOException("Bing did not offer an image");
+                    // Newest first. The newest one may not be allowed as a wallpaper.
+                    JSONObject image = null;
+                    for (int i = 0; i < images.length() && image == null; i++) {
+                        JSONObject entry = images.optJSONObject(i);
+                        if (entry != null && entry.optBoolean("wp", false)
+                                && entry.optString("url", "").length() > 0) {
+                            image = entry;
+                        }
+                    }
+                    if (image == null) throw new IOException("Bing did not offer an image");
                     String path = image.getString("url");
                     boolean same = have && path.equals(held) && mkt.equals(lastMarket);
                     if (!same) {
@@ -203,7 +215,9 @@ final class BingWallpaper {
                         replace(c, bytes);
                     }
                     long after = System.currentTimeMillis();
-                    long due = startOf(image.optString("fullstartdate", "")) + DAY_MS + MARGIN_MS;
+                    // The next image comes a day after the newest entry, whichever was taken.
+                    long due = startOf(images.getJSONObject(0).optString("fullstartdate", ""))
+                            + DAY_MS + MARGIN_MS;
                     if (due <= after || due - after > DAY_MS + RETRY_MS) {
                         due = after + (same ? RETRY_MS : FALLBACK_MS);
                     }

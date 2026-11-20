@@ -26,13 +26,24 @@ import java.util.Locale;
 final class Lang {
 
     /** Prefs values, in the order the Settings row cycles through them; "" is the TV's language. */
-    static final String[] CODES = { "", "en", "fr", "de", "es" };
+    static final String[] CODES = { "", "zh-TW", "en", "fr", "de", "es" };
 
     private Lang() { }
 
     static void apply(Context c) {
         String code = Prefs.language(c);
-        Locale l = code.isEmpty() ? Resources.getSystem().getConfiguration().locale : new Locale(code);
+        Locale l;
+        if (code.isEmpty()) {
+            l = Resources.getSystem().getConfiguration().locale;
+        } else if (code.contains("-")) {
+            String[] parts = code.split("-", 2);
+            l = new Locale(parts[0], parts[1]);
+        } else if (code.contains("_")) {
+            String[] parts = code.split("_", 2);
+            l = new Locale(parts[0], parts[1]);
+        } else {
+            l = new Locale(code);
+        }
         Locale.setDefault(l);
         apply(c.getResources(), l);
         apply(c.getApplicationContext().getResources(), l);
@@ -58,6 +69,7 @@ final class Lang {
 
     /** The name of one of CODES. */
     static String label(Context c, String code) {
+        if (code.equals("zh-TW") || code.equals("zh_TW") || code.equals("zh")) return "繁體中文";
         if (code.equals("en")) return "English";
         if (code.equals("fr")) return "Français";
         if (code.equals("de")) return "Deutsch";

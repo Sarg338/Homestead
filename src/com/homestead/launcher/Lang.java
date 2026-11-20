@@ -26,7 +26,7 @@ import java.util.Locale;
 final class Lang {
 
     /** Prefs values, in the order the Settings row cycles through them; "" is the TV's language. */
-    static final String[] CODES = { "", "zh-TW", "en", "fr", "de", "es" };
+    static final String[] CODES = { "", "en", "fr", "de", "es", "zh-TW" };
 
     private Lang() { }
 

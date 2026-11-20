@@ -35,6 +35,7 @@ import android.media.tv.TvInputManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -807,6 +808,10 @@ public final class AppModel {
         final java.util.Map<String, Integer> pinAt = new java.util.HashMap<String, Integer>();
         List<String> pins = Prefs.pinned(c);
         for (int i = 0; i < pins.size(); i++) pinAt.put(pins.get(i), i);
+
+        final Collator collator = Collator.getInstance(Locale.getDefault());
+        collator.setStrength(Collator.SECONDARY);
+
         Collections.sort(ITEMS, new Comparator<Item>() {
             public int compare(Item x, Item y) {
                 // The rows first, so a pin only ever moves a tile within its own row.
@@ -818,13 +823,19 @@ public final class AppModel {
                     boolean xh = x.label.toUpperCase(Locale.US).startsWith("HDMI");
                     boolean yh = y.label.toUpperCase(Locale.US).startsWith("HDMI");
                     if (xh != yh) return xh ? -1 : 1;
-                    return x.label.compareToIgnoreCase(y.label);
+                    return collator.compare(x.label != null ? x.label : "", y.label != null ? y.label : "");
                 }
                 if (x.type != TYPE_APP) return 0;
                 if (!oneRow && x.tvApp != y.tvApp) return x.tvApp ? -1 : 1;
-                if (!byLastUsed) return x.label.compareToIgnoreCase(y.label);
+                String lx = (x.label != null) ? x.label : "";
+                String ly = (y.label != null) ? y.label : "";
+                if (!byLastUsed) {
+                    int c = collator.compare(lx, ly);
+                    return c != 0 ? c : lx.compareToIgnoreCase(ly);
+                }
                 if (x.lastUsed != y.lastUsed) return (x.lastUsed > y.lastUsed) ? -1 : 1;
-                return x.label.compareToIgnoreCase(y.label);
+                int c = collator.compare(lx, ly);
+                return c != 0 ? c : lx.compareToIgnoreCase(ly);
             }
             private int pinRank(Item it) {
                 Integer i = pinAt.isEmpty() ? null : pinAt.get(it.key());

@@ -25,7 +25,7 @@ import java.util.Locale;
  */
 final class Lang {
 
-    /** Prefs values, in the order the Settings row cycles through them; "" is the TV's language. */
+    /** Prefs values, in the order Settings lists them; "" is the TV's language. */
     static final String[] CODES = { "", "en", "fr", "de", "es", "zh-TW" };
 
     private Lang() { }
@@ -53,15 +53,6 @@ final class Lang {
         Configuration conf = new Configuration(r.getConfiguration());
         conf.setLocale(l);
         r.updateConfiguration(conf, r.getDisplayMetrics());
-    }
-
-    /** The next choice in the Settings cycle. */
-    static String next(Context c) {
-        String cur = Prefs.language(c);
-        for (int i = 0; i < CODES.length; i++) {
-            if (CODES[i].equals(cur)) return CODES[(i + 1) % CODES.length];
-        }
-        return CODES[0];
     }
 
     /** Language names are written in their own language, so anyone can find theirs. */

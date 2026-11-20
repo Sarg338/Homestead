@@ -70,19 +70,11 @@ public final class SettingsPanel {
             public void onClick(View v) { host.showPanel(buildLook(c, host, summaries)); }
         });
 
-        final Panel.Row lang = p.addRow(c.getString(R.string.set_lang), Lang.label(c), null);
+        final Panel.Row lang = p.addRow(c.getString(R.string.set_lang), Lang.label(c), null).opens();
         lang.setValueColor(0xFF8FA3B8);
         lang.setHelp(c.getString(R.string.set_lang_help));
         lang.cell.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Prefs.setLanguage(c, Lang.next(c));
-                HomeRedirectService.languageChanged(c);
-                // This page was drawn in the old language; draw it again in the new one, back
-                // on this row.
-                host.closePanel();
-                focusLanguage = true;
-                host.showPanel(build(c, host));
-            }
+            public void onClick(View v) { host.showPanel(buildLanguage(c, host)); }
         });
         if (focusLanguage) {
             focusLanguage = false;
@@ -745,6 +737,54 @@ public final class SettingsPanel {
         d.setCornerRadius(AppModel.dp(c, 5));
         d.setStroke(AppModel.dp(c, 1), 0x59FFFFFF);
         return d;
+    }
+
+    // ---------------------------------------------------------------- language
+
+    /**
+     * The languages Homestead has, each named in itself, the TV's own first. Selecting one
+     * applies it at once and returns to Settings, drawn in that language; the one in use is
+     * marked.
+     */
+    private static View buildLanguage(final Context c, final Host host) {
+        final Panel p = new Panel(c, c.getString(R.string.set_lang),
+                c.getString(R.string.set_lang_help), Panel.SHEET);
+        final String now = Prefs.language(c);
+        View start = null;
+        for (int i = 0; i < Lang.CODES.length; i++) {
+            final String code = Lang.CODES[i];
+            final boolean on = code.equals(now);
+            final Panel.Row r = p.addRow(Lang.label(c, code), on ? c.getString(R.string.bg_in_use) : "", null);
+            r.setValueColor(on ? IN_USE : 0xFF8FA3B8);
+            if (on) start = r.cell;
+            r.cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    host.closePanel();
+                    if (code.equals(Prefs.language(c))) return;
+                    Prefs.setLanguage(c, code);
+                    HomeRedirectService.languageChanged(c);
+                    // Settings was drawn in the old language; draw it again in the new one,
+                    // back on the Language row.
+                    host.closePanel();
+                    focusLanguage = true;
+                    host.showPanel(build(c, host));
+                }
+            });
+        }
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+
+        // Start on the language in use, one step after showPanel focuses the first row.
+        final View first = start;
+        if (first != null) {
+            p.root.post(new Runnable() {
+                public void run() {
+                    p.root.post(new Runnable() { public void run() { first.requestFocus(); } });
+                }
+            });
+        }
+        return p.root;
     }
 
     // ---------------------------------------------------------------- bing region

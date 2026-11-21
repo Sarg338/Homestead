@@ -2353,7 +2353,10 @@ public class HomeGrid implements SettingsPanel.Host {
         // Live TV first: inputs go a quiet grey so only the Live TV tile stands out, and
         // app labels get larger and brighter.
         boolean tvFirst = liveTvFirst();
-        if (dock) card.setColor(look == Backgrounds.PHOTO_LOOK ? 0xA61B1E24 : DOCK_CARD_COLOR);
+        if (dock) {
+            card.setColor(look == Backgrounds.PHOTO_LOOK ? 0xA61B1E24 : DOCK_CARD_COLOR);
+            if (look == Backgrounds.PHOTO_LOOK) cell.setOutlineProvider(null);
+        }
         else if (textTile) card.setColor(tvFirst ? 0xFF2A333D : 0xFF0E5A63);
         else card.setColor(0xFF033058);
         cell.setBackground(card);

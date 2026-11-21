@@ -110,6 +110,7 @@ public class HomeGrid implements SettingsPanel.Host {
     private final LinearLayout topBar;
     /** The date beside a large clock, drawn only with the top bar. */
     private final TextView dateText;
+    private TextView barGreet;
     private boolean barShown;
     private View barSpacer, barRule;
 
@@ -344,6 +345,19 @@ public class HomeGrid implements SettingsPanel.Host {
                     dateText.setVisibility(View.GONE);
                     if (barRule != null) barRule.setVisibility(View.GONE);
                     super.onMeasure(w, h);
+                    if (barGreet != null && barGreet.getVisibility() == View.VISIBLE) {
+                        int need2 = 0;
+                        for (int i = 0; i < getChildCount(); i++) {
+                            View v = getChildAt(i);
+                            if (v == barSpacer || v.getVisibility() == View.GONE) continue;
+                            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
+                            need2 += v.getMeasuredWidth() + lp.leftMargin + lp.rightMargin;
+                        }
+                        if (need2 > avail) {
+                            barGreet.setVisibility(View.GONE);
+                            super.onMeasure(w, h);
+                        }
+                    }
                 }
             }
         };
@@ -443,6 +457,7 @@ public class HomeGrid implements SettingsPanel.Host {
         paintText(greet);
         paintText(date);
         paintText(dateText);
+        if (barGreet != null) paintText(barGreet);
         if (topTitle != null && topTitle == barSpacer) paintText(topTitle);
         for (int i = 0; i < column.getChildCount(); i++) {
             View v = column.getChildAt(i);
@@ -484,6 +499,15 @@ public class HomeGrid implements SettingsPanel.Host {
             clock.setText(new SimpleDateFormat(fmt, Locale.getDefault()).format(now));
         }
         dateText.setText(dateString(now, true).toUpperCase(Locale.getDefault()));
+        if (barGreet != null && barShown && Prefs.greeting(ctx)) {
+            barGreet.setText(greetingRes());
+        }
+    }
+
+    private int greetingRes() {
+        int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        return h >= 5 && h < 12 ? R.string.home_greet_morning
+                : h >= 12 && h < 18 ? R.string.home_greet_afternoon : R.string.home_greet_evening;
     }
 
     /**
@@ -509,9 +533,7 @@ public class HomeGrid implements SettingsPanel.Host {
         boolean g = Prefs.greeting(ctx);
         int df = Prefs.dateFormat(ctx);
         if (g) {
-            int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-            greet.setText(h >= 5 && h < 12 ? R.string.home_greet_morning
-                    : h >= 12 && h < 18 ? R.string.home_greet_afternoon : R.string.home_greet_evening);
+            greet.setText(greetingRes());
         }
         greet.setVisibility(g ? View.VISIBLE : View.GONE);
         if (df != Prefs.DATE_OFF) date.setText(dateString(now, false));
@@ -1511,6 +1533,20 @@ public class HomeGrid implements SettingsPanel.Host {
             topBar.addView(dateText);
         } else {
             dateText.setVisibility(View.GONE);
+        }
+        if (Prefs.greeting(ctx)) {
+            barGreet = new TextView(ctx);
+            barGreet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            barGreet.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            barGreet.setSingleLine(true);
+            barGreet.setAlpha(0.90f);
+            paintText(barGreet);
+            LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            glp.leftMargin = dp(18);
+            topBar.addView(barGreet, glp);
+        } else {
+            barGreet = null;
         }
         topBar.addView(spacer, slp);
 

@@ -1527,7 +1527,8 @@ public class HomeGrid implements SettingsPanel.Host {
         } else {
             dateText.setVisibility(View.GONE);
         }
-        leftCol.addView(timeRow);
+        leftCol.addView(timeRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         if (Prefs.greeting(ctx)) {
             barGreet = new TextView(ctx);
             barGreet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);

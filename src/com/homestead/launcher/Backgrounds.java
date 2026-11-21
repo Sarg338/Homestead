@@ -89,6 +89,13 @@ final class Backgrounds {
     static final String PHOTO_ID = "photo";
     /** Bing's daily image; its cache is separate from the photo the user supplied. */
     static final String BING_ID = BingWallpaper.ID;
+    /** TV-rendered animated backgrounds (prefix "anim_"). */
+    static final String[] ANIMATED_IDS = {
+            AnimatedBackgroundDrawable.ID_WEATHER,
+            AnimatedBackgroundDrawable.ID_AURORA,
+            AnimatedBackgroundDrawable.ID_STARFIELD,
+            AnimatedBackgroundDrawable.ID_WAVES
+    };
     /** The photo's text and ring colours, and its look until the photo has loaded. */
     static final Preset PHOTO_LOOK =
             new Preset(PHOTO_ID, "Photo", 0xFF000000, 0xFF000000, 0xFFFFFFFF, 0xFFE6E6E6, EDGE);
@@ -135,11 +142,41 @@ final class Backgrounds {
     static Preset current(Context c) {
         String id = currentId(c);
         if (BING_ID.equals(id)) return BingWallpaper.file(c) != null ? PHOTO_LOOK : PRESETS[0];
-        if (PHOTO_ID.equals(id) || isLandscape(id)) return PHOTO_LOOK;
+        if (PHOTO_ID.equals(id) || isLandscape(id) || isAnimated(id)) return PHOTO_LOOK;
         for (int i = 0; i < PRESETS.length; i++) {
             if (PRESETS[i].id.equals(id)) return PRESETS[i];
         }
         return PRESETS[0];
+    }
+
+    static boolean isAnimated(String id) {
+        if (id == null) return false;
+        for (int i = 0; i < ANIMATED_IDS.length; i++) {
+            if (ANIMATED_IDS[i].equals(id)) return true;
+        }
+        return false;
+    }
+
+    static Drawable animatedDrawable(Context c, String id) {
+        return new AnimatedBackgroundDrawable(c, id);
+    }
+
+    static GradientDrawable animatedSwatch(String id) {
+        int from = 0xFF0A1628, to = 0xFF182B49;
+        if (AnimatedBackgroundDrawable.ID_WEATHER.equals(id)) {
+            from = 0xFF1B5FA8; to = 0xFF5797D4;
+        } else if (AnimatedBackgroundDrawable.ID_AURORA.equals(id)) {
+            from = 0xFF0B1F36; to = 0xFF2EE6A6;
+        } else if (AnimatedBackgroundDrawable.ID_STARFIELD.equals(id)) {
+            from = 0xFF050814; to = 0xFF1E2D5A;
+        }
+        GradientDrawable d = new GradientDrawable(
+                GradientDrawable.Orientation.BL_TR, new int[] { from, to });
+        return d;
+    }
+
+    static String animatedName(Context c, String id) {
+        return displayName(c, id);
     }
 
     /** The photo sent from a computer or picked on the TV is the chosen look. */
@@ -208,6 +245,7 @@ final class Backgrounds {
     static String label(Context c) {
         String id = currentId(c);
         if (BING_ID.equals(id)) return c.getString(R.string.bg_bing);
+        if (isAnimated(id)) return animatedName(c, id);
         if (isLandscape(id)) return landscapeName(c, id);
         if (!photoChosen(c)) return name(c, current(c));
         return c.getString(photoFile(c) != null ? R.string.bg_photo : R.string.bg_photo_none);

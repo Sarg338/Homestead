@@ -793,4 +793,39 @@
   <string name="set_apps_one">Applis sur une seule rangée</string>
   <string name="set_apps_one_help">Les applis TV et les autres ensemble dans une seule grille, triées comme une seule liste. Les autres applis reçoivent des tuiles larges faites de leur icône.</string>
   <string name="ro_in_apps">dans Applications</string>
+
+  <!-- Fonds d'écran animés et météo en direct -->
+  <string name="bg_animated">Fonds animés</string>
+  <string name="bg_animated_help">Rendus en direct par la TV et mis en pause automatiquement lorsque l\'écran d\'accueil est masqué.</string>
+  <string name="bg_anim_weather">Météo en direct</string>
+  <string name="bg_anim_weather_help">Adapte le ciel, le soleil, la lune, les nuages, la pluie, la neige, le brouillard et l\'orage à la météo actuelle via Open-Meteo.</string>
+  <string name="bg_anim_aurora">Aurore boréale</string>
+  <string name="bg_anim_starfield">Ciel étoilé</string>
+  <string name="bg_anim_waves">Ondes</string>
+  <string name="weather_location">Localisation météo</string>
+  <string name="weather_location_help">Utilise la ville principale si elle est définie, sinon la détection automatique, avec une ville de secours si la détection échoue.</string>
+  <string name="weather_status">Météo actuelle</string>
+  <string name="weather_status_help">Sélectionnez pour actualiser la météo depuis Open-Meteo maintenant.</string>
+  <string name="weather_auto">Détection automatique</string>
+  <string name="weather_auto_help">Position approximative depuis votre connexion réseau (aucune autorisation GPS requise).</string>
+  <string name="weather_auto_on">automatique</string>
+  <string name="weather_auto_city">auto (%1$s)</string>
+  <string name="weather_primary">Ville principale</string>
+  <string name="weather_primary_help">Remplace la détection automatique si elle est renseignée. Laissez vide pour garder la détection auto.</string>
+  <string name="weather_fallback">Ville de secours</string>
+  <string name="weather_fallback_help">Utilisée si la détection automatique échoue ou est désactivée.</string>
+  <string name="weather_city_hint">Nom de la ville (ex. Nice, Lyon, Paris)</string>
+  <string name="weather_city_save">Enregistrer la ville</string>
+  <string name="weather_city_clear">Effacer</string>
+  <string name="weather_none">aucune</string>
+  <string name="weather_loading">mise à jour\u2026</string>
+  <string name="weather_failed">indisponible</string>
+  <string name="weather_cond_clear">Dégagé</string>
+  <string name="weather_cond_cloudy">Nuageux</string>
+  <string name="weather_cond_fog">Brouillard</string>
+  <string name="weather_cond_rain">Pluie</string>
+  <string name="weather_cond_snow">Neige</string>
+  <string name="weather_cond_storm">Orage</string>
+  <string name="bg_sound">Son du fond animé</string>
+  <string name="bg_sound_help">Lit l\'ambiance sonore des vidéos d\'arrière-plan lorsqu\'elles en contiennent.</string>
 </resources>

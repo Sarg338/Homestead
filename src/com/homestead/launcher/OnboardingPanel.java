@@ -1025,6 +1025,15 @@ public final class OnboardingPanel {
             }
             loadThumbs(files, views);
         }
+
+        content.addView(sectionLabel(s(R.string.bg_animated), false));
+        LookRow animated = new LookRow(marks, cells, paint);
+        rows.add(animated);
+        for (int i = 0; i < Backgrounds.ANIMATED_IDS.length; i++) {
+            String animId = Backgrounds.ANIMATED_IDS[i];
+            ImageView img = animated.add(animId, Backgrounds.animatedName(c, animId));
+            img.setImageDrawable(Backgrounds.animatedSwatch(animId));
+        }
         content.addView(note(s(R.string.onb_look_more)));
         paint.run();
 

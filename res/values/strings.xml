@@ -797,4 +797,39 @@
   <string name="set_apps_one">Apps in one row</string>
   <string name="set_apps_one_help">TV apps and the other apps together in one grid, sorted as one list. The other apps get wide tiles made from their icons.</string>
   <string name="ro_in_apps">in Apps</string>
+
+  <!-- Animated & live weather backgrounds -->
+  <string name="bg_animated">Animated</string>
+  <string name="bg_animated_help">Rendered live by the TV and paused automatically when the home screen is hidden.</string>
+  <string name="bg_anim_weather">Live weather</string>
+  <string name="bg_anim_weather_help">Adapts sky, sun, moon, clouds, rain, snow, fog and storms to current weather via Open-Meteo.</string>
+  <string name="bg_anim_aurora">Aurora</string>
+  <string name="bg_anim_starfield">Starfield</string>
+  <string name="bg_anim_waves">Waves</string>
+  <string name="weather_location">Weather location</string>
+  <string name="weather_location_help">Uses your primary city if set, otherwise automatic location, with a fallback city if detection fails.</string>
+  <string name="weather_status">Current weather</string>
+  <string name="weather_status_help">Select to refresh weather from Open-Meteo now.</string>
+  <string name="weather_auto">Automatic location</string>
+  <string name="weather_auto_help">Approximate location from your network address (no GPS permission needed).</string>
+  <string name="weather_auto_on">automatic</string>
+  <string name="weather_auto_city">auto (%1$s)</string>
+  <string name="weather_primary">Primary city</string>
+  <string name="weather_primary_help">Overrides automatic location when set. Leave empty to use automatic detection.</string>
+  <string name="weather_fallback">Fallback city</string>
+  <string name="weather_fallback_help">Used if automatic location fails or is turned off.</string>
+  <string name="weather_city_hint">City name (e.g. Nice, Lyon, Paris)</string>
+  <string name="weather_city_save">Save city</string>
+  <string name="weather_city_clear">Clear</string>
+  <string name="weather_none">none</string>
+  <string name="weather_loading">updating\u2026</string>
+  <string name="weather_failed">unavailable</string>
+  <string name="weather_cond_clear">Clear</string>
+  <string name="weather_cond_cloudy">Cloudy</string>
+  <string name="weather_cond_fog">Fog</string>
+  <string name="weather_cond_rain">Rain</string>
+  <string name="weather_cond_snow">Snow</string>
+  <string name="weather_cond_storm">Storm</string>
+  <string name="bg_sound">Background sound</string>
+  <string name="bg_sound_help">Plays ambient audio from animated video backgrounds when available.</string>
 </resources>

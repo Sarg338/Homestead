@@ -22,6 +22,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -46,11 +47,11 @@ public class Panel {
 
     public static final int FULL = 0, SHEET = 1;
 
-    private static final int NAVY = 0xFF0B1F38, SHEET_BG = 0xFF0E2542;
-    private static final int TEXT = 0xFFEAF0F7, SUB = 0xFFA9BACC, MUTE = 0xFF7C8FA4;
-    private static final int HEAD = 0xFF7FA8D8, ROW_BG = 0x10FFFFFF, PANE_BG = 0x12FFFFFF;
-    private static final int FOCUS_BG = 0xFFE8EEF6, FOCUS_TEXT = 0xFF0B1F38;
-    private static final int DEFAULT_VALUE = 0xFFA7D28F;
+    private static final int NAVY = 0xFF090D16, SHEET_BG = 0xE00E1420;
+    private static final int TEXT = 0xFFF0F4FA, SUB = 0xFFA4B3C6, MUTE = 0xFF77899E;
+    private static final int HEAD = 0xFF8BB4E6, ROW_BG = 0x16FFFFFF, PANE_BG = 0x14FFFFFF;
+    private static final int FOCUS_BG = 0xFFF4F7FC, FOCUS_TEXT = 0xFF0B111D;
+    private static final int DEFAULT_VALUE = 0xFF2EE6A6;
     /** The outline of a row picked up to be moved. */
     private static final int LIFT = 0xFF2E7BD6;
 
@@ -103,10 +104,13 @@ public class Panel {
         sv.setVerticalScrollBarEnabled(false);
         sv.setFillViewport(true);
         sv.setClipToPadding(false);
-        // Room for the focused row's lift, top and bottom.
-        sv.setPadding(dp(6), dp(6), dp(6), dp(12));
+        sv.setClipChildren(false);
+        // Room for the focused card's zoom and lift on all sides.
+        sv.setPadding(dp(12), dp(10), dp(12), dp(14));
         column = new LinearLayout(c);
         column.setOrientation(LinearLayout.VERTICAL);
+        column.setClipChildren(false);
+        column.setClipToPadding(false);
         sv.addView(column, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         list.addView(sv, new LinearLayout.LayoutParams(
@@ -143,7 +147,8 @@ public class Panel {
             sheet.setPadding(dp(28), dp(32), dp(28), dp(22));
             GradientDrawable bg = new GradientDrawable();
             bg.setColor(SHEET_BG);
-            float r = dp(22);
+            bg.setStroke(Math.max(1, dp(1)), 0x22FFFFFF);
+            float r = dp(24);
             bg.setCornerRadii(new float[]{r, r, 0, 0, 0, 0, r, r});
             sheet.setBackground(bg);
             sheet.setElevation(dp(16));
@@ -186,6 +191,7 @@ public class Panel {
             pane.setPadding(dp(28), dp(28), dp(28), dp(24));
             GradientDrawable pbg = new GradientDrawable();
             pbg.setColor(PANE_BG);
+            pbg.setStroke(Math.max(1, dp(1)), 0x1CFFFFFF);
             pbg.setCornerRadius(dp(18));
             pane.setBackground(pbg);
             pane.addView(helpTitle, lp(0, dp(10)));
@@ -276,6 +282,28 @@ public class Panel {
         return n;
     }
 
+    /** A focusable text field styled to match the panel rows. */
+    public EditText addField(String initial, String hint) {
+        EditText e = new EditText(ctx);
+        e.setText(initial == null ? "" : initial);
+        e.setHint(hint);
+        e.setTextColor(TEXT);
+        e.setHintTextColor(MUTE);
+        e.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        e.setSingleLine(true);
+        e.setFocusable(true);
+        e.setFocusableInTouchMode(true);
+        e.setPadding(dp(16), dp(12), dp(16), dp(12));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(ROW_BG);
+        bg.setCornerRadius(dp(8));
+        bg.setStroke(dp(1), 0x33FFFFFF);
+        e.setBackground(bg);
+        column.addView(e, lp(dp(2), dp(10)));
+        lastRow = null;
+        return e;
+    }
+
     /** Explains every row of the current section that has no explanation of its own. */
     public void addSectionHelp(String text) {
         section.help = text;
@@ -344,7 +372,9 @@ public class Panel {
             public void onFocusChange(View view, boolean has) {
                 row.focused = has;
                 row.paint();
-                view.setTranslationZ(has ? dp(6) : 0f);
+                view.setTranslationZ(has ? dp(8) : 0f);
+                view.animate().scaleX(has ? 1.02f : 1f).scaleY(has ? 1.02f : 1f)
+                        .setDuration(110).start();
                 if (has) { focused = row; showHelp(row); }
             }
         });
@@ -355,7 +385,7 @@ public class Panel {
         }
         row.paint();
 
-        column.addView(cell, lp(0, dp(6)));
+        column.addView(cell, lp(0, dp(8)));
         lastRow = row;
         return row;
     }
@@ -666,9 +696,10 @@ public class Panel {
             }
             boolean enabled = cell.isEnabled();
             GradientDrawable bg = new GradientDrawable();
-            bg.setCornerRadius(panel.dp(12));
+            bg.setCornerRadius(panel.dp(14));
             bg.setColor(focused ? FOCUS_BG : ROW_BG);
             if (lifted) bg.setStroke(panel.dp(3), LIFT);
+            else if (!focused) bg.setStroke(Math.max(1, panel.dp(1)), 0x1EFFFFFF);
             cell.setBackground(bg);
 
             label.setTextColor(focused ? FOCUS_TEXT : TEXT);
@@ -678,11 +709,13 @@ public class Panel {
             value.setTextColor(vc);
 
             String v = value.getText().toString();
-            boolean sw = isSwitch && (v.equalsIgnoreCase("on") || v.equalsIgnoreCase("off"));
+            boolean isOnVal = v.equalsIgnoreCase("on") || v.equalsIgnoreCase("activ\u00E9");
+            boolean isOffVal = v.equalsIgnoreCase("off") || v.equalsIgnoreCase("d\u00E9sactiv\u00E9");
+            boolean sw = isSwitch && (isOnVal || isOffVal);
             value.setVisibility(sw || v.length() == 0 ? View.GONE : View.VISIBLE);
             toggle.setVisibility(sw ? View.VISIBLE : View.GONE);
             if (sw) {
-                toggle.on = v.equalsIgnoreCase("on");
+                toggle.on = isOnVal;
                 toggle.light = focused;
                 toggle.color = valueColor;
                 toggle.invalidate();

@@ -612,6 +612,20 @@ public final class SettingsPanel {
                             good = false;
                         }
                     }
+                    if (on && ids.get(i).equals(WeatherService.ID)) {
+                        WeatherService.State ws = WeatherService.current(c);
+                        if (WeatherService.busy()) {
+                            v = c.getString(R.string.weather_loading);
+                        } else if (ws.valid) {
+                            String cond = c.getString(WeatherService.conditionLabelRes(ws.weatherCode));
+                            String deg = Math.round(ws.tempC) + "\u00B0C";
+                            v = ws.city.isEmpty() ? (cond + " \u2022 " + deg)
+                                    : (ws.city + " \u2022 " + deg);
+                        } else if (!WeatherService.lastError().isEmpty()) {
+                            v = c.getString(R.string.weather_failed);
+                            good = false;
+                        }
+                    }
                     rows.get(i).setValue(v);
                     rows.get(i).setValueColor(good ? IN_USE : 0xFF8FA3B8);
                 }
@@ -714,6 +728,60 @@ public final class SettingsPanel {
             }
         });
 
+        p.addHeader(c.getString(R.string.bg_animated));
+        for (int i = 0; i < Backgrounds.ANIMATED_IDS.length; i++) {
+            final String animId = Backgrounds.ANIMATED_IDS[i];
+            final Panel.Row r = p.addRow(Backgrounds.animatedName(c, animId), "", null);
+            android.graphics.drawable.GradientDrawable sw = Backgrounds.animatedSwatch(animId);
+            sw.setCornerRadius(AppModel.dp(c, 5));
+            sw.setStroke(AppModel.dp(c, 1), 0x59FFFFFF);
+            r.setSwatch(sw);
+            r.setHelp(c.getString(WeatherService.ID.equals(animId)
+                    ? R.string.bg_anim_weather_help : R.string.bg_animated_help));
+            r.cell.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    Backgrounds.choose(c, animId);
+                    if (WeatherService.ID.equals(animId)) {
+                        WeatherService.refresh(c, true, new Runnable() {
+                            public void run() {
+                                mark.run();
+                                changed.run();
+                            }
+                        });
+                    }
+                    mark.run();
+                    host.rebuildGrid();
+                    changed.run();
+                }
+            });
+            rows.add(r);
+            ids.add(animId);
+        }
+        mark.run();
+
+        final Panel.Row wloc = p.addRow(c.getString(R.string.weather_location),
+                weatherSummary(c), null).opens();
+        wloc.setValueColor(0xFF8FA3B8);
+        wloc.setHelp(c.getString(R.string.weather_location_help));
+        wloc.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                host.showPanel(buildWeatherLocation(c, host, wloc, mark, changed));
+            }
+        });
+
+        final Panel.Row bgSound = p.addRow(c.getString(R.string.bg_sound),
+                c.getString(Prefs.backgroundSound(c) ? R.string.v_on : R.string.v_off), null)
+                .asSwitch();
+        bgSound.setHelp(c.getString(R.string.bg_sound_help));
+        bgSound.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean next = !Prefs.backgroundSound(c);
+                Prefs.setBackgroundSound(c, next);
+                bgSound.setValue(c.getString(next ? R.string.v_on : R.string.v_off));
+                host.rebuildGrid();
+            }
+        });
+
         p.addRow(c.getString(R.string.set_back), "", new Runnable() {
             public void run() { host.closePanel(); }
         });
@@ -737,6 +805,149 @@ public final class SettingsPanel {
         d.setCornerRadius(AppModel.dp(c, 5));
         d.setStroke(AppModel.dp(c, 1), 0x59FFFFFF);
         return d;
+    }
+
+    // ---------------------------------------------------------------- weather location
+
+    private static String weatherSummary(Context c) {
+        String p = Prefs.weatherPrimaryCity(c);
+        if (!p.isEmpty()) return p;
+        if (Prefs.weatherAuto(c)) {
+            WeatherService.State ws = WeatherService.current(c);
+            return ws.valid && !ws.city.isEmpty()
+                    ? c.getString(R.string.weather_auto_city, ws.city)
+                    : c.getString(R.string.weather_auto_on);
+        }
+        String fb = Prefs.weatherFallbackCity(c);
+        return fb.isEmpty() ? c.getString(R.string.weather_none) : fb;
+    }
+
+    private static View buildWeatherLocation(final Context c, final Host host,
+            final Panel.Row parentSummary, final Runnable markBg, final Runnable changed) {
+        final Panel p = new Panel(c, c.getString(R.string.weather_location), null, Panel.SHEET);
+        p.addSectionHelp(c.getString(R.string.weather_location_help));
+
+        final Panel.Row status = p.addRow(c.getString(R.string.weather_status), "", null);
+        final Runnable updateStatus = new Runnable() {
+            public void run() {
+                if (WeatherService.busy()) {
+                    status.setValue(c.getString(R.string.weather_loading));
+                    status.setValueColor(0xFF8FA3B8);
+                } else {
+                    WeatherService.State ws = WeatherService.current(c);
+                    if (ws.valid) {
+                        String cond = c.getString(WeatherService.conditionLabelRes(ws.weatherCode));
+                        String deg = Math.round(ws.tempC) + "\u00B0C";
+                        status.setValue((ws.city.isEmpty() ? "" : ws.city + " \u2022 ")
+                                + cond + " \u2022 " + deg);
+                        status.setValueColor(IN_USE);
+                    } else if (!WeatherService.lastError().isEmpty()) {
+                        status.setValue(c.getString(R.string.weather_failed));
+                        status.setValueColor(0xFF8FA3B8);
+                    } else {
+                        status.setValue(c.getString(R.string.weather_none));
+                        status.setValueColor(0xFF8FA3B8);
+                    }
+                }
+                parentSummary.setValue(weatherSummary(c));
+                markBg.run();
+                changed.run();
+            }
+        };
+        status.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                WeatherService.refresh(c, true, updateStatus);
+                updateStatus.run();
+            }
+        });
+        status.setHelp(c.getString(R.string.weather_status_help));
+
+        final Panel.Row auto = p.addRow(c.getString(R.string.weather_auto),
+                c.getString(Prefs.weatherAuto(c) ? R.string.v_on : R.string.v_off), null)
+                .asSwitch();
+        auto.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean next = !Prefs.weatherAuto(c);
+                Prefs.setWeatherAuto(c, next);
+                auto.setValue(c.getString(next ? R.string.v_on : R.string.v_off));
+                WeatherService.refresh(c, true, updateStatus);
+                updateStatus.run();
+            }
+        });
+        auto.setHelp(c.getString(R.string.weather_auto_help));
+
+        final Panel.Row primary = p.addRow(c.getString(R.string.weather_primary),
+                Prefs.weatherPrimaryCity(c).isEmpty()
+                        ? c.getString(R.string.weather_none) : Prefs.weatherPrimaryCity(c),
+                null).opens();
+        primary.setHelp(c.getString(R.string.weather_primary_help));
+        primary.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                host.showPanel(buildWeatherCity(c, host, true, new Runnable() {
+                    public void run() {
+                        String val = Prefs.weatherPrimaryCity(c);
+                        primary.setValue(val.isEmpty() ? c.getString(R.string.weather_none) : val);
+                        WeatherService.refresh(c, true, updateStatus);
+                        updateStatus.run();
+                    }
+                }));
+            }
+        });
+
+        final Panel.Row fallback = p.addRow(c.getString(R.string.weather_fallback),
+                Prefs.weatherFallbackCity(c).isEmpty()
+                        ? c.getString(R.string.weather_none) : Prefs.weatherFallbackCity(c),
+                null).opens();
+        fallback.setHelp(c.getString(R.string.weather_fallback_help));
+        fallback.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                host.showPanel(buildWeatherCity(c, host, false, new Runnable() {
+                    public void run() {
+                        String val = Prefs.weatherFallbackCity(c);
+                        fallback.setValue(val.isEmpty() ? c.getString(R.string.weather_none) : val);
+                        WeatherService.refresh(c, true, updateStatus);
+                        updateStatus.run();
+                    }
+                }));
+            }
+        });
+
+        updateStatus.run();
+
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
+    }
+
+    private static View buildWeatherCity(final Context c, final Host host,
+            final boolean isPrimary, final Runnable onSaved) {
+        String title = c.getString(isPrimary ? R.string.weather_primary : R.string.weather_fallback);
+        final Panel p = new Panel(c, title, null, Panel.SHEET);
+        String current = isPrimary ? Prefs.weatherPrimaryCity(c) : Prefs.weatherFallbackCity(c);
+        final android.widget.EditText field = p.addField(current, c.getString(R.string.weather_city_hint));
+
+        p.addRow(c.getString(R.string.weather_city_save), "", new Runnable() {
+            public void run() {
+                String typed = field.getText().toString().trim();
+                if (isPrimary) Prefs.setWeatherPrimaryCity(c, typed);
+                else Prefs.setWeatherFallbackCity(c, typed);
+                onSaved.run();
+                host.closePanel();
+            }
+        });
+        p.addRow(c.getString(R.string.weather_city_clear), "", new Runnable() {
+            public void run() {
+                if (isPrimary) Prefs.setWeatherPrimaryCity(c, "");
+                else Prefs.setWeatherFallbackCity(c, "");
+                onSaved.run();
+                host.closePanel();
+            }
+        });
+        p.addRow(c.getString(R.string.set_back), "", new Runnable() {
+            public void run() { host.closePanel(); }
+        });
+        return p.root;
     }
 
     // ---------------------------------------------------------------- language

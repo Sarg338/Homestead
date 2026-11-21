@@ -206,6 +206,14 @@ public class HomeGrid implements SettingsPanel.Host {
         // Overridden so Back and Menu reach us before the focused child consumes them; a
         // key listener on the root would never fire.
         root = new FrameLayout(c) {
+            @Override protected void onWindowVisibilityChanged(int visibility) {
+                super.onWindowVisibilityChanged(visibility);
+                AmbientAudioPlayer.get().setHostVisible(HomeGrid.this, visibility == View.VISIBLE);
+            }
+            @Override protected void onDetachedFromWindow() {
+                super.onDetachedFromWindow();
+                AmbientAudioPlayer.get().setHostVisible(HomeGrid.this, false);
+            }
             @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
                 if (e.getAction() == android.view.KeyEvent.ACTION_UP) {
                     lastKey = e.getKeyCode();
@@ -361,6 +369,24 @@ public class HomeGrid implements SettingsPanel.Host {
         clp.rightMargin = dp(33 - 6);
         root.addView(topBar, clp);
 
+        weatherBadge = new TextView(c);
+        weatherBadge.setTextColor(Color.WHITE);
+        weatherBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        weatherBadge.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        weatherBadge.setPadding(dp(14), dp(6), dp(14), dp(6));
+        weatherBadge.setVisibility(View.GONE);
+        GradientDrawable wbg = new GradientDrawable();
+        wbg.setColor(0x780A101C);
+        wbg.setCornerRadius(dp(20));
+        wbg.setStroke(Math.max(1, dp(1)), 0x33FFFFFF);
+        weatherBadge.setBackground(wbg);
+        weatherBadge.setElevation(dp(8));
+        FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        wlp.topMargin = dp(10);
+        root.addView(weatherBadge, wlp);
+
         head = new LinearLayout(c);
         head.setOrientation(LinearLayout.VERTICAL);
         greet = new TextView(c);
@@ -389,6 +415,8 @@ public class HomeGrid implements SettingsPanel.Host {
     private Backgrounds.Preset look;
     /** What is painted now, so an unchanged setting costs only a file stat. */
     private String painted;
+    private VideoBackgroundView videoBg;
+    private TextView weatherBadge;
 
     /**
      * Read the background setting and repaint what depends on it. Cheap; no rebuild. A
@@ -398,11 +426,36 @@ public class HomeGrid implements SettingsPanel.Host {
         BingWallpaper.refresh(ctx, false, new Runnable() {
             public void run() { applyBackground(); }
         });
+        WeatherService.refresh(ctx, false, new Runnable() {
+            public void run() { applyBackground(); }
+        });
         Backgrounds.Preset p = Backgrounds.current(ctx);
         Bitmap photo = null;
         String state = p.name;
         String id = Backgrounds.currentId(ctx);
-        if (Backgrounds.isLandscape(id)) {
+        boolean animated = Backgrounds.isAnimated(id);
+        java.io.File videoFile = null;
+        java.io.File audioFile = null;
+        if (animated) {
+            Backgrounds.drop();
+            String vKey = VideoWallpaperCache.keyFor(id);
+            videoFile = VideoWallpaperCache.file(ctx, vKey);
+            if (vKey != null && videoFile == null) {
+                VideoWallpaperCache.ensure(ctx, vKey, new Runnable() {
+                    public void run() { applyBackground(); }
+                });
+            }
+            boolean snd = Prefs.backgroundSound(ctx);
+            String aKey = snd ? VideoWallpaperCache.audioKeyFor(ctx, id) : null;
+            audioFile = snd ? VideoWallpaperCache.audioFile(ctx, aKey) : null;
+            if (snd && aKey != null && audioFile == null) {
+                VideoWallpaperCache.ensureAudio(ctx, aKey, new Runnable() {
+                    public void run() { applyBackground(); }
+                });
+            }
+            state = "anim|" + id + "|" + vKey + "|" + (videoFile != null)
+                    + "|" + snd + "|" + (audioFile != null) + "|" + WeatherService.version();
+        } else if (Backgrounds.isLandscape(id)) {
             // A shipped landscape: read from the assets, cached and dimmed like the photo.
             String file = Backgrounds.landscapeFile(ctx, id);
             String key = Backgrounds.assetKey(file);
@@ -437,8 +490,48 @@ public class HomeGrid implements SettingsPanel.Host {
         look = p;
         // The glow belongs to the colour presets; over a picture it only tints it.
         if (dock) setGlow(focusedAccent);
-        root.setBackground(photo != null ? Backgrounds.photoDrawable(ctx, photo)
-                : Backgrounds.drawable(p));
+        if (animated) {
+            if (videoFile != null) {
+                if (videoBg == null) {
+                    videoBg = new VideoBackgroundView(ctx);
+                    root.addView(videoBg, 0, new FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                }
+                float spd = VideoWallpaperCache.KEY_AURORA.equals(
+                        VideoWallpaperCache.keyFor(id)) ? 0.5f : 1.0f;
+                videoBg.setVideoFile(videoFile, spd, Prefs.backgroundSound(ctx));
+                videoBg.setVisibility(View.VISIBLE);
+            } else if (videoBg != null) {
+                videoBg.setVisibility(View.GONE);
+                videoBg.releasePlayer();
+            }
+            AmbientAudioPlayer.get().setHostVisible(this, root.getWindowVisibility() == View.VISIBLE);
+            AmbientAudioPlayer.get().setFile(audioFile);
+            if (WeatherService.ID.equals(id)) {
+                WeatherService.State ws = WeatherService.current(ctx);
+                if (ws.valid) {
+                    String deg = Math.round(ws.tempC) + "\u00B0C";
+                    String cond = ctx.getString(WeatherService.conditionLabelRes(ws.weatherCode));
+                    weatherBadge.setText((ws.city.isEmpty() ? "" : ws.city + "  \u2022  ")
+                            + deg + "  \u2022  " + cond);
+                    weatherBadge.setVisibility(View.VISIBLE);
+                } else {
+                    weatherBadge.setVisibility(View.GONE);
+                }
+            } else {
+                weatherBadge.setVisibility(View.GONE);
+            }
+            root.setBackground(Backgrounds.animatedDrawable(ctx, id));
+        } else {
+            AmbientAudioPlayer.get().stop();
+            weatherBadge.setVisibility(View.GONE);
+            if (videoBg != null) {
+                videoBg.setVisibility(View.GONE);
+                videoBg.releasePlayer();
+            }
+            root.setBackground(photo != null ? Backgrounds.photoDrawable(ctx, photo)
+                    : Backgrounds.drawable(p));
+        }
         paintText(clock);
         paintText(greet);
         paintText(date);
@@ -2260,7 +2353,10 @@ public class HomeGrid implements SettingsPanel.Host {
         // Live TV first: inputs go a quiet grey so only the Live TV tile stands out, and
         // app labels get larger and brighter.
         boolean tvFirst = liveTvFirst();
-        if (dock) card.setColor(look == Backgrounds.PHOTO_LOOK ? 0xA61B1E24 : DOCK_CARD_COLOR);
+        if (dock) {
+            card.setColor(look == Backgrounds.PHOTO_LOOK ? 0xA61B1E24 : DOCK_CARD_COLOR);
+            if (look == Backgrounds.PHOTO_LOOK) cell.setOutlineProvider(null);
+        }
         else if (textTile) card.setColor(tvFirst ? 0xFF2A333D : 0xFF0E5A63);
         else card.setColor(0xFF033058);
         cell.setBackground(card);

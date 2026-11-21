@@ -41,6 +41,10 @@ public final class Prefs {
     private static final String K_BACKGROUND = "background";
     private static final String K_BACKGROUND_ID = "background_id";
     private static final String K_BING_MARKET = "bing_market";
+    private static final String K_WEATHER_AUTO = "weather_auto";
+    private static final String K_WEATHER_PRIMARY = "weather_primary_city";
+    private static final String K_WEATHER_FALLBACK = "weather_fallback_city";
+    private static final String K_BG_SOUND = "bg_sound";
     private static final String K_PHOTO_DIM = "photo_dim";
     private static final String K_SHARED_PHOTO = "shared_photo_adopted";
     private static final String K_ADB = "adb_enabled";
@@ -501,5 +505,31 @@ public final class Prefs {
 
     public static void clearDisabledRecord(Context c) {
         sp(c).edit().putStringSet(K_DISABLED, new HashSet<String>()).apply();
+    }
+
+    // ---------------------------------------------------------------- weather
+
+    public static boolean weatherAuto(Context c) { return sp(c).getBoolean(K_WEATHER_AUTO, true); }
+    public static void setWeatherAuto(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_WEATHER_AUTO, v).apply();
+    }
+
+    public static String weatherPrimaryCity(Context c) {
+        return sp(c).getString(K_WEATHER_PRIMARY, "");
+    }
+    public static void setWeatherPrimaryCity(Context c, String v) {
+        sp(c).edit().putString(K_WEATHER_PRIMARY, v == null ? "" : v.trim()).apply();
+    }
+
+    public static String weatherFallbackCity(Context c) {
+        return sp(c).getString(K_WEATHER_FALLBACK, "Paris");
+    }
+    public static void setWeatherFallbackCity(Context c, String v) {
+        sp(c).edit().putString(K_WEATHER_FALLBACK, v == null ? "" : v.trim()).apply();
+    }
+
+    public static boolean backgroundSound(Context c) { return sp(c).getBoolean(K_BG_SOUND, true); }
+    public static void setBackgroundSound(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_BG_SOUND, v).apply();
     }
 }

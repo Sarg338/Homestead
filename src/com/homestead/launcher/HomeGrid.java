@@ -345,19 +345,6 @@ public class HomeGrid implements SettingsPanel.Host {
                     dateText.setVisibility(View.GONE);
                     if (barRule != null) barRule.setVisibility(View.GONE);
                     super.onMeasure(w, h);
-                    if (barGreet != null && barGreet.getVisibility() == View.VISIBLE) {
-                        int need2 = 0;
-                        for (int i = 0; i < getChildCount(); i++) {
-                            View v = getChildAt(i);
-                            if (v == barSpacer || v.getVisibility() == View.GONE) continue;
-                            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
-                            need2 += v.getMeasuredWidth() + lp.leftMargin + lp.rightMargin;
-                        }
-                        if (need2 > avail) {
-                            barGreet.setVisibility(View.GONE);
-                            super.onMeasure(w, h);
-                        }
-                    }
                 }
             }
         };
@@ -1516,10 +1503,16 @@ public class HomeGrid implements SettingsPanel.Host {
             return;
         }
 
-        // Clock and date at the left, the glass pills at the right.
+        // Clock and date at the left (with greeting below the clock), the glass pills at the right.
+        topBar.setGravity(Gravity.TOP);
+        LinearLayout leftCol = new LinearLayout(ctx);
+        leftCol.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout timeRow = new LinearLayout(ctx);
+        timeRow.setOrientation(LinearLayout.HORIZONTAL);
+        timeRow.setGravity(Gravity.CENTER_VERTICAL);
         clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 34);
         clock.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
-        topBar.addView(clock);
+        timeRow.addView(clock);
         if (showClock && Prefs.dateFormat(ctx) != Prefs.DATE_OFF) {
             View rule = new View(ctx);
             barRule = rule;
@@ -1527,13 +1520,14 @@ public class HomeGrid implements SettingsPanel.Host {
             LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(dp(1), dp(30));
             rlp.leftMargin = dp(16);
             rlp.rightMargin = dp(16);
-            topBar.addView(rule, rlp);
+            timeRow.addView(rule, rlp);
             dateText.setVisibility(View.VISIBLE);
             dateText.setAlpha(0.8f);
-            topBar.addView(dateText);
+            timeRow.addView(dateText);
         } else {
             dateText.setVisibility(View.GONE);
         }
+        leftCol.addView(timeRow);
         if (Prefs.greeting(ctx)) {
             barGreet = new TextView(ctx);
             barGreet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
@@ -1543,11 +1537,12 @@ public class HomeGrid implements SettingsPanel.Host {
             paintText(barGreet);
             LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            glp.leftMargin = dp(18);
-            topBar.addView(barGreet, glp);
+            glp.topMargin = dp(2);
+            leftCol.addView(barGreet, glp);
         } else {
             barGreet = null;
         }
+        topBar.addView(leftCol);
         topBar.addView(spacer, slp);
 
         List<AppModel.Item> pills = new ArrayList<AppModel.Item>();
@@ -1577,7 +1572,7 @@ public class HomeGrid implements SettingsPanel.Host {
         // The page scrolls below the bar, never behind it, and fades out as it nears it. The
         // padding keeps the first tile well clear of the pills when the page is at the top.
         updateClock();
-        setScrollTop(BAR_H_DP);
+        setScrollTop(barGreet != null ? BAR_H_DP + 24 : BAR_H_DP);
         column.setPadding(dp(MARGIN_DP), dp(28), dp(MARGIN_DP), dp(BOTTOM_DP));
     }
 

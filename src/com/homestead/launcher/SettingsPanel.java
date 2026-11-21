@@ -97,6 +97,17 @@ public final class SettingsPanel {
         });
         p.addNote(c.getString(R.string.set_simple_note));
 
+        final Panel.Row hud = p.addRow(c.getString(R.string.set_media_hud), onOff(Prefs.mediaHud(c)), null).asSwitch();
+        hud.setHelp(c.getString(R.string.set_media_hud_help));
+        hud.cell.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                boolean next = !Prefs.mediaHud(c);
+                Prefs.setMediaHud(c, next);
+                hud.setValue(onOff(next));
+                MediaHudOverlay.sync(c);
+            }
+        });
+
         p.addHeader(c.getString(R.string.set_system));
 
         boolean ready = SetupPanel.homeWorks(c);

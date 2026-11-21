@@ -797,4 +797,8 @@
   <string name="set_apps_one">Apps in one row</string>
   <string name="set_apps_one_help">TV apps and the other apps together in one grid, sorted as one list. The other apps get wide tiles made from their icons.</string>
   <string name="ro_in_apps">in Apps</string>
+
+  <!-- Media diagnostics HUD -->
+  <string name="set_media_hud">Media diagnostics HUD</string>
+  <string name="set_media_hud_help">Shows a floating overlay with active app, display resolution, refresh rate, HDR and network speed.</string>
 </resources>

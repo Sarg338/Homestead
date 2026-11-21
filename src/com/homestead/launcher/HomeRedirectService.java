@@ -252,6 +252,8 @@ public class HomeRedirectService extends AccessibilityService {
         return s != null && s.attached != null;
     }
 
+    static HomeRedirectService current() { return instance; }
+
     // ---------------------------------------------------------------- Home key watch
 
     private final Messenger fromWatcher = new Messenger(new Handler(Looper.getMainLooper()) {
@@ -433,6 +435,7 @@ public class HomeRedirectService extends AccessibilityService {
         Lang.apply(this);
         Prefs.setHomeOffByUser(this, false);
         wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+        MediaHudOverlay.sync(this);
         // Before the first load, so an input that registers during it is still noticed.
         try {
             tvInputs = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -504,6 +507,7 @@ public class HomeRedirectService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        MediaHudOverlay.hide();
         cancelHide();
         detach();
         try { unregisterReceiver(pkgs); } catch (Throwable t) { }
@@ -764,6 +768,7 @@ public class HomeRedirectService extends AccessibilityService {
             CharSequence c = e.getClassName();
             if (c == null || !c.toString().endsWith("Activity")) return;
         }
+        MediaHudOverlay.noteForegroundApp(p.toString());
         lastForeground = p.toString();
 
         if (isSettingsWindow(p, e.getClassName())) {

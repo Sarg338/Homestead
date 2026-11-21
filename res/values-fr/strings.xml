@@ -793,4 +793,8 @@
   <string name="set_apps_one">Applis sur une seule rangée</string>
   <string name="set_apps_one_help">Les applis TV et les autres ensemble dans une seule grille, triées comme une seule liste. Les autres applis reçoivent des tuiles larges faites de leur icône.</string>
   <string name="ro_in_apps">dans Applications</string>
+
+  <!-- HUD de diagnostic média -->
+  <string name="set_media_hud">HUD de diagnostic média</string>
+  <string name="set_media_hud_help">Affiche un encart flottant avec l\'appli active, la résolution, la fréquence (Hz), le HDR et le débit réseau.</string>
 </resources>

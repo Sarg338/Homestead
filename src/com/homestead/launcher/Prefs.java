@@ -71,6 +71,7 @@ public final class Prefs {
     private static final String K_LANGUAGE = "language";
     private static final String K_PINNED = "pinned";
     private static final String K_APPS_ONE = "apps_one_row";
+    private static final String K_MEDIA_HUD = "media_hud";
 
     public static final int SORT_LAST_USED = 0;
     public static final int SORT_ALPHA = 1;
@@ -501,5 +502,10 @@ public final class Prefs {
 
     public static void clearDisabledRecord(Context c) {
         sp(c).edit().putStringSet(K_DISABLED, new HashSet<String>()).apply();
+    }
+
+    public static boolean mediaHud(Context c) { return sp(c).getBoolean(K_MEDIA_HUD, false); }
+    public static void setMediaHud(Context c, boolean v) {
+        sp(c).edit().putBoolean(K_MEDIA_HUD, v).apply();
     }
 }

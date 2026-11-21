@@ -212,6 +212,11 @@ public class HomeGrid implements SettingsPanel.Host {
                     lastKeyDevice = e.getDeviceId();
                     lastKeySource = e.getSource();
                     lastKeyAt = android.os.SystemClock.uptimeMillis();
+                    if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_INFO && panels.isEmpty()) {
+                        Prefs.setMediaHud(ctx, !Prefs.mediaHud(ctx));
+                        MediaHudOverlay.sync(ctx);
+                        return true;
+                    }
                 }
                 if (e.getKeyCode() == android.view.KeyEvent.KEYCODE_BACK && !panels.isEmpty()) {
                     if (e.getAction() == android.view.KeyEvent.ACTION_UP) {

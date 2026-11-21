@@ -669,6 +669,11 @@ public class HomeGrid implements SettingsPanel.Host {
                 // row), so moving a tile there puts it on the dock.
                 + (dock && rowOf(it) == 3 ? " " + ctx.getString(Prefs.appsOneRow(ctx)
                         ? R.string.tm_move_help_dock_all : R.string.tm_move_help_dock) : ""));
+        if (it.type == AppModel.TYPE_INPUT) {
+            p.addRow(ctx.getString(R.string.tm_rename), "", new Runnable() {
+                public void run() { showRenameInput(it); }
+            }).opens().setHelp(ctx.getString(R.string.tm_rename_help));
+        }
         if (hideable(it)) {
             p.addRow(ctx.getString(R.string.tm_hide), "", new Runnable() {
                 public void run() {
@@ -682,6 +687,54 @@ public class HomeGrid implements SettingsPanel.Host {
         });
         showPanel(p.root);
         return true;
+    }
+
+    private void showRenameInput(final AppModel.Item it) {
+        final String key = it.key();
+        final Panel p = new Panel(ctx, it.label, null, Panel.SHEET);
+        String cur = Prefs.inputName(ctx, key);
+        final android.widget.EditText field = p.addField(cur, ctx.getString(R.string.tm_rename_hint));
+
+        p.addRow(ctx.getString(R.string.tm_rename_save), "", new Runnable() {
+            public void run() {
+                applyInputRename(key, field.getText().toString());
+            }
+        });
+        if (!cur.isEmpty()) {
+            p.addRow(ctx.getString(R.string.tm_rename_reset), "", new Runnable() {
+                public void run() {
+                    applyInputRename(key, "");
+                }
+            });
+        }
+
+        p.addHeader(ctx.getString(R.string.tm_rename_presets));
+        String[] presets = {
+                "PlayStation", "Xbox", "Nintendo Switch", "PC",
+                ctx.getString(R.string.tm_preset_tvbox),
+                "Apple TV", "Chromecast",
+                ctx.getString(R.string.tm_preset_soundbar)
+        };
+        for (int i = 0; i < presets.length; i++) {
+            final String preset = presets[i];
+            p.addRow(preset, "", new Runnable() {
+                public void run() {
+                    applyInputRename(key, preset);
+                }
+            });
+        }
+        p.addRow(ctx.getString(R.string.set_back), "", new Runnable() {
+            public void run() { closePanel(); }
+        });
+        showPanel(p.root);
+    }
+
+    private void applyInputRename(String key, String name) {
+        Prefs.setInputName(ctx, key, name);
+        AppModel.reload(ctx);
+        closePanel();
+        closePanel();
+        rebuild();
     }
 
     /**

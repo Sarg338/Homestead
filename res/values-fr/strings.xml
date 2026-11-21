@@ -793,4 +793,14 @@
   <string name="set_apps_one">Applis sur une seule rangée</string>
   <string name="set_apps_one_help">Les applis TV et les autres ensemble dans une seule grille, triées comme une seule liste. Les autres applis reçoivent des tuiles larges faites de leur icône.</string>
   <string name="ro_in_apps">dans Applications</string>
+
+  <!-- Renommage des entrées vidéo -->
+  <string name="tm_rename">Renommer</string>
+  <string name="tm_rename_help">Donnez un nom personnalisé à cette entrée vidéo (par exemple PlayStation, Box TV ou PC).</string>
+  <string name="tm_rename_hint">Nom personnalisé (ex. PlayStation)</string>
+  <string name="tm_rename_save">Enregistrer le nom</string>
+  <string name="tm_rename_reset">Rétablir le nom d\'origine</string>
+  <string name="tm_rename_presets">Noms rapides</string>
+  <string name="tm_preset_tvbox">Box TV</string>
+  <string name="tm_preset_soundbar">Barre de son</string>
 </resources>

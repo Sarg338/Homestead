@@ -502,4 +502,23 @@ public final class Prefs {
     public static void clearDisabledRecord(Context c) {
         sp(c).edit().putStringSet(K_DISABLED, new HashSet<String>()).apply();
     }
+
+    // ------------------------------------------------------------ custom input names
+
+    private static final String INPUT_NAMES_FILE = "input_names";
+
+    public static String inputName(Context c, String key) {
+        if (key == null) return "";
+        return c.getSharedPreferences(INPUT_NAMES_FILE, Context.MODE_PRIVATE).getString(key, "");
+    }
+
+    public static void setInputName(Context c, String key, String name) {
+        if (key == null) return;
+        SharedPreferences.Editor e =
+                c.getSharedPreferences(INPUT_NAMES_FILE, Context.MODE_PRIVATE).edit();
+        String v = name == null ? "" : name.trim();
+        if (v.isEmpty()) e.remove(key);
+        else e.putString(key, v);
+        e.apply();
+    }
 }

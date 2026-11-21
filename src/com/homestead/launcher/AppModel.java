@@ -567,6 +567,8 @@ public final class AppModel {
                 it.label = (lb == null || lb.length() == 0) ? c.getString(R.string.home_input) : lb.toString();
                 it.glyph = it.label.toUpperCase(Locale.US).startsWith("HDMI")
                         ? R.drawable.ic_in_hdmi : R.drawable.ic_in_composite;
+                String custom = Prefs.inputName(c, it.key());
+                if (!custom.isEmpty()) it.label = custom;
                 it.connected = inputConnected(tim, it.inputId);
                 ITEMS.add(it);
             }

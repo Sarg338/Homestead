@@ -797,4 +797,14 @@
   <string name="set_apps_one">Apps in one row</string>
   <string name="set_apps_one_help">TV apps and the other apps together in one grid, sorted as one list. The other apps get wide tiles made from their icons.</string>
   <string name="ro_in_apps">in Apps</string>
+
+  <!-- Rename video inputs -->
+  <string name="tm_rename">Rename</string>
+  <string name="tm_rename_help">Give this video input a custom name (such as PlayStation, TV Box, or PC).</string>
+  <string name="tm_rename_hint">Custom name (e.g. PlayStation)</string>
+  <string name="tm_rename_save">Save name</string>
+  <string name="tm_rename_reset">Reset to default</string>
+  <string name="tm_rename_presets">Quick names</string>
+  <string name="tm_preset_tvbox">TV Box</string>
+  <string name="tm_preset_soundbar">Soundbar</string>
 </resources>

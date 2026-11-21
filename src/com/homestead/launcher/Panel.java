@@ -22,6 +22,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -274,6 +275,28 @@ public class Panel {
         column.addView(n, lp(dp(2), dp(12)));
         lastRow = null;
         return n;
+    }
+
+    /** A focusable text field styled to match the panel rows. */
+    public EditText addField(String initial, String hint) {
+        EditText e = new EditText(ctx);
+        e.setText(initial == null ? "" : initial);
+        e.setHint(hint);
+        e.setTextColor(TEXT);
+        e.setHintTextColor(MUTE);
+        e.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        e.setSingleLine(true);
+        e.setFocusable(true);
+        e.setFocusableInTouchMode(true);
+        e.setPadding(dp(16), dp(12), dp(16), dp(12));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(ROW_BG);
+        bg.setCornerRadius(dp(10));
+        bg.setStroke(dp(1), 0x33FFFFFF);
+        e.setBackground(bg);
+        column.addView(e, lp(dp(2), dp(10)));
+        lastRow = null;
+        return e;
     }
 
     /** Explains every row of the current section that has no explanation of its own. */

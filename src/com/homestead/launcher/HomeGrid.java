@@ -1512,6 +1512,8 @@ public class HomeGrid implements SettingsPanel.Host {
         timeRow.setGravity(Gravity.CENTER_VERTICAL);
         clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 34);
         clock.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+        if (clock.getParent() instanceof ViewGroup) ((ViewGroup) clock.getParent()).removeView(clock);
+        if (dateText.getParent() instanceof ViewGroup) ((ViewGroup) dateText.getParent()).removeView(dateText);
         timeRow.addView(clock);
         if (showClock && Prefs.dateFormat(ctx) != Prefs.DATE_OFF) {
             View rule = new View(ctx);
